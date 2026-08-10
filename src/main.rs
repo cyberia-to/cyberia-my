@@ -1,4 +1,6 @@
 mod app;
+mod cities;
+mod console;
 
 fn main() {
     console_error_panic_hook::set_once();
