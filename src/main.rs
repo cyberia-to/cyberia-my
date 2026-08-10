@@ -1,6 +1,7 @@
 mod app;
 mod cities;
 mod console;
+mod events;
 
 fn main() {
     console_error_panic_hook::set_once();

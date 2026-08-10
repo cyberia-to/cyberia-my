@@ -390,6 +390,31 @@ button.city-card:hover {
     color: var(--cyber-yellow);
     background: rgba(255, 215, 0, 0.1);
 }
+.intent-commit.event {
+    margin-top: 14px;
+    border-color: var(--cyber-magenta);
+    color: var(--cyber-magenta);
+    background: rgba(255, 0, 255, 0.1);
+}
+.cta-event {
+    color: var(--cyber-magenta);
+    border-color: rgba(255, 0, 255, 0.65);
+    background: rgba(255, 0, 255, 0.1);
+    box-shadow: 0 0 18px rgba(255, 0, 255, 0.1);
+    font-weight: 800;
+}
+.cta-event:hover {
+    background: rgba(255, 0, 255, 0.18);
+    box-shadow: 0 0 24px rgba(255, 0, 255, 0.18);
+}
+.city-status.upcoming {
+    color: var(--cyber-cyan);
+    border-color: rgba(0, 229, 255, 0.4);
+    background: rgba(0, 229, 255, 0.08);
+}
+.event-card .city-name {
+    font-size: 18px;
+}
 @media (max-width: 720px) {
     .cities-shell {
         height: auto;

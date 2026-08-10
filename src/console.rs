@@ -785,6 +785,7 @@ pub fn ValleyConsole() -> impl IntoView {
                 </div>
                 <div class="map-zone">
                     <a class="nav-btn" href="/cities">"CITIES"</a>
+                    <a class="nav-btn" href="/events">"EVENTS"</a>
                     <a class="nav-btn nav-here" href="/city/cyber-valley">"CONSOLE"</a>
                     <a class="nav-btn" href="https://cyberstates.net" target="_blank" rel="noopener">"STATES"</a>
                 </div>

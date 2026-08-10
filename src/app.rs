@@ -2,6 +2,7 @@
 
 use crate::cities::CitiesPage;
 use crate::console::ValleyConsole;
+use crate::events::EventsPage;
 use leptos::prelude::*;
 use leptos_router::components::*;
 use leptos_router::path;
@@ -21,6 +22,7 @@ pub fn App() -> impl IntoView {
             }>
                 <Route path=path!("/") view=CitiesPage />
                 <Route path=path!("/cities") view=CitiesPage />
+                <Route path=path!("/events") view=EventsPage />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />
             </Routes>
