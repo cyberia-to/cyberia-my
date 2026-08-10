@@ -12,8 +12,8 @@ def main [--skip-build] {
 
   if not $skip_build {
     print "→ trunk build --release"
-    # prefer rustup cargo (homebrew cargo often lacks wasm32 std)
-    let path = $"($env.HOME)/.cargo/bin:($env.PATH)"
+    # rustup cargo + homebrew trunk
+    let path = $"($env.HOME)/.cargo/bin:/opt/homebrew/bin:($env.PATH)"
     with-env { PATH: $path } { ^trunk build --release }
   }
 
