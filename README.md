@@ -21,9 +21,9 @@ Rsyncs `dist/` → `cyberproxy:/var/www/html/cyberia.my/`.
 
 ### Domain
 
-1. **DNS** — point `cyberia.my` (+ optional `www`) **A** to cyberproxy: `167.235.28.94`
-2. **nginx** — install `scripts/nginx-cyberia.my.conf` on cyberproxy (see comments in file)
-3. **TLS** — `sudo certbot --nginx -d cyberia.my -d www.cyberia.my`
+1. **DNS** — apex only: `cyberia.my` **A** → `167.235.28.94` (no www)
+2. **nginx + TLS** — already on cyberproxy (`/etc/nginx/sites-enabled/cyberia.my`, certbot)
+3. Public: **https://cyberia.my/**
 
 ## Origin
 
