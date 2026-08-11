@@ -191,6 +191,18 @@ pub fn WorldPage() -> impl IntoView {
                         <span class="cta-sub">"typed particle"</span>
                     </span>
                 </a>
+                <a class="cta-btn cta-event cta-lg" href="/world/cards/new" style="text-decoration:none;">
+                    <span class="cta-copy">
+                        <span class="cta-title">"+ CARD"</span>
+                        <span class="cta-sub">"TSP-2 · unique entity"</span>
+                    </span>
+                </a>
+                <a class="cta-btn cta-buy cta-lg" href="/world/coins/new" style="text-decoration:none;">
+                    <span class="cta-copy">
+                        <span class="cta-title">"+ COIN"</span>
+                        <span class="cta-sub">"TSP-1 · divisible value"</span>
+                    </span>
+                </a>
                 <a class="cta-btn cta-event cta-lg" href="/world/templates/new" style="text-decoration:none;">
                     <span class="cta-copy">
                         <span class="cta-title">"+ MOTIF"</span>
@@ -208,6 +220,27 @@ pub fn WorldPage() -> impl IntoView {
                         <span class="cta-title">"+ VIEW"</span>
                         <span class="cta-sub">"projection"</span>
                     </span>
+                </a>
+            </div>
+
+            // nature — the dialect's two token natures + the living layer.
+            // every entity is one of these; the graph carries their relations
+            <div class="studio-section-h" style="margin-top:12px;"><span>"NATURE — TSP-1 · TSP-2 · GENOME"</span></div>
+            <div class="bank-kpi-grid me-counts">
+                <a class="kpi me-kpi" href="/world/cards">
+                    <div class="kpi-lab">"CARDS · TSP-2"</div>
+                    <div class="kpi-val">{move || crate::erp::load_cards().len().to_string()}</div>
+                    <div class="kpi-sub">"unique entities · owner_count = 1"</div>
+                </a>
+                <a class="kpi me-kpi" href="/world/coins">
+                    <div class="kpi-lab">"COINS · TSP-1"</div>
+                    <div class="kpi-val">{move || crate::wallet::load_stocks().len().to_string()}</div>
+                    <div class="kpi-sub">"divisible value · Σ balances = supply"</div>
+                </a>
+                <a class="kpi me-kpi" href="/genetics">
+                    <div class="kpi-lab">"GENETICS"</div>
+                    <div class="kpi-val">{crate::genetics::SPECIES.len().to_string()}</div>
+                    <div class="kpi-sub">"species — the living layer →"</div>
                 </a>
             </div>
 

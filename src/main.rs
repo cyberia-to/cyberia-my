@@ -5,6 +5,7 @@ mod economy;
 mod elements;
 mod erp;
 mod events;
+mod genetics;
 mod land;
 mod market;
 mod me;

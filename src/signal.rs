@@ -109,7 +109,7 @@ pub fn neuron() -> NeuronInfo {
 /// `coin` (TSP-1-ish) and free `concept`.
 pub const WORD_KINDS: &[&str] = &[
     "concept", "relation", "person", "city", "plot", "place", "building", "project", "asset",
-    "coin",
+    "coin", "species",
 ];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -507,6 +507,8 @@ pub const DIALECT_RELATIONS: &[(&str, &str)] = &[
     ("intends", "draft assertion — proof in progress"),
     ("priced_in", "denomination relation"),
     ("member_of", "membership relation"),
+    ("produces", "genetic yield — species produces good"),
+    ("grows", "cultivation — plot grows species"),
 ];
 
 /// Old-ERP shapes we migrate from (minimal mirrors of erp.rs structs).
