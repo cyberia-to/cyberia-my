@@ -1,10 +1,11 @@
 //! Cities catalog — multi-city surface for cyberia.my
 //! Cyber Valley is the first live entry; Found City seeds local catalog.
 
+use crate::land::FLAG_SVG;
+use crate::nav::CyberiaNav;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
-const FLAG_SVG: &str = include_str!("../assets/cyberia-flag.svg");
 const FOUND_KEY: &str = "cyberia_found_cities";
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -25,15 +26,15 @@ fn seed_cities() -> Vec<CityCard> {
         id: "cyber-valley".into(),
         name: "Cyber Valley".into(),
         region: "Gesing · Bali · Indonesia".into(),
-        blurb: "Phase 0 land console — 126 plots, hard-force fleets, intents.".into(),
+        blurb: "Phase 0 land map — 126 plots, hard-force fleets, intents.".into(),
         ha: 37.0,
         plots: 126,
         status: "live".into(),
-        href: "/city/cyber-valley".into(),
+        href: "/map".into(),
     }]
 }
 
-fn load_found() -> Vec<CityCard> {
+pub fn load_found() -> Vec<CityCard> {
     web_sys::window()
         .and_then(|w| w.local_storage().ok().flatten())
         .and_then(|ls| ls.get_item(FOUND_KEY).ok().flatten())
@@ -109,12 +110,7 @@ pub fn CitiesPage() -> impl IntoView {
                             <span class="phase-dot"></span>
                             {move || format!("{} CITIES", catalog().len())}
                         </div>
-                        <div class="map-zone">
-                            <a class="nav-btn nav-here" href="/cities">"CITIES"</a>
-                            <a class="nav-btn" href="/events">"EVENTS"</a>
-                            <a class="nav-btn" href="/city/cyber-valley">"CONSOLE"</a>
-                            <a class="nav-btn" href="https://cyberstates.net" target="_blank" rel="noopener">"STATES"</a>
-                        </div>
+                        <CyberiaNav active="cities" />
                     </div>
                 </div>
             </div>
@@ -125,19 +121,15 @@ pub fn CitiesPage() -> impl IntoView {
                         <div class="cities-kicker">"CATALOG"</div>
                         <h2 class="cities-title">"Cities of Cyberia"</h2>
                         <p class="cities-lead">
-                            "Land-first network cities. Open a live console, or found a new one."
+                            "Land-first network cities. Open a live map, or found a new one."
                         </p>
                     </div>
-                    <button class="cta-btn cta-found cta-lg cta-bold" on:click=move |_| {
-                        err.set(None);
-                        sheet_open.set(true);
-                    }>
-                        <span class="cta-ico">"⚑"</span>
+                    <a class="cta-btn cta-lease cta-lg" href="/world" style="text-decoration:none;">
                         <span class="cta-copy">
-                            <span class="cta-title">"FOUND CITY"</span>
-                            <span class="cta-sub">"register a new cyberia node"</span>
+                            <span class="cta-title">"ERP STUDIO"</span>
+                            <span class="cta-sub">"create cards · coins · build"</span>
                         </span>
-                    </button>
+                    </a>
                 </div>
 
                 <div class="cities-grid">
@@ -165,7 +157,7 @@ pub fn CitiesPage() -> impl IntoView {
                                 <div class="city-meta">
                                     <span>{if ha > 0.0 { format!("{ha:.0} ha") } else { "— ha".into() }}</span>
                                     <span>{if plots > 0 { format!("{plots} plots") } else { "plots TBD".into() }}</span>
-                                    <span class="city-open">{if live { "OPEN CONSOLE →" } else { "FOUNDING →" }}</span>
+                                    <span class="city-open">{if live { "OPEN MAP →" } else { "FOUNDING →" }}</span>
                                 </div>
                             </a>
                         }
@@ -183,7 +175,7 @@ pub fn CitiesPage() -> impl IntoView {
                         <div class="city-name">"Found a city"</div>
                         <div class="city-region">"next cyberia node"</div>
                         <p class="city-blurb">
-                            "Claim a region, seed the catalog. Console + map land later."
+                            "Claim a region, seed the catalog. Map + fleets land later."
                         </p>
                         <div class="city-meta">
                             <span>"— ha"</span>
@@ -203,7 +195,7 @@ pub fn CitiesPage() -> impl IntoView {
                             <button class="sheet-x" on:click=move |_| sheet_open.set(false)>"✕"</button>
                         </div>
                         <p class="sheet-note">
-                            "Soft3 local catalog — no closed backend yet. City appears in your browser; land console ships later."
+                            "Soft3 local catalog — no closed backend yet. City appears in your browser; land map ships later."
                         </p>
                         <label class="found-label">"NAME"</label>
                         <input
@@ -304,7 +296,7 @@ pub fn CitiesPage() -> impl IntoView {
                     {move || {
                         let n = catalog().len();
                         let f = found.get().len();
-                        format!("{n} cities · {f} founded here · 1 live console")
+                        format!("{n} cities · {f} founded here · 1 live map")
                     }}
                 </span>
                 <button class="cta-btn cta-found cta-lg cta-bold dock-found" on:click=move |_| {

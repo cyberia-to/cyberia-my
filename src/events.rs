@@ -1,10 +1,11 @@
-//! Events catalog — multi-event surface for cyberia.my
+//! Calendar — multi-event surface for cyberia.my
 //! Seeded Cyber Valley events + Add Event (localStorage).
 
+use crate::land::FLAG_SVG;
+use crate::nav::CyberiaNav;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
-const FLAG_SVG: &str = include_str!("../assets/cyberia-flag.svg");
 const EVENTS_KEY: &str = "cyberia_events";
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -26,7 +27,7 @@ fn seed_events() -> Vec<EventCard> {
             city: "Cyber Valley".into(),
             when: "ongoing".into(),
             where_: "Gesing · plots + fleets".into(),
-            blurb: "Daily land work — survey, clear, plant. Open the console.".into(),
+            blurb: "Daily land work — survey, clear, plant. Open the map.".into(),
             status: "live".into(),
         },
         EventCard {
@@ -41,7 +42,7 @@ fn seed_events() -> Vec<EventCard> {
     ]
 }
 
-fn load_user_events() -> Vec<EventCard> {
+pub fn load_user_events() -> Vec<EventCard> {
     web_sys::window()
         .and_then(|w| w.local_storage().ok().flatten())
         .and_then(|ls| ls.get_item(EVENTS_KEY).ok().flatten())
@@ -93,7 +94,7 @@ pub fn EventsPage() -> impl IntoView {
     let err = RwSignal::new(None::<String>);
 
     Effect::new(move |_| {
-        document().set_title("Cyberia — events");
+        document().set_title("Cyberia — calendar");
     });
 
     let catalog = move || {
@@ -117,14 +118,9 @@ pub fn EventsPage() -> impl IntoView {
                         </div>
                         <div class="cyberia-phase-pill">
                             <span class="phase-dot"></span>
-                            {move || format!("{} EVENTS", catalog().len())}
+                            {move || format!("{} ON CALENDAR", catalog().len())}
                         </div>
-                        <div class="map-zone">
-                            <a class="nav-btn" href="/cities">"CITIES"</a>
-                            <a class="nav-btn nav-here" href="/events">"EVENTS"</a>
-                            <a class="nav-btn" href="/city/cyber-valley">"CONSOLE"</a>
-                            <a class="nav-btn" href="https://cyberstates.net" target="_blank" rel="noopener">"STATES"</a>
-                        </div>
+                        <CyberiaNav active="calendar" />
                     </div>
                 </div>
             </div>
@@ -133,21 +129,11 @@ pub fn EventsPage() -> impl IntoView {
                 <div class="cities-hero">
                     <div>
                         <div class="cities-kicker">"CATALOG"</div>
-                        <h2 class="cities-title">"Events"</h2>
+                        <h2 class="cities-title">"Calendar"</h2>
                         <p class="cities-lead">
                             "Gatherings across Cyberia cities — land ops, soft circles, and what you add."
                         </p>
                     </div>
-                    <button class="cta-btn cta-event cta-lg cta-bold" on:click=move |_| {
-                        err.set(None);
-                        sheet_open.set(true);
-                    }>
-                        <span class="cta-ico">"✚"</span>
-                        <span class="cta-copy">
-                            <span class="cta-title">"ADD EVENT"</span>
-                            <span class="cta-sub">"post to the catalog"</span>
-                        </span>
-                    </button>
                 </div>
 
                 <div class="cities-grid">
@@ -169,9 +155,9 @@ pub fn EventsPage() -> impl IntoView {
                         let status = e.status.to_uppercase();
                         let rank = i + 1;
                         let href = if e.city == "Cyber Valley" {
-                            "/city/cyber-valley".to_string()
+                            "/map".to_string()
                         } else {
-                            "/events".to_string()
+                            "/calendar".to_string()
                         };
                         view! {
                             <a class=if live { "city-card live event-card" } else { "city-card founding event-card" } href=href>
@@ -185,7 +171,7 @@ pub fn EventsPage() -> impl IntoView {
                                 <div class="city-meta">
                                     <span>{where_}</span>
                                     <span class="city-open">
-                                        {if live { "OPEN CONSOLE →" } else { "LISTED →" }}
+                                        {if live { "OPEN MAP →" } else { "LISTED →" }}
                                     </span>
                                 </div>
                             </a>
@@ -331,7 +317,7 @@ pub fn EventsPage() -> impl IntoView {
                     {move || {
                         let n = catalog().len();
                         let u = user_events.get().len();
-                        format!("{n} events · {u} added here")
+                        format!("{n} on calendar · {u} added here")
                     }}
                 </span>
                 <button class="cta-btn cta-event cta-lg cta-bold dock-found" on:click=move |_| {

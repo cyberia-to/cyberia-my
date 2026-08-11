@@ -6,12 +6,16 @@
 //! - client-local queue only — no proprietary backend API
 //! - vocabulary: fleet (work), flat (hold/space), intent (write)
 
+use crate::land::FLAG_SVG;
+use crate::nav::CyberiaNav;
+use crate::robots::{load_owned, save_owned, OwnedRobot};
+use crate::wallet::{
+    debit_cx, load_intents, load_leases, save_intents, save_leases, IntentRec, Lease,
+};
 use leptos::prelude::*;
 use serde::Deserialize;
 use wasm_bindgen::JsCast;
 
-
-const FLAG_SVG: &str = include_str!("../assets/cyberia-flag.svg");
 const MAP_JSON: &str = include_str!("cyberia_map.json");
 
 #[derive(Clone, Debug, Deserialize)]
@@ -620,23 +624,6 @@ enum Sheet {
     MergeLand,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct Intent {
-    id: u64,
-    /// work unit / buyer label / "LEASE"
-    fleet: String,
-    action: String,
-    flat: String,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-struct OwnedRobot {
-    id: String,
-    name: String,
-    kind: String,
-    role: String,
-}
-
 fn load_map() -> MapData {
     serde_json::from_str(MAP_JSON).expect("cyberia_map.json")
 }
@@ -698,22 +685,62 @@ pub fn ValleyConsole() -> impl IntoView {
     let map = load_map();
     let map = std::sync::Arc::new(map);
 
-    let selected_flat = RwSignal::new(
-        map.phase0
-            .first()
-            .map(|f| f.id.clone())
-            .or_else(|| Some("sinwood".into())),
-    );
+    let selected_flat = RwSignal::new({
+        let from_q = web_sys::window()
+            .and_then(|w| w.location().search().ok())
+            .and_then(|s| {
+                let s = s.trim_start_matches('?');
+                s.split('&').find_map(|pair| {
+                    let mut it = pair.splitn(2, '=');
+                    let k = it.next()?;
+                    let v = it.next().unwrap_or("");
+                    if k == "plot" && !v.is_empty() {
+                        // plot ids are ascii (core-0, sinwood-1-laba, …)
+                        Some(v.replace('+', " "))
+                    } else {
+                        None
+                    }
+                })
+            });
+        from_q
+            .filter(|id| map.phase0.iter().any(|f| f.id == *id))
+            .or_else(|| map.phase0.first().map(|f| f.id.clone()))
+            .or_else(|| Some("sinwood".into()))
+    });
     let selected_fleet = RwSignal::new(Some("w-sutar".to_string()));
     let selected_action = RwSignal::new("survey".to_string());
-    let intents = RwSignal::new(Vec::<Intent>::new());
-    let next_id = RwSignal::new(1u64);
-    let owned = RwSignal::new(Vec::<OwnedRobot>::new());
-    let leased = RwSignal::new(Vec::<String>::new()); // flat ids
+    let intents = RwSignal::new(load_intents());
+    let next_id = RwSignal::new(
+        load_intents()
+            .iter()
+            .map(|i| i.id)
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1),
+    );
+    let owned = RwSignal::new(load_owned());
+    let leased = RwSignal::new(
+        load_leases()
+            .into_iter()
+            .map(|l| l.flat_id)
+            .collect::<Vec<String>>(),
+    );
     let flats = RwSignal::new(map.phase0.clone()); // live land geometry (split/merge)
     let sheet = RwSignal::new(Sheet::None);
     let buy_pick = RwSignal::new("cat-eye".to_string());
-    let robot_serial = RwSignal::new(1u32);
+    let robot_serial = RwSignal::new({
+        let max = load_owned()
+            .iter()
+            .filter_map(|r| {
+                r.name
+                    .rsplit('-')
+                    .next()
+                    .and_then(|s| s.parse::<u32>().ok())
+            })
+            .max()
+            .unwrap_or(0);
+        max + 1
+    });
     let merge_pick = RwSignal::new(None::<String>); // second flat for merge
                                                     // split controls: axis 0 = E/W (vertical line), 1 = N/S (horizontal line)
     let split_axis = RwSignal::new(0usize);
@@ -758,7 +785,7 @@ pub fn ValleyConsole() -> impl IntoView {
     };
 
     Effect::new(move |_| {
-        document().set_title("Cyberia — fleets & flats · Gesing, Bali");
+        document().set_title("Cyberia — map · Gesing, Bali");
     });
 
     let map_for_svg = map.clone();
@@ -783,12 +810,7 @@ pub fn ValleyConsole() -> impl IntoView {
                         format!("PHASE 0 · {n} PLOTS · GESING")
                     }}
                 </div>
-                <div class="map-zone">
-                    <a class="nav-btn" href="/cities">"CITIES"</a>
-                    <a class="nav-btn" href="/events">"EVENTS"</a>
-                    <a class="nav-btn nav-here" href="/city/cyber-valley">"CONSOLE"</a>
-                    <a class="nav-btn" href="https://cyberstates.net" target="_blank" rel="noopener">"STATES"</a>
-                </div>
+                <CyberiaNav active="map" />
             </div>
             </div>
             </div>
@@ -1369,12 +1391,16 @@ pub fn ValleyConsole() -> impl IntoView {
                                 let id = next_id.get();
                                 next_id.set(id + 1);
                                 intents.update(|q| {
-                                    q.insert(0, Intent {
-                                        id,
-                                        fleet: fleet_name,
-                                        action,
-                                        flat,
-                                    });
+                                    q.insert(
+                                        0,
+                                        IntentRec {
+                                            id,
+                                            fleet: fleet_name,
+                                            action,
+                                            flat,
+                                        },
+                                    );
+                                    save_intents(q);
                                 });
                             }
                         >
@@ -1474,18 +1500,24 @@ pub fn ValleyConsole() -> impl IntoView {
                                             kind: cat.kind.to_string(),
                                             role: cat.role.to_string(),
                                         });
+                                        save_owned(v);
                                     });
                                     selected_fleet.set(Some(unit_id));
                                     let id = next_id.get();
                                     next_id.set(id + 1);
                                     intents.update(|q| {
-                                        q.insert(0, Intent {
-                                            id,
-                                            fleet: unit_name,
-                                            action: "buy".into(),
-                                            flat: "market".into(),
-                                        });
+                                        q.insert(
+                                            0,
+                                            IntentRec {
+                                                id,
+                                                fleet: unit_name,
+                                                action: "buy".into(),
+                                                flat: "market".into(),
+                                            },
+                                        );
+                                        save_intents(q);
                                     });
+                                    debit_cx(15.0);
                                     sheet.set(Sheet::None);
                                 }
                             >
@@ -1562,16 +1594,36 @@ pub fn ValleyConsole() -> impl IntoView {
                                         return;
                                     }
                                     leased.update(|v| v.push(flat.clone()));
+                                    let (name, zone) = flats
+                                        .get_untracked()
+                                        .into_iter()
+                                        .find(|f| f.id == flat)
+                                        .map(|f| (f.name, f.zone))
+                                        .unwrap_or_else(|| (flat.clone(), String::new()));
+                                    let mut full = load_leases();
+                                    if !full.iter().any(|l| l.flat_id == flat) {
+                                        full.push(Lease {
+                                            flat_id: flat.clone(),
+                                            flat_name: name,
+                                            zone,
+                                        });
+                                        save_leases(&full);
+                                    }
                                     let id = next_id.get();
                                     next_id.set(id + 1);
                                     intents.update(|q| {
-                                        q.insert(0, Intent {
-                                            id,
-                                            fleet: "YOU".into(),
-                                            action: "lease".into(),
-                                            flat: flat.clone(),
-                                        });
+                                        q.insert(
+                                            0,
+                                            IntentRec {
+                                                id,
+                                                fleet: "YOU".into(),
+                                                action: "lease".into(),
+                                                flat: flat.clone(),
+                                            },
+                                        );
+                                        save_intents(q);
                                     });
+                                    debit_cx(10.0);
                                     sheet.set(Sheet::None);
                                 }
                             >
@@ -1766,19 +1818,28 @@ pub fn ValleyConsole() -> impl IntoView {
                                         v.push(b);
                                     });
                                     leased.update(|v| v.retain(|x| x != &fid));
+                                    {
+                                        let mut full = load_leases();
+                                        full.retain(|l| l.flat_id != fid);
+                                        save_leases(&full);
+                                    }
                                     selected_flat.set(Some(a_id));
                                     let id = next_id.get();
                                     next_id.set(id + 1);
                                     intents.update(|q| {
-                                        q.insert(0, Intent {
-                                            id,
-                                            fleet: "YOU".into(),
-                                            action: "split".into(),
-                                            flat: format!(
-                                                "{fid} → {:.0}+{:.0} m²",
-                                                a_m2, b_m2
-                                            ),
-                                        });
+                                        q.insert(
+                                            0,
+                                            IntentRec {
+                                                id,
+                                                fleet: "YOU".into(),
+                                                action: "split".into(),
+                                                flat: format!(
+                                                    "{fid} → {:.0}+{:.0} m²",
+                                                    a_m2, b_m2
+                                                ),
+                                            },
+                                        );
+                                        save_intents(q);
                                     });
                                     sheet.set(Sheet::None);
                                 }
@@ -1873,17 +1934,26 @@ pub fn ValleyConsole() -> impl IntoView {
                                     leased.update(|v| {
                                         v.retain(|x| x != &a_id && x != &b_id);
                                     });
+                                    {
+                                        let mut full = load_leases();
+                                        full.retain(|l| l.flat_id != a_id && l.flat_id != b_id);
+                                        save_leases(&full);
+                                    }
                                     selected_flat.set(Some(mid.clone()));
                                     merge_pick.set(None);
                                     let id = next_id.get();
                                     next_id.set(id + 1);
                                     intents.update(|q| {
-                                        q.insert(0, Intent {
-                                            id,
-                                            fleet: "YOU".into(),
-                                            action: "merge".into(),
-                                            flat: format!("{a_id}+{b_id}"),
-                                        });
+                                        q.insert(
+                                            0,
+                                            IntentRec {
+                                                id,
+                                                fleet: "YOU".into(),
+                                                action: "merge".into(),
+                                                flat: format!("{a_id}+{b_id}"),
+                                            },
+                                        );
+                                        save_intents(q);
                                     });
                                     sheet.set(Sheet::None);
                                 }

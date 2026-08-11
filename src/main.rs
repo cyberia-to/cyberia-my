@@ -1,7 +1,21 @@
 mod app;
 mod cities;
 mod console;
+mod economy;
+mod elements;
+mod erp;
 mod events;
+mod land;
+mod market;
+mod me;
+mod nav;
+mod places;
+mod plots;
+mod robots;
+mod states;
+mod studio;
+mod wallet;
+mod world;
 
 fn main() {
     console_error_panic_hook::set_once();
