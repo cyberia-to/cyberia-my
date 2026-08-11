@@ -12,6 +12,8 @@ mod nav;
 mod places;
 mod plots;
 mod robots;
+mod signal;
+mod signal_pages;
 mod states;
 mod studio;
 mod wallet;

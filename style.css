@@ -681,6 +681,99 @@ a.kpi.me-kpi {
     color: inherit;
     display: block;
 }
+/* Views — projections */
+.view-detail {
+    max-width: 1100px;
+}
+.view-summary {
+    color: var(--cyber-green);
+    font-size: 13px;
+    margin: 10px 0 8px;
+    letter-spacing: 0.3px;
+}
+.view-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.view-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
+    background: #080808;
+}
+.view-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.view-table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    color: #666;
+    padding: 10px 12px;
+    border-bottom: 1px solid #1c1c1c;
+    white-space: nowrap;
+}
+.view-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #121212;
+    color: #ccc;
+    word-break: break-word;
+}
+.view-table tr:hover td {
+    background: #0c0c0c;
+}
+.view-kanban {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    align-items: start;
+}
+.kanban-col {
+    background: #080808;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
+    min-height: 120px;
+}
+.kanban-h {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--cyber-cyan);
+    padding: 10px 12px;
+    border-bottom: 1px solid #1a1a1a;
+}
+.kanban-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+.kanban-card,
+.kanban-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: #0c0c0c;
+    border: 1px solid #222;
+    border-radius: 3px;
+    padding: 10px;
+}
+.kanban-card-link:hover .kanban-card,
+a.kanban-card-link:hover {
+    border-color: rgba(0, 255, 65, 0.4);
+}
+a.kanban-card-link {
+    border: 1px solid #222;
+    border-radius: 3px;
+    padding: 0;
+}
+a.kanban-card-link .kanban-card {
+    border: none;
+}
 /* ERP kernel layers */
 .kernel-stack {
     display: flex;

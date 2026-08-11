@@ -126,8 +126,8 @@ pub fn CitiesPage() -> impl IntoView {
                     </div>
                     <a class="cta-btn cta-lease cta-lg" href="/world" style="text-decoration:none;">
                         <span class="cta-copy">
-                            <span class="cta-title">"ERP STUDIO"</span>
-                            <span class="cta-sub">"create cards · coins · build"</span>
+                            <span class="cta-title">"SIGNAL STUDIO"</span>
+                            <span class="cta-sub">"words · links · signals"</span>
                         </span>
                     </a>
                 </div>

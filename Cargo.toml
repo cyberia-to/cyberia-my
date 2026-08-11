@@ -12,6 +12,14 @@ serde_json = "1"
 console_error_panic_hook = "0.1"
 wasm-bindgen = "0.2"
 js-sys = "0.3"
+
+# the real stack, not a simulation: particles are hemera (Poseidon2) hashes,
+# the neuron is a mudra domain-scoped key (same identity pipeline as the
+# lytics tracker), signals carry ADR-036 signatures. `default-features =
+# false` on mudra drops the bip32/bip39 bridge — wasm stays lean.
+hemera = { package = "cyber-hemera", path = "../hemera/rs" }
+mudra = { path = "../mudra", default-features = false }
+getrandom = { version = "0.2", features = ["js"] }
 web-sys = { version = "0.3", features = [
     "Window",
     "Document",

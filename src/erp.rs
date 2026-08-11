@@ -1,12 +1,12 @@
-//! ERP kernel — cyberlink-native.
-//! Everything is a cyberlink. Intent = draft cyberlink (first step).
-//! Coin · Card · Template · Schedule · PLUMB · View orbit the graph.
-//! cyber · cyberia/protocol/system.md · cybergraph
+//! The cyberia dialect kernel — cards · coins · motifs (templates) ·
+//! intents · schedules · views, all riding the signal graph (signal.rs).
+//! PLUMB ops move real stock; every run lands in the graph as one signed
+//! signal. cyberia/protocol/system.md is the dialect spec.
 
 use crate::economy::BOMS;
 use crate::wallet::{
     ensure_economy_boot, load_leases, load_profile, push_intent, stock_add, stock_consume,
-    stock_has, stock_qty, Lease,
+    stock_has, stock_qty,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,10 +14,10 @@ pub const CARDS_KEY: &str = "cyberia_erp_cards";
 pub const ERP_INTENTS_KEY: &str = "cyberia_erp_intents";
 pub const TEMPLATES_KEY: &str = "cyberia_erp_templates";
 pub const SCHEDULES_KEY: &str = "cyberia_erp_schedules";
-pub const BONDS_KEY: &str = "cyberia_erp_bonds";
-pub const LINKS_KEY: &str = "cyberia_cyberlinks";
+pub const VIEWS_KEY: &str = "cyberia_erp_views";
 pub const ERP_BOOT_KEY: &str = "cyberia_erp_boot";
 pub const TPL_SEED_KEY: &str = "cyberia_erp_tpl_seed_v2";
+pub const VIEW_SEED_KEY: &str = "cyberia_erp_view_seed_v3";
 
 // ─── primitives ───────────────────────────────────────────────────────
 
@@ -105,40 +105,49 @@ pub struct Schedule {
     pub note: String,
 }
 
-/// Bond — typed link between two Cards (system.md bonds). Prefer Cyberlink.
+/// View — derived projection (system.md). Never mutates. Declaration only.
+/// Opening a view materializes rows from ledger + cybergraph + intents.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Bond {
+pub struct ErpView {
     pub id: String,
-    pub from: String,
-    pub to: String,
-    /// owns | works_on | supplies | located_in | uses
-    pub rel: String,
+    pub name: String,
+    /// inventory | balance | kanban | graph | calendar | memory |
+    /// balance_sheet | profit_loss | cash_flow | flow | custom
+    pub kind: String,
+    /// optional focus particle (card id, person-*, city-*, …)
+    #[serde(default)]
+    pub focus: Option<String>,
+    /// free filter: class, rel, state, kind, substring
+    #[serde(default)]
+    pub filter: String,
     #[serde(default)]
     pub note: String,
+    #[serde(default)]
+    pub owner: String,
+    #[serde(default)]
+    pub system: bool,
 }
 
-/// Cyberlink — core cyber primitive: particle → particle.
-/// `draft` = intent (first step). `linked` = committed into the graph.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Cyberlink {
-    pub id: String,
-    /// from particle (card id, coin id, template id, free particle, CID…)
-    pub from: String,
-    /// to particle
-    pub to: String,
-    /// predicate / edge type (knows, owns, located_in, burns, mints, intends, …)
-    pub rel: String,
-    pub owner: String,
-    /// draft | linked | cancelled
-    pub state: String,
-    #[serde(default)]
-    pub note: String,
-    /// soft focus weight (cyberank stub)
-    #[serde(default)]
-    pub weight: f64,
-    /// optional ops template when link is an action intent
-    #[serde(default)]
-    pub template_id: Option<String>,
+/// One projected row from materializing a view (read-only).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ViewRow {
+    pub key: String,
+    pub tag: String,
+    pub cells: Vec<(String, String)>,
+    pub href: Option<String>,
+}
+
+/// Materialized projection — never written back.
+#[derive(Clone, Debug)]
+pub struct ViewProjection {
+    pub view_id: String,
+    pub title: String,
+    pub kind: String,
+    pub columns: Vec<String>,
+    pub rows: Vec<ViewRow>,
+    /// group_key → count (kanban columns, inventory classes…)
+    pub groups: Vec<(String, usize)>,
+    pub summary: String,
 }
 
 // ─── storage ──────────────────────────────────────────────────────────
@@ -195,22 +204,15 @@ pub fn save_schedules(list: &[Schedule]) {
     save_json(SCHEDULES_KEY, list);
 }
 
-pub fn load_bonds() -> Vec<Bond> {
-    load_json(BONDS_KEY)
+pub fn load_views() -> Vec<ErpView> {
+    load_json(VIEWS_KEY)
 }
-pub fn save_bonds(list: &[Bond]) {
-    save_json(BONDS_KEY, list);
-}
-
-pub fn load_cyberlinks() -> Vec<Cyberlink> {
-    load_json(LINKS_KEY)
-}
-pub fn save_cyberlinks(list: &[Cyberlink]) {
-    save_json(LINKS_KEY, list);
+pub fn save_views(list: &[ErpView]) {
+    save_json(VIEWS_KEY, list);
 }
 
-fn next_link_id() -> String {
-    format!("cl-{}", next_intent_id())
+fn next_view_id() -> String {
+    format!("view-{}", next_intent_id())
 }
 
 fn next_intent_id() -> u64 {
@@ -414,6 +416,14 @@ pub fn plumb_mint_card(card: Card) -> Result<Card, String> {
     }
     cards.push(card.clone());
     save_cards(&cards);
+    // every card is a word in the graph — mint its typed particle
+    crate::signal::mint_word(
+        &card.kind,
+        &card.name,
+        &card.note,
+        &crate::signal::neuron().bech32,
+        false,
+    );
     Ok(card)
 }
 
@@ -484,9 +494,19 @@ pub fn create_card(
         note: note.trim().into(),
     };
     plumb_mint_card(card.clone())?;
-    // bond: parent relation
+    // parent relation lands in the graph as a signed signal
     if let Some(ref p) = parent {
-        let _ = create_bond(&id, p, "located_in", "auto");
+        let me = crate::signal::neuron().bech32;
+        let child_w = crate::signal::word_particle(&card.kind, &card.name);
+        if let Some(pc) = load_cards().into_iter().find(|c| &c.id == p) {
+            let parent_w = crate::signal::word_particle(&pc.kind, &pc.name);
+            let rel = crate::signal::mint_word("relation", "located_in", "", "", true);
+            let _ = crate::signal::emit_signal(
+                vec![crate::signal::Link { from: child_w, rel, to: parent_w, weight: 1.0, note: "auto".into() }],
+                "card parent",
+            );
+        }
+        let _ = me;
     }
     push_intent(&handle, "mint_card", &id);
     Ok(card)
@@ -519,10 +539,6 @@ pub fn delete_card(id: &str) -> Result<(), String> {
     if !kids.is_empty() {
         return Err(format!("{} children — delete first", kids.len()));
     }
-    // remove bonds
-    let mut bonds = load_bonds();
-    bonds.retain(|b| b.from != id && b.to != id);
-    save_bonds(&bonds);
     plumb_burn_card(id)?;
     push_intent(&load_profile().handle, "burn_card", id);
     Ok(())
@@ -713,14 +729,6 @@ pub fn delete_template(id: &str) -> Result<(), String> {
 
 // ─── unified RUN template ─────────────────────────────────────────────
 
-pub fn template_ready(t: &UserTemplate, plot_flat: &str) -> bool {
-    if t.needs_plot && plot_flat.is_empty() {
-        return false;
-    }
-    let needs: Vec<(String, f64)> = t.burns.iter().map(|i| (i.id.clone(), i.qty)).collect();
-    stock_has(&needs)
-}
-
 /// Run any template: burns → mints coins and/or building card; intent done.
 pub fn run_template(
     template_id: &str,
@@ -827,7 +835,6 @@ pub fn run_template(
             note: format!("template {}", t.id),
         };
         plumb_mint_card(card)?;
-        let _ = create_bond(&b_id, &plot_card_id, "located_in", "construct");
         minted_card = b_id;
     }
 
@@ -851,33 +858,68 @@ pub fn run_template(
 
     push_intent(&handle, "run_template", &format!("{} #{}", t.id, iid));
 
-    // cyberlinks: agent —ran→ template; template —mints→ outputs; building —located_in→ plot
-    let person = format!("person-{handle}");
-    let _ = draft_cyberlink(
-        &person,
-        &t.id,
-        "ran",
-        &format!("intent #{iid}"),
-        Some(t.id.clone()),
-    )
-    .and_then(|cl| commit_cyberlink(&cl.id));
-    for m in &t.mints_coin {
-        let _ = draft_cyberlink(&t.id, &m.id, "mints", &format!("+{}", m.qty), None)
-            .and_then(|cl| commit_cyberlink(&cl.id));
-    }
-    if !minted_card.is_empty() {
-        let _ = draft_cyberlink(&t.id, &minted_card, "mints", "building", None)
-            .and_then(|cl| commit_cyberlink(&cl.id));
-        if !plot_card_id.is_empty() {
-            let _ = draft_cyberlink(&minted_card, &plot_card_id, "located_in", "construct", None)
-                .and_then(|cl| commit_cyberlink(&cl.id));
+    // the run lands in the graph as one signed signal: agent —ran→ motif;
+    // motif —burns→ inputs; motif —mints→ outputs; building —located_in→ plot
+    {
+        use crate::signal::{emit_signal, mint_word, neuron, Link};
+        let me = neuron().bech32;
+        let motif = mint_word("concept", &t.id, &t.name, &me, false);
+        let person = mint_word("person", &handle, "YOU", &me, false);
+        let rel = |name: &str| mint_word("relation", name, "", "", true);
+        let mut links = vec![Link {
+            from: person,
+            rel: rel("ran"),
+            to: motif.clone(),
+            weight: 1.0,
+            note: format!("intent #{iid}"),
+        }];
+        for b in &t.burns {
+            links.push(Link {
+                from: motif.clone(),
+                rel: rel("burns"),
+                to: mint_word("coin", &b.id, "", &me, false),
+                weight: b.qty,
+                note: format!("-{}", b.qty),
+            });
         }
+        for m in &t.mints_coin {
+            links.push(Link {
+                from: motif.clone(),
+                rel: rel("mints"),
+                to: mint_word("coin", &m.id, "", &me, false),
+                weight: m.qty,
+                note: format!("+{}", m.qty),
+            });
+        }
+        // cards were minted as words by (kind, name) — resolve the same way
+        let card_word = |card_id: &str| -> Option<String> {
+            load_cards()
+                .into_iter()
+                .find(|c| c.id == card_id)
+                .map(|c| crate::signal::word_particle(&c.kind, &c.name))
+        };
+        if let Some(building) = card_word(&minted_card) {
+            links.push(Link {
+                from: motif.clone(),
+                rel: rel("mints"),
+                to: building.clone(),
+                weight: 1.0,
+                note: "building".into(),
+            });
+            if let Some(plot) = card_word(&plot_card_id) {
+                links.push(Link {
+                    from: building,
+                    rel: rel("located_in"),
+                    to: plot,
+                    weight: 1.0,
+                    note: "construct".into(),
+                });
+            }
+        }
+        let _ = emit_signal(links, &format!("motif run · {} · intent #{iid}", t.id));
     }
 
-    Ok(format!(
-        "ran {} · intent #{iid} · cyberlinks written",
-        t.name
-    ))
+    Ok(format!("ran {} · intent #{iid} · signal committed", t.name))
 }
 
 // ─── Intent CRUD ──────────────────────────────────────────────────────
@@ -1102,180 +1144,12 @@ pub fn fire_schedule_now(id: &str) -> Result<String, String> {
     }
 }
 
-// ─── CYBERLINK (core of cyber / ERP studio) ───────────────────────────
-
-/// Step 1: INTENT — draft cyberlink (not final in the graph).
-pub fn draft_cyberlink(
-    from: &str,
-    to: &str,
-    rel: &str,
-    note: &str,
-    template_id: Option<String>,
-) -> Result<Cyberlink, String> {
-    ensure_erp_boot();
-    let from = from.trim();
-    let to = to.trim();
-    if from.is_empty() || to.is_empty() {
-        return Err("from and to particles required".into());
-    }
-    let handle = load_profile().handle;
-    let cl = Cyberlink {
-        id: next_link_id(),
-        from: from.into(),
-        to: to.into(),
-        rel: if rel.trim().is_empty() {
-            "knows".into()
-        } else {
-            rel.trim().into()
-        },
-        owner: handle.clone(),
-        state: "draft".into(),
-        note: note.trim().into(),
-        weight: 1.0,
-        template_id,
-    };
-    let mut list = load_cyberlinks();
-    list.insert(0, cl.clone());
-    save_cyberlinks(&list);
-    let mut intents = load_erp_intents();
-    let iid = next_intent_id();
-    intents.insert(
-        0,
-        ErpIntent {
-            id: iid,
-            owner: handle.clone(),
-            kind: "cyberlink".into(),
-            template_id: cl.template_id.clone().unwrap_or_else(|| cl.rel.clone()),
-            state: "draft".into(),
-            target: Some(cl.id.clone()),
-            note: format!("{} —[{}]→ {}", cl.from, cl.rel, cl.to),
-            schedule_id: None,
-        },
-    );
-    save_erp_intents(&intents);
-    push_intent(&handle, "cyberlink_draft", &cl.id);
-    Ok(cl)
-}
-
-/// Step 2: commit draft → linked cyberlink in the graph.
-pub fn commit_cyberlink(id: &str) -> Result<Cyberlink, String> {
-    let mut list = load_cyberlinks();
-    let cl = list
-        .iter_mut()
-        .find(|c| c.id == id)
-        .ok_or_else(|| "cyberlink not found".to_string())?;
-    if cl.state == "linked" {
-        return Ok(cl.clone());
-    }
-    cl.state = "linked".into();
-    cl.weight = (cl.weight + 1.0).min(100.0);
-    let out = cl.clone();
-    save_cyberlinks(&list);
-    let mut intents = load_erp_intents();
-    for it in intents.iter_mut() {
-        if it.target.as_deref() == Some(id) {
-            it.state = "done".into();
-        }
-    }
-    save_erp_intents(&intents);
-    push_intent(&load_profile().handle, "cyberlink", id);
-    Ok(out)
-}
-
-pub fn update_cyberlink(
-    id: &str,
-    from: &str,
-    to: &str,
-    rel: &str,
-    note: &str,
-    weight: f64,
-) -> Result<(), String> {
-    let mut list = load_cyberlinks();
-    let cl = list
-        .iter_mut()
-        .find(|c| c.id == id)
-        .ok_or_else(|| "not found".to_string())?;
-    cl.from = from.trim().into();
-    cl.to = to.trim().into();
-    cl.rel = rel.trim().into();
-    cl.note = note.trim().into();
-    cl.weight = weight.max(0.0);
-    save_cyberlinks(&list);
-    Ok(())
-}
-
-pub fn delete_cyberlink(id: &str) -> Result<(), String> {
-    let mut list = load_cyberlinks();
-    let n = list.len();
-    list.retain(|c| c.id != id);
-    if list.len() == n {
-        return Err("not found".into());
-    }
-    save_cyberlinks(&list);
-    Ok(())
-}
-
-pub fn get_cyberlink(id: &str) -> Option<Cyberlink> {
-    load_cyberlinks().into_iter().find(|c| c.id == id)
-}
-
-pub fn cyberlinks_touching(particle: &str) -> Vec<Cyberlink> {
-    load_cyberlinks()
-        .into_iter()
-        .filter(|c| c.from == particle || c.to == particle)
-        .collect()
-}
-
-// ─── Bonds (legacy card edges — also write cyberlinks) ────────────────
-
-pub fn create_bond(from: &str, to: &str, rel: &str, note: &str) -> Result<Bond, String> {
-    if from.is_empty() || to.is_empty() {
-        return Err("from/to required".into());
-    }
-    let id = format!(
-        "bond-{}-{}-{}",
-        slugify(rel),
-        slugify(from),
-        next_intent_id()
-    );
-    let b = Bond {
-        id: id.clone(),
-        from: from.into(),
-        to: to.into(),
-        rel: rel.trim().into(),
-        note: note.trim().into(),
-    };
-    let mut list = load_bonds();
-    if list
-        .iter()
-        .any(|x| x.from == b.from && x.to == b.to && x.rel == b.rel)
-    {
-        return Ok(b);
-    }
-    list.push(b.clone());
-    save_bonds(&list);
-    if let Ok(cl) = draft_cyberlink(&b.from, &b.to, &b.rel, note, None) {
-        let _ = commit_cyberlink(&cl.id);
-    }
-    Ok(b)
-}
-
-pub fn delete_bond(id: &str) -> Result<(), String> {
-    let mut list = load_bonds();
-    let n = list.len();
-    list.retain(|b| b.id != id);
-    if list.len() == n {
-        return Err("not found".into());
-    }
-    save_bonds(&list);
-    Ok(())
-}
-
 // ─── boot ─────────────────────────────────────────────────────────────
 
 pub fn ensure_erp_boot() {
     ensure_economy_boot();
     ensure_templates_seeded();
+    ensure_views_seeded();
     if ls_get(ERP_BOOT_KEY).is_some() {
         sync_plot_cards_from_leases();
         return;
@@ -1310,16 +1184,18 @@ pub fn ensure_erp_boot() {
         });
     }
     save_cards(&cards);
-    let _ = create_bond(&person_id, "city-cyber-valley", "works_on", "boot");
     ls_set(ERP_BOOT_KEY, "1");
     sync_plot_cards_from_leases();
     push_intent("SYSTEM", "erp_boot", "full kernel");
 }
 
 pub fn sync_plot_cards_from_leases() {
+    use crate::signal::{emit_signal, mint_word, neuron, word_particle, Link};
     let handle = load_profile().handle;
     let mut cards = load_cards();
     let mut changed = false;
+    let me = neuron().bech32;
+    let mut links: Vec<Link> = Vec::new();
     for l in load_leases() {
         let id = format!("plot-{}", l.flat_id);
         if cards.iter().any(|c| c.id == id) {
@@ -1336,89 +1212,895 @@ pub fn sync_plot_cards_from_leases() {
             locked: false,
             note: format!("lease · {}", l.flat_id),
         });
+        // the plot enters the graph: word + you —owns→ plot —located_in→ city
+        let plot_w = mint_word("plot", &l.flat_name, &format!("lease · {}", l.flat_id), &me, false);
+        let you_w = mint_word("person", &handle, "YOU", &me, false);
+        let city_w = word_particle("city", "cyber-valley");
+        links.push(Link {
+            from: you_w,
+            rel: mint_word("relation", "owns", "possession — card holds card", "", true),
+            to: plot_w.clone(),
+            weight: 1.0,
+            note: "lease".into(),
+        });
+        links.push(Link {
+            from: plot_w,
+            rel: mint_word("relation", "located_in", "spatial containment", "", true),
+            to: city_w,
+            weight: 1.0,
+            note: l.zone.clone(),
+        });
         changed = true;
     }
     if changed {
         save_cards(&cards);
+        let _ = emit_signal(links, "plot sync — leases into the graph");
     }
 }
 
-pub fn plot_value_hint(flat_id: &str) -> f64 {
-    let pid = format!("plot-{flat_id}");
-    let b = children_of(&pid);
-    10.0 + b
-        .iter()
-        .filter(|c| c.kind == "building")
-        .map(|c| match c.class.as_str() {
-            "camp" => 8.0,
-            "pad" => 6.0,
-            "trail" => 5.0,
-            "kitchen" => 15.0,
-            "soft" => 18.0,
-            "workshop" => 25.0,
-            "cube" => 40.0,
-            _ => 10.0,
-        })
-        .sum::<f64>()
+// ─── VIEWS (derived projections — never mutate) ───────────────────────
+
+pub const VIEW_KINDS: &[&str] = &[
+    "lexicon",
+    "graph",
+    "signals",
+    "inventory",
+    "balance",
+    "kanban",
+    "calendar",
+    "memory",
+    "conservation",
+    "cash_flow",
+    "flow",
+    "custom",
+];
+
+fn seed_system_views() -> Vec<ErpView> {
+    let handle = load_profile().handle;
+    let person = format!("person-{handle}");
+    vec![
+        ErpView {
+            id: "view-inventory".into(),
+            name: "Inventory".into(),
+            kind: "inventory".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Coin balances grouped by class (TSP-1 ledger)".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-balance".into(),
+            name: "Balance · YOU".into(),
+            kind: "balance".into(),
+            focus: Some(person),
+            filter: String::new(),
+            note: "Holdings of your person Card".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-kanban".into(),
+            name: "Intents kanban".into(),
+            kind: "kanban".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Intents grouped by workflow state".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-graph".into(),
+            name: "Cybergraph".into(),
+            kind: "graph".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Words + links — the committed graph".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-calendar".into(),
+            name: "Schedules calendar".into(),
+            kind: "calendar".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Which schedules fire which templates".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-memory".into(),
+            name: "Memory · ops log".into(),
+            kind: "memory".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Operational history (wallet intents + ERP intents)".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-lexicon".into(),
+            name: "Lexicon".into(),
+            kind: "lexicon".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Words ranked by focus — the living vocabulary".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-signals".into(),
+            name: "Signals feed".into(),
+            kind: "signals".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Atomic signed batches, committed and draft".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-conservation".into(),
+            name: "Conservation".into(),
+            kind: "conservation".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Σ held vs minted/burned per coin — honest numbers only".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-cashflow".into(),
+            name: "Cash flow".into(),
+            kind: "cash_flow".into(),
+            focus: None,
+            filter: String::new(),
+            note: "CX + market orders as soft cash flow".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+        ErpView {
+            id: "view-flow".into(),
+            name: "Coin flow".into(),
+            kind: "flow".into(),
+            focus: None,
+            filter: String::new(),
+            note: "Net coin positions (stocks as flow snapshot)".into(),
+            owner: "SYSTEM".into(),
+            system: true,
+        },
+    ]
 }
 
-#[derive(Clone, Debug)]
-pub struct WorldView {
-    pub cards: usize,
-    pub coins: usize,
-    pub templates: usize,
-    pub intents: usize,
-    pub schedules: usize,
-    pub bonds: usize,
-    pub buildings: usize,
-    pub cyberlinks: usize,
-    pub drafts: usize,
-    pub linked: usize,
+pub fn ensure_views_seeded() {
+    if ls_get(VIEW_SEED_KEY).is_some() {
+        return;
+    }
+    let mut list = load_views();
+    // drop system views whose kinds no longer exist (pnl/balance-sheet fiction)
+    list.retain(|v| !(v.system && !VIEW_KINDS.contains(&v.kind.as_str())));
+    for v in seed_system_views() {
+        if !list.iter().any(|x| x.id == v.id) {
+            list.push(v);
+        }
+    }
+    save_views(&list);
+    ls_set(VIEW_SEED_KEY, "1");
 }
 
-pub fn world_view() -> WorldView {
+pub fn get_view(id: &str) -> Option<ErpView> {
+    load_views().into_iter().find(|v| v.id == id)
+}
+
+pub fn create_view(
+    name: &str,
+    kind: &str,
+    focus: Option<String>,
+    filter: &str,
+    note: &str,
+) -> Result<ErpView, String> {
+    ensure_erp_boot();
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("name required".into());
+    }
+    let kind = kind.trim().to_ascii_lowercase();
+    if kind.is_empty() {
+        return Err("kind required".into());
+    }
+    if !VIEW_KINDS.contains(&kind.as_str()) && kind != "custom" {
+        // allow any kind string but prefer known
+    }
+    let handle = load_profile().handle;
+    let v = ErpView {
+        id: next_view_id(),
+        name: name.into(),
+        kind,
+        focus: focus.and_then(|f| {
+            let t = f.trim().to_string();
+            if t.is_empty() {
+                None
+            } else {
+                Some(t)
+            }
+        }),
+        filter: filter.trim().into(),
+        note: note.trim().into(),
+        owner: handle.clone(),
+        system: false,
+    };
+    let mut list = load_views();
+    list.insert(0, v.clone());
+    save_views(&list);
+    // declare the view in the graph: you —declares→ view-word
+    {
+        use crate::signal::{emit_signal, mint_word, neuron, Link};
+        let me = neuron().bech32;
+        let you = mint_word("person", &handle, "YOU", &me, false);
+        let vw = mint_word("concept", &v.id, &v.name, &me, false);
+        let rel = mint_word("relation", "declares", "", "", true);
+        let _ = emit_signal(
+            vec![Link { from: you, rel, to: vw, weight: 1.0, note: format!("view {}", v.kind) }],
+            "view declared",
+        );
+    }
+    push_intent(&handle, "view_create", &v.id);
+    Ok(v)
+}
+
+pub fn update_view(
+    id: &str,
+    name: &str,
+    kind: &str,
+    focus: Option<String>,
+    filter: &str,
+    note: &str,
+) -> Result<(), String> {
+    let mut list = load_views();
+    let v = list
+        .iter_mut()
+        .find(|v| v.id == id)
+        .ok_or_else(|| "view not found".to_string())?;
+    if v.system {
+        // allow edit name/filter/focus/note on system views; keep kind
+        v.name = name.trim().into();
+        v.focus = focus.and_then(|f| {
+            let t = f.trim().to_string();
+            if t.is_empty() {
+                None
+            } else {
+                Some(t)
+            }
+        });
+        v.filter = filter.trim().into();
+        v.note = note.trim().into();
+    } else {
+        v.name = name.trim().into();
+        if !kind.trim().is_empty() {
+            v.kind = kind.trim().to_ascii_lowercase();
+        }
+        v.focus = focus.and_then(|f| {
+            let t = f.trim().to_string();
+            if t.is_empty() {
+                None
+            } else {
+                Some(t)
+            }
+        });
+        v.filter = filter.trim().into();
+        v.note = note.trim().into();
+    }
+    save_views(&list);
+    Ok(())
+}
+
+pub fn delete_view(id: &str) -> Result<(), String> {
+    let mut list = load_views();
+    let Some(v) = list.iter().find(|v| v.id == id) else {
+        return Err("not found".into());
+    };
+    if v.system {
+        return Err("system views cannot be deleted".into());
+    }
+    list.retain(|v| v.id != id);
+    save_views(&list);
+    Ok(())
+}
+
+fn filt_match(hay: &str, filter: &str) -> bool {
+    let f = filter.trim().to_ascii_lowercase();
+    if f.is_empty() {
+        return true;
+    }
+    hay.to_ascii_lowercase().contains(&f)
+}
+
+/// Materialize a view declaration into a read-only projection.
+/// Views never mutate state — only read ledger / graph / intents.
+pub fn materialize_view(id: &str) -> Result<ViewProjection, String> {
+    ensure_erp_boot();
+    let v = get_view(id).ok_or_else(|| "view not found".to_string())?;
+    let filter = v.filter.clone();
+    let focus = v.focus.clone().unwrap_or_default();
+
+    let (columns, rows, groups, summary) = match v.kind.as_str() {
+        "lexicon" => proj_lexicon(&filter),
+        "graph" => proj_graph(&focus, &filter),
+        "signals" => proj_signals(&filter),
+        "inventory" => proj_inventory(&filter),
+        "balance" => proj_balance(&focus, &filter),
+        "kanban" => proj_kanban(&filter),
+        "calendar" => proj_calendar(&filter),
+        "memory" => proj_memory(&focus, &filter),
+        "conservation" => proj_conservation(&filter),
+        "cash_flow" => proj_cash_flow(&filter),
+        "flow" => proj_flow(&filter),
+        _ => proj_custom(&focus, &filter), // custom = filtered graph links
+    };
+
+    Ok(ViewProjection {
+        view_id: v.id.clone(),
+        title: v.name.clone(),
+        kind: v.kind.clone(),
+        columns,
+        rows,
+        groups,
+        summary,
+    })
+}
+
+fn proj_inventory(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
     use crate::wallet::load_stocks;
-    let links = load_cyberlinks();
-    WorldView {
-        cards: load_cards().len(),
-        coins: load_stocks().len(),
-        templates: load_templates().len(),
-        intents: load_erp_intents().len(),
-        schedules: load_schedules().len(),
-        bonds: load_bonds().len(),
-        buildings: load_cards().iter().filter(|c| c.kind == "building").count(),
-        cyberlinks: links.len(),
-        drafts: links.iter().filter(|c| c.state == "draft").count(),
-        linked: links.iter().filter(|c| c.state == "linked").count(),
+    let stocks = load_stocks();
+    let mut rows = Vec::new();
+    for s in stocks {
+        let class = if s.id.contains("kit") || s.id.contains("meal") || s.id.contains("soft") {
+            "product"
+        } else {
+            "element"
+        };
+        let blob = format!("{} {} {}", s.id, s.qty, class);
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        rows.push(ViewRow {
+            key: s.id.clone(),
+            tag: class.into(),
+            cells: vec![
+                ("coin".into(), s.id.clone()),
+                ("qty".into(), format!("{:.4}", s.qty)),
+                ("class".into(), class.into()),
+            ],
+            href: Some(format!("/world/coin/{}", s.id)),
+        });
     }
-}
-
-/// What points at this template.
-pub fn template_links(template_id: &str) -> (usize, usize) {
-    let intents = load_erp_intents()
-        .iter()
-        .filter(|i| i.template_id == template_id)
-        .count();
-    let schedules = load_schedules()
-        .iter()
-        .filter(|s| s.template_id == template_id)
-        .count();
-    (intents, schedules)
-}
-
-pub fn leases_as_options() -> Vec<Lease> {
-    load_leases()
-}
-
-// re-export name used by old construct path
-pub fn run_construct(template_id: &str, plot_flat_id: &str) -> Result<String, String> {
-    run_template(template_id, plot_flat_id, None)
-}
-
-pub fn template_can_run(t: &UserTemplate, plot_ok: bool) -> bool {
-    if t.needs_plot && !plot_ok {
-        return false;
+    let mut class_counts: std::collections::BTreeMap<String, usize> =
+        std::collections::BTreeMap::new();
+    for r in &rows {
+        *class_counts.entry(r.tag.clone()).or_insert(0) += 1;
     }
-    let needs: Vec<(String, f64)> = t.burns.iter().map(|i| (i.id.clone(), i.qty)).collect();
-    stock_has(&needs)
+    let groups: Vec<_> = class_counts.into_iter().collect();
+    let n = rows.len();
+    (
+        vec!["coin".into(), "qty".into(), "class".into()],
+        rows,
+        groups,
+        format!("{n} coin lines · inventory (read-only)"),
+    )
+}
+
+fn proj_balance(
+    focus: &str,
+    filter: &str,
+) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    use crate::wallet::{load_balance, load_stocks};
+    let bal = load_balance();
+    let mut rows = vec![ViewRow {
+        key: "cx".into(),
+        tag: "numeraire".into(),
+        cells: vec![
+            ("asset".into(), "CX".into()),
+            ("qty".into(), format!("{:.4}", bal.cx)),
+            (
+                "holder".into(),
+                if focus.is_empty() {
+                    "YOU".into()
+                } else {
+                    focus.into()
+                },
+            ),
+        ],
+        href: Some("/me".into()),
+    }];
+    for s in load_stocks() {
+        if !filt_match(&format!("{} {}", s.id, s.qty), filter) {
+            continue;
+        }
+        rows.push(ViewRow {
+            key: s.id.clone(),
+            tag: "coin".into(),
+            cells: vec![
+                ("asset".into(), s.id.clone()),
+                ("qty".into(), format!("{:.4}", s.qty)),
+                (
+                    "holder".into(),
+                    if focus.is_empty() {
+                        "YOU".into()
+                    } else {
+                        focus.into()
+                    },
+                ),
+            ],
+            href: Some(format!("/world/coin/{}", s.id)),
+        });
+    }
+    let n = rows.len();
+    (
+        vec!["asset".into(), "qty".into(), "holder".into()],
+        rows,
+        vec![("lines".into(), n)],
+        format!("balance of {focus} · soft3 local · never mutates"),
+    )
+}
+
+fn proj_kanban(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    let intents = load_erp_intents();
+    let mut rows = Vec::new();
+    let mut groups_map: std::collections::BTreeMap<String, usize> =
+        std::collections::BTreeMap::new();
+    for it in intents {
+        let blob = format!(
+            "{} {} {} {} {}",
+            it.id, it.state, it.template_id, it.kind, it.note
+        );
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        *groups_map.entry(it.state.clone()).or_insert(0) += 1;
+        rows.push(ViewRow {
+            key: format!("intent-{}", it.id),
+            tag: it.state.clone(),
+            cells: vec![
+                ("id".into(), format!("#{}", it.id)),
+                ("state".into(), it.state.clone()),
+                ("template".into(), it.template_id.clone()),
+                ("kind".into(), it.kind.clone()),
+                ("note".into(), it.note.clone()),
+            ],
+            href: Some(format!("/world/intent/{}", it.id)),
+        });
+    }
+    // stable column order for kanban
+    let order = ["draft", "reserved", "done", "cancelled"];
+    let mut groups = Vec::new();
+    for o in order {
+        if let Some(c) = groups_map.remove(o) {
+            groups.push((o.into(), c));
+        }
+    }
+    for (k, c) in groups_map {
+        groups.push((k, c));
+    }
+    let n = rows.len();
+    (
+        vec![
+            "id".into(),
+            "state".into(),
+            "template".into(),
+            "kind".into(),
+            "note".into(),
+        ],
+        rows,
+        groups,
+        format!("{n} intents · kanban by workflow state"),
+    )
+}
+
+fn proj_graph(
+    focus: &str,
+    filter: &str,
+) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    use crate::signal::{draft_links, graph_links, word_name};
+    let mut rows = Vec::new();
+    let mut by_state: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut all: Vec<(String, crate::signal::Link, &str)> = Vec::new();
+    all.extend(graph_links().into_iter().map(|(s, l)| (s, l, "linked")));
+    all.extend(draft_links().into_iter().map(|(s, l)| (s, l, "draft")));
+    for (i, (sid, l, state)) in all.into_iter().enumerate() {
+        if !focus.is_empty() && l.from != focus && l.to != focus && l.rel != focus {
+            continue;
+        }
+        let from_n = word_name(&l.from);
+        let rel_n = word_name(&l.rel);
+        let to_n = word_name(&l.to);
+        let blob = format!("{from_n} {rel_n} {to_n} {state} {}", l.note);
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        *by_state.entry(state.to_string()).or_insert(0) += 1;
+        rows.push(ViewRow {
+            key: format!("{sid}-{i}"),
+            tag: state.to_string(),
+            cells: vec![
+                ("from".into(), from_n),
+                ("rel".into(), rel_n),
+                ("to".into(), to_n),
+                ("state".into(), state.to_string()),
+                ("w".into(), format!("{}", l.weight)),
+            ],
+            href: Some(format!("/world/signal/{sid}")),
+        });
+    }
+    let n = rows.len();
+    let groups: Vec<(String, usize)> = by_state.into_iter().collect();
+    (
+        vec![
+            "from".into(),
+            "rel".into(),
+            "to".into(),
+            "state".into(),
+            "w".into(),
+        ],
+        rows,
+        groups,
+        format!("{n} links · the graph, committed + draft"),
+    )
+}
+
+/// The lexicon — every word ranked by focus (Σ committed link weight).
+fn proj_lexicon(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    let lex = crate::signal::lexicon();
+    let mut rows = Vec::new();
+    let mut by_kind: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for (w, f) in lex {
+        let blob = format!("{} {} {}", w.kind, w.name, w.note);
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        *by_kind.entry(w.kind.clone()).or_insert(0) += 1;
+        rows.push(ViewRow {
+            key: w.particle.clone(),
+            tag: w.kind.clone(),
+            cells: vec![
+                ("word".into(), w.name.clone()),
+                ("kind".into(), w.kind.clone()),
+                ("focus".into(), format!("{f:.1}")),
+                ("particle".into(), format!("{}…", &w.particle[..8])),
+            ],
+            href: Some(format!("/world/word/{}", w.particle)),
+        });
+    }
+    let n = rows.len();
+    let groups: Vec<(String, usize)> = by_kind.into_iter().collect();
+    (
+        vec![
+            "word".into(),
+            "kind".into(),
+            "focus".into(),
+            "particle".into(),
+        ],
+        rows,
+        groups,
+        format!("{n} words · the living vocabulary, ranked by focus"),
+    )
+}
+
+/// The signal feed — every batch, committed and draft.
+fn proj_signals(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    let mut signals = crate::signal::load_signals();
+    signals.reverse();
+    let mut rows = Vec::new();
+    let mut by_state: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for s in signals {
+        let blob = format!("{} {} {}", s.id, s.state, s.note);
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        *by_state.entry(s.state.clone()).or_insert(0) += 1;
+        let n = s.links.len();
+        let run = crate::signal::sentence_run(&s.links);
+        rows.push(ViewRow {
+            key: s.id.clone(),
+            tag: s.state.clone(),
+            cells: vec![
+                ("signal".into(), s.id.clone()),
+                ("state".into(), s.state.clone()),
+                ("links".into(), n.to_string()),
+                (
+                    "shape".into(),
+                    if n >= 2 && run == n { "sentence".into() } else { "batch".into() },
+                ),
+                ("note".into(), s.note.clone()),
+            ],
+            href: Some(format!("/world/signal/{}", s.id)),
+        });
+    }
+    let n = rows.len();
+    let groups: Vec<(String, usize)> = by_state.into_iter().collect();
+    (
+        vec![
+            "signal".into(),
+            "state".into(),
+            "links".into(),
+            "shape".into(),
+            "note".into(),
+        ],
+        rows,
+        groups,
+        format!("{n} signals · atomic signed batches"),
+    )
+}
+
+/// Conservation — per coin: current holding + mint/burn links that touch
+/// it in the graph. Honest numbers only; no invented coefficients.
+fn proj_conservation(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    use crate::signal::{graph_links, word_name, word_particle};
+    use crate::wallet::load_stocks;
+    let links = graph_links();
+    let mint_rel = word_particle("relation", "mints");
+    let burn_rel = word_particle("relation", "burns");
+    let mut rows = Vec::new();
+    for s in load_stocks() {
+        let coin_w = word_particle("coin", &s.id);
+        let minted: f64 = links
+            .iter()
+            .filter(|(_, l)| l.rel == mint_rel && l.to == coin_w)
+            .map(|(_, l)| l.weight)
+            .sum();
+        let burned: f64 = links
+            .iter()
+            .filter(|(_, l)| l.rel == burn_rel && l.to == coin_w)
+            .map(|(_, l)| l.weight)
+            .sum();
+        let blob = format!("{} {}", s.id, word_name(&coin_w));
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        rows.push(ViewRow {
+            key: s.id.clone(),
+            tag: "coin".into(),
+            cells: vec![
+                ("coin".into(), s.id.clone()),
+                ("held".into(), format!("{:.1}", s.qty)),
+                ("minted (signals)".into(), format!("{minted:.1}")),
+                ("burned (signals)".into(), format!("{burned:.1}")),
+            ],
+            href: Some(format!("/world/coin/{}", s.id)),
+        });
+    }
+    let n = rows.len();
+    (
+        vec![
+            "coin".into(),
+            "held".into(),
+            "minted (signals)".into(),
+            "burned (signals)".into(),
+        ],
+        rows,
+        vec![],
+        format!("{n} coins · Σ held tracks mint − burn as signals accumulate"),
+    )
+}
+
+fn proj_calendar(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    let mut rows = Vec::new();
+    let mut groups: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for s in load_schedules() {
+        let blob = format!(
+            "{} {} {} {} {}",
+            s.id, s.name, s.template_id, s.enabled, s.note
+        );
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        let tag = if s.enabled { "enabled" } else { "paused" };
+        *groups.entry(tag.into()).or_insert(0) += 1;
+        rows.push(ViewRow {
+            key: s.id.clone(),
+            tag: tag.into(),
+            cells: vec![
+                ("schedule".into(), s.name.clone()),
+                ("template".into(), s.template_id.clone()),
+                (
+                    "every".into(),
+                    format!("{}/{}", s.tick_count, s.every_ticks),
+                ),
+                ("auto".into(), if s.auto_run { "yes" } else { "no" }.into()),
+                ("state".into(), tag.into()),
+            ],
+            href: Some(format!("/world/schedule/{}", s.id)),
+        });
+    }
+    let n = rows.len();
+    (
+        vec![
+            "schedule".into(),
+            "template".into(),
+            "every".into(),
+            "auto".into(),
+            "state".into(),
+        ],
+        rows,
+        groups.into_iter().collect(),
+        format!("{n} schedules · soft calendar"),
+    )
+}
+
+fn proj_memory(
+    focus: &str,
+    filter: &str,
+) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    use crate::wallet::load_intents;
+    let mut rows = Vec::new();
+    // ERP intents
+    for it in load_erp_intents() {
+        if !focus.is_empty()
+            && it.owner != focus
+            && it.target.as_deref() != Some(focus)
+            && !it.note.contains(focus)
+        {
+            continue;
+        }
+        let blob = format!("erp {} {} {} {}", it.id, it.kind, it.template_id, it.note);
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        rows.push(ViewRow {
+            key: format!("erp-{}", it.id),
+            tag: "erp".into(),
+            cells: vec![
+                ("src".into(), "erp".into()),
+                ("action".into(), it.kind.clone()),
+                ("ref".into(), it.template_id.clone()),
+                ("state".into(), it.state.clone()),
+                ("note".into(), it.note.clone()),
+            ],
+            href: Some(format!("/world/intent/{}", it.id)),
+        });
+    }
+    // wallet ops log
+    for rec in load_intents() {
+        let blob = format!("{} {} {}", rec.fleet, rec.action, rec.flat);
+        if !focus.is_empty() && !blob.contains(focus) {
+            continue;
+        }
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        rows.push(ViewRow {
+            key: format!("mem-{}", rec.id),
+            tag: "ledger".into(),
+            cells: vec![
+                ("src".into(), "ledger".into()),
+                ("action".into(), rec.action.clone()),
+                ("ref".into(), rec.flat.clone()),
+                ("state".into(), "logged".into()),
+                ("note".into(), rec.fleet.clone()),
+            ],
+            href: None,
+        });
+    }
+    rows.truncate(80);
+    let mut g: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for r in &rows {
+        *g.entry(r.tag.clone()).or_insert(0) += 1;
+    }
+    let n = rows.len();
+    (
+        vec![
+            "src".into(),
+            "action".into(),
+            "ref".into(),
+            "state".into(),
+            "note".into(),
+        ],
+        rows,
+        g.into_iter().collect(),
+        format!("{n} memory rows · history projection"),
+    )
+}
+
+fn proj_cash_flow(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    use crate::wallet::{load_balance, load_orders};
+    let cx = load_balance().cx;
+    let mut rows = vec![ViewRow {
+        key: "cash".into(),
+        tag: "operating".into(),
+        cells: vec![
+            ("flow".into(), "operating".into()),
+            ("item".into(), "CX balance".into()),
+            ("amount".into(), format!("{cx:.4}")),
+        ],
+        href: Some("/me".into()),
+    }];
+    let mut buy = 0.0f64;
+    let mut sell = 0.0f64;
+    for o in load_orders() {
+        if o.owner == "cyber-valley" {
+            continue;
+        }
+        let blob = format!("{} {} {}", o.side, o.good_id, o.price_cx);
+        if !filt_match(&blob, filter) {
+            continue;
+        }
+        let amt = o.qty * o.price_cx;
+        if o.side == "buy" {
+            buy += amt;
+            rows.push(ViewRow {
+                key: format!("ord-{}", o.id),
+                tag: "investing".into(),
+                cells: vec![
+                    ("flow".into(), "investing".into()),
+                    ("item".into(), format!("buy {}", o.good_id)),
+                    ("amount".into(), format!("-{amt:.2}")),
+                ],
+                href: Some("/market".into()),
+            });
+        } else {
+            sell += amt;
+            rows.push(ViewRow {
+                key: format!("ord-{}", o.id),
+                tag: "financing".into(),
+                cells: vec![
+                    ("flow".into(), "financing".into()),
+                    ("item".into(), format!("sell {}", o.good_id)),
+                    ("amount".into(), format!("{amt:.2}")),
+                ],
+                href: Some("/market".into()),
+            });
+        }
+    }
+    let groups = vec![
+        ("operating".into(), 1),
+        (
+            "investing".into(),
+            rows.iter().filter(|r| r.tag == "investing").count(),
+        ),
+        (
+            "financing".into(),
+            rows.iter().filter(|r| r.tag == "financing").count(),
+        ),
+    ];
+    (
+        vec!["flow".into(), "item".into(), "amount".into()],
+        rows,
+        groups,
+        format!("cash flow soft · CX {cx:.2} · buy book {buy:.2} · sell book {sell:.2}"),
+    )
+}
+
+fn proj_flow(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    use crate::wallet::load_stocks;
+    let mut rows = Vec::new();
+    for s in load_stocks() {
+        if !filt_match(&s.id, filter) {
+            continue;
+        }
+        let dir = if s.qty > 0.0 { "hold" } else { "empty" };
+        rows.push(ViewRow {
+            key: s.id.clone(),
+            tag: dir.into(),
+            cells: vec![
+                ("coin".into(), s.id.clone()),
+                ("net".into(), format!("{:.4}", s.qty)),
+                ("dir".into(), dir.into()),
+            ],
+            href: Some(format!("/world/coin/{}", s.id)),
+        });
+    }
+    let n = rows.len();
+    (
+        vec!["coin".into(), "net".into(), "dir".into()],
+        rows,
+        vec![("positions".into(), n)],
+        format!("{n} coin flow positions"),
+    )
+}
+
+fn proj_custom(
+    focus: &str,
+    filter: &str,
+) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
+    // custom = free cyberlink filter (+ optional focus)
+    proj_graph(focus, filter)
 }

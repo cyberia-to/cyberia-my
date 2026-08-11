@@ -1,4 +1,4 @@
-//! cyberia.my router — ERP studio pages are full URLs (no overlays).
+//! cyberia.my router — Signal Studio pages are full URLs (no overlays).
 
 use crate::cities::CitiesPage;
 use crate::console::ValleyConsole;
@@ -10,6 +10,7 @@ use crate::nav::CyberiaNav;
 use crate::places::PlacesPage;
 use crate::plots::PlotsPage;
 use crate::robots::RobotsPage;
+use crate::signal_pages::*;
 use crate::states::StatesPage;
 use crate::studio::*;
 use crate::world::WorldPage;
@@ -26,7 +27,7 @@ pub fn App() -> impl IntoView {
                     <div class="page-shell" style="padding:40px;">
                         <h1 style="color: var(--cyber-red);">"404"</h1>
                         <p style="color:#888; margin-top:12px;">"City or page not found."</p>
-                        <a href="/world" style="color: var(--cyber-green);">"← ERP studio"</a>
+                        <a href="/world" style="color: var(--cyber-green);">"← Signal Studio"</a>
                     </div>
                 }
             }>
@@ -35,13 +36,17 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/me") view=MePage />
                 <Route path=path!("/you") view=MePage />
 
-                // ERP hub + full-page forms
+                // Signal Studio hub + full-page forms
                 <Route path=path!("/world") view=WorldPage />
                 <Route path=path!("/erp") view=WorldPage />
+                <Route path=path!("/world/words") view=WordsListPage />
+                <Route path=path!("/world/words/new") view=WordNewPage />
+                <Route path=path!("/world/word/:particle") view=WordViewPage />
+                <Route path=path!("/world/word/:particle/edit") view=WordEditPage />
                 <Route path=path!("/world/links") view=LinksListPage />
                 <Route path=path!("/world/links/new") view=LinkNewPage />
-                <Route path=path!("/world/link/:id") view=LinkViewPage />
-                <Route path=path!("/world/link/:id/edit") view=LinkEditPage />
+                <Route path=path!("/world/signals") view=SignalsListPage />
+                <Route path=path!("/world/signal/:id") view=SignalViewPage />
                 <Route path=path!("/world/cards") view=CardsListPage />
                 <Route path=path!("/world/cards/new") view=CardNewPage />
                 <Route path=path!("/world/card/:id") view=CardViewPage />
@@ -59,6 +64,10 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/world/schedules/new") view=ScheduleNewPage />
                 <Route path=path!("/world/schedule/:id") view=ScheduleViewPage />
                 <Route path=path!("/world/schedule/:id/edit") view=ScheduleEditPage />
+                <Route path=path!("/world/views") view=ViewsListPage />
+                <Route path=path!("/world/views/new") view=ViewNewPage />
+                <Route path=path!("/world/view/:id") view=ViewShowPage />
+                <Route path=path!("/world/view/:id/edit") view=ViewEditPage />
 
                 <Route path=path!("/elements") view=ElementsPage />
                 <Route path=path!("/market") view=MarketPage />

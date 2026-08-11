@@ -1,15 +1,17 @@
-//! Full-page ERP forms — URLs only, no overlay sheets.
-//! Cyberlink is the core create path (draft = intent).
+//! Full-page dialect forms — cards · coins · motifs (templates) · intents ·
+//! schedules · views. URLs only, no overlay sheets. The word/link/signal
+//! pages live in signal_pages.rs; these are the cyberia-dialect surfaces
+//! over the same graph.
 
 use crate::economy::fmt_qty;
 use crate::erp::{
-    commit_cyberlink, commit_intent, create_card, create_or_add_coin, create_schedule,
-    create_template, cyberlinks_touching, delete_card, delete_cyberlink, delete_intent,
-    delete_schedule, delete_template, draft_cyberlink, edit_card, format_io_blob, get_cyberlink,
-    get_template, load_cards, load_cyberlinks, load_erp_intents, load_schedules, load_templates,
-    run_template, set_coin_qty, set_intent_state, tick_schedules, update_cyberlink,
-    update_schedule, update_template, UserTemplate,
+    commit_intent, create_card, create_or_add_coin, create_schedule, create_template, create_view,
+    delete_card, delete_intent, delete_schedule, delete_template, delete_view, edit_card,
+    format_io_blob, get_template, get_view, load_cards, load_erp_intents, load_schedules,
+    load_templates, load_views, materialize_view, run_template, set_coin_qty, set_intent_state,
+    tick_schedules, update_schedule, update_template, update_view, UserTemplate, VIEW_KINDS,
 };
+use crate::signal::{links_touching, word_name, word_particle};
 use crate::wallet::{load_stocks, stock_qty, StockLine};
 use crate::world::StudioShell;
 use leptos::prelude::*;
@@ -21,279 +23,6 @@ fn param(key: &str) -> String {
         .get(key)
         .map(|s| s.to_string())
         .unwrap_or_default()
-}
-
-// ─── CYBERLINKS ───────────────────────────────────────────────────────
-
-#[component]
-pub fn LinksListPage() -> impl IntoView {
-    let tick = RwSignal::new(0u32);
-    let filter = RwSignal::new(String::new()); // draft | linked | all
-    Effect::new(move |_| {
-        tick.set(1);
-    });
-    view! {
-        <StudioShell title="Cyberlinks" kicker="GRAPH" lead="Everything is a cyberlink. Draft = intent. Commit = write into the graph.">
-            <div class="studio-create-bar">
-                <a class="cta-btn cta-lease cta-lg" href="/world/links/new" style="text-decoration:none;">
-                    <span class="cta-copy"><span class="cta-title">"+ CYBERLINK"</span><span class="cta-sub">"draft intent first"</span></span>
-                </a>
-            </div>
-            <div class="list-filters" style="margin-bottom:12px;">
-                <button class=move || if filter.get().is_empty() { "chip chip-on" } else { "chip" } on:click=move |_| filter.set(String::new())>"ALL"</button>
-                <button class=move || if filter.get() == "draft" { "chip chip-on" } else { "chip" } on:click=move |_| filter.set("draft".into())>"DRAFT (INTENTS)"</button>
-                <button class=move || if filter.get() == "linked" { "chip chip-on" } else { "chip" } on:click=move |_| filter.set("linked".into())>"LINKED"</button>
-            </div>
-            <div class="studio-list">
-                {move || {
-                    let _ = tick.get();
-                    let f = filter.get();
-                    let mut list = load_cyberlinks();
-                    if !f.is_empty() {
-                        list.retain(|c| c.state == f);
-                    }
-                    if list.is_empty() {
-                        return view! { <div class="me-empty">"No links in this filter. "<a href="/world/links/new">"Create one"</a></div> }.into_any();
-                    }
-                    view! {
-                        {list.into_iter().map(|cl| {
-                            let href = format!("/world/link/{}", cl.id);
-                            view! {
-                                <a class="studio-row studio-row-link" href=href>
-                                    <div class="studio-row-main">
-                                        <span class=if cl.state == "linked" { "studio-kind" } else { "studio-kind draft-kind" }>{cl.state.to_uppercase()}</span>
-                                        <div>
-                                            <div class="studio-title">{format!("{} —[{}]→ {}", cl.from, cl.rel, cl.to)}</div>
-                                            <div class="studio-meta">{format!("{} · weight {} · {}", cl.id, cl.weight, cl.note)}</div>
-                                        </div>
-                                    </div>
-                                    <span class="chip">"OPEN →"</span>
-                                </a>
-                            }
-                        }).collect_view()}
-                    }.into_any()
-                }}
-            </div>
-        </StudioShell>
-    }
-}
-
-#[component]
-pub fn LinkNewPage() -> impl IntoView {
-    let from = RwSignal::new(String::new());
-    let to = RwSignal::new(String::new());
-    let rel = RwSignal::new("knows".to_string());
-    let note = RwSignal::new(String::new());
-    let tpl = RwSignal::new(String::new());
-    let err = RwSignal::new(None::<String>);
-    let ok = RwSignal::new(None::<String>);
-
-    // particle pick helpers
-    let particles = move || {
-        let mut p: Vec<String> = load_cards().into_iter().map(|c| c.id).collect();
-        p.extend(load_templates().into_iter().map(|t| t.id));
-        p.extend(load_stocks().into_iter().map(|s| s.id));
-        p.sort();
-        p.dedup();
-        p
-    };
-
-    view! {
-        <StudioShell title="New cyberlink" kicker="DRAFT INTENT" lead="Creating a cyberlink always starts as a draft intent. Commit on the next page to finalize.">
-            <div class="studio-form-page">
-                {move || err.get().map(|e| view! { <div class="eco-msg err">{e}</div> })}
-                {move || ok.get().map(|s| view! { <div class="eco-msg ok">{s}</div> })}
-
-                <label class="found-label">"FROM PARTICLE"</label>
-                <input class="found-input" type="text" prop:value=move || from.get()
-                    on:input=move |ev| from.set(event_target_value(&ev))
-                    placeholder="card id · coin · template · free particle / CID" />
-                <div class="list-filters" style="margin:8px 0;">
-                    {move || particles().into_iter().take(24).map(|p| {
-                        let p2 = p.clone();
-                        view! {
-                            <button class="chip" on:click=move |_| from.set(p2.clone())>{p}</button>
-                        }
-                    }).collect_view()}
-                </div>
-
-                <label class="found-label">"RELATION (predicate)"</label>
-                <input class="found-input" type="text" prop:value=move || rel.get()
-                    on:input=move |ev| rel.set(event_target_value(&ev))
-                    placeholder="knows · owns · located_in · ran · mints · intends" />
-                <div class="list-filters" style="margin:8px 0;">
-                    {["knows","owns","located_in","works_on","ran","mints","burns","intends","schedules"].into_iter().map(|r| {
-                        view! { <button class="chip" on:click=move |_| rel.set(r.into())>{r}</button> }
-                    }).collect_view()}
-                </div>
-
-                <label class="found-label">"TO PARTICLE"</label>
-                <input class="found-input" type="text" prop:value=move || to.get()
-                    on:input=move |ev| to.set(event_target_value(&ev))
-                    placeholder="particle id" />
-                <div class="list-filters" style="margin:8px 0;">
-                    {move || particles().into_iter().take(24).map(|p| {
-                        let p2 = p.clone();
-                        view! {
-                            <button class="chip" on:click=move |_| to.set(p2.clone())>{p}</button>
-                        }
-                    }).collect_view()}
-                </div>
-
-                <label class="found-label">"TEMPLATE ID (optional · for ops intents)"</label>
-                <input class="found-input" type="text" prop:value=move || tpl.get()
-                    on:input=move |ev| tpl.set(event_target_value(&ev)) />
-
-                <label class="found-label">"NOTE"</label>
-                <input class="found-input" type="text" prop:value=move || note.get()
-                    on:input=move |ev| note.set(event_target_value(&ev)) />
-
-                <div class="studio-form-actions">
-                    <button class="intent-commit" on:click=move |_| {
-                        let template = {
-                            let t = tpl.get().trim().to_string();
-                            if t.is_empty() { None } else { Some(t) }
-                        };
-                        match draft_cyberlink(&from.get(), &to.get(), &rel.get(), &note.get(), template) {
-                            Ok(cl) => {
-                                ok.set(Some(format!("draft {} — open to COMMIT", cl.id)));
-                                err.set(None);
-                                // navigate via location
-                                if let Some(w) = web_sys::window() {
-                                    let _ = w.location().set_href(&format!("/world/link/{}", cl.id));
-                                }
-                            }
-                            Err(e) => { err.set(Some(e)); ok.set(None); }
-                        }
-                    }>"CREATE DRAFT (INTENT)"</button>
-                    <a class="chip" href="/world/links">"← CANCEL"</a>
-                </div>
-            </div>
-        </StudioShell>
-    }
-}
-
-#[component]
-pub fn LinkViewPage() -> impl IntoView {
-    let id = param("id");
-    let id_for_get = id.clone();
-    let tick = RwSignal::new(0u32);
-    let msg = RwSignal::new(None::<(bool, String)>);
-
-    let cl = move || {
-        let _ = tick.get();
-        get_cyberlink(&id_for_get)
-    };
-
-    view! {
-        <StudioShell title="Cyberlink" kicker="LINK" lead="Draft = intent. Commit finalizes the cyberlink in the local cybergraph.">
-            {move || msg.get().map(|(ok, t)| view! { <div class=if ok { "eco-msg ok" } else { "eco-msg err" }>{t}</div> })}
-            {move || match cl() {
-                None => view! {
-                    <div class="me-empty">"Link not found. "<a href="/world/links">"← list"</a></div>
-                }.into_any(),
-                Some(c) => {
-                    let cid = c.id.clone();
-                    let cid2 = c.id.clone();
-                    let cid3 = c.id.clone();
-                    let is_draft = c.state == "draft";
-                    view! {
-                        <div class="studio-detail">
-                            <div class="studio-kind-lg">{c.state.to_uppercase()}</div>
-                            <h3 class="studio-title-lg">{format!("{} —[{}]→ {}", c.from, c.rel, c.to)}</h3>
-                            <div class="studio-meta">{format!("id {} · owner {} · weight {}", c.id, c.owner, c.weight)}</div>
-                            <div class="studio-meta">{c.note.clone()}</div>
-                            {c.template_id.as_ref().map(|t| view! {
-                                <div class="studio-meta">
-                                    "template: "
-                                    <a href=format!("/world/template/{t}")>{t.clone()}</a>
-                                </div>
-                            })}
-                            <div class="studio-form-actions">
-                                {is_draft.then(|| view! {
-                                    <button class="intent-commit" on:click=move |_| {
-                                        match commit_cyberlink(&cid) {
-                                            Ok(_) => { msg.set(Some((true, "committed · linked".into()))); tick.update(|n| { *n += 1; }); }
-                                            Err(e) => msg.set(Some((false, e))),
-                                        }
-                                    }>"COMMIT → LINKED"</button>
-                                })}
-                                <a class="chip" href=format!("/world/link/{}/edit", cid2)>"EDIT"</a>
-                                <button class="chip" on:click=move |_| {
-                                    match delete_cyberlink(&cid3) {
-                                        Ok(()) => {
-                                            if let Some(w) = web_sys::window() {
-                                                let _ = w.location().set_href("/world/links");
-                                            }
-                                        }
-                                        Err(e) => msg.set(Some((false, e))),
-                                    }
-                                }>"DELETE"</button>
-                                <a class="chip" href="/world/links">"← LIST"</a>
-                            </div>
-                        </div>
-                    }.into_any()
-                }
-            }}
-        </StudioShell>
-    }
-}
-
-#[component]
-pub fn LinkEditPage() -> impl IntoView {
-    let id = param("id");
-    let id_for_effect = id.clone();
-    let id_save = id.clone();
-    let cancel_href = format!("/world/link/{id}");
-    let from = RwSignal::new(String::new());
-    let to = RwSignal::new(String::new());
-    let rel = RwSignal::new(String::new());
-    let note = RwSignal::new(String::new());
-    let weight = RwSignal::new("1".to_string());
-    let err = RwSignal::new(None::<String>);
-
-    Effect::new(move |_| {
-        if let Some(c) = get_cyberlink(&id_for_effect) {
-            from.set(c.from);
-            to.set(c.to);
-            rel.set(c.rel);
-            note.set(c.note);
-            weight.set(c.weight.to_string());
-        }
-    });
-
-    view! {
-        <StudioShell title="Edit cyberlink" kicker="EDIT LINK" lead="">
-            {move || err.get().map(|e| view!{ <div class="eco-msg err">{e}</div>})}
-            <div class="studio-form-page">
-                <label class="found-label">"FROM"</label>
-                <input class="found-input" prop:value=move||from.get() on:input=move|ev| from.set(event_target_value(&ev)) />
-                <label class="found-label">"REL"</label>
-                <input class="found-input" prop:value=move||rel.get() on:input=move|ev| rel.set(event_target_value(&ev)) />
-                <label class="found-label">"TO"</label>
-                <input class="found-input" prop:value=move||to.get() on:input=move|ev| to.set(event_target_value(&ev)) />
-                <label class="found-label">"NOTE"</label>
-                <input class="found-input" prop:value=move||note.get() on:input=move|ev| note.set(event_target_value(&ev)) />
-                <label class="found-label">"WEIGHT"</label>
-                <input class="found-input" prop:value=move||weight.get() on:input=move|ev| weight.set(event_target_value(&ev)) />
-                <div class="studio-form-actions">
-                    <button class="intent-commit" on:click=move |_| {
-                        let w: f64 = weight.get().parse().unwrap_or(1.0);
-                        let id_nav = id_save.clone();
-                        match update_cyberlink(&id_save, &from.get(), &to.get(), &rel.get(), &note.get(), w) {
-                            Ok(()) => {
-                                if let Some(win) = web_sys::window() {
-                                    let _ = win.location().set_href(&format!("/world/link/{id_nav}"));
-                                }
-                            }
-                            Err(e) => err.set(Some(e)),
-                        }
-                    }>"SAVE"</button>
-                    <a class="chip" href=cancel_href>"← CANCEL"</a>
-                </div>
-            </div>
-        </StudioShell>
-    }
 }
 
 // ─── CARDS ────────────────────────────────────────────────────────────
@@ -316,7 +45,7 @@ pub fn CardsListPage() -> impl IntoView {
                     view! {
                         {cards.into_iter().map(|c| {
                             let href = format!("/world/card/{}", c.id);
-                            let n = cyberlinks_touching(&c.id).len();
+                            let n = links_touching(&word_particle(&c.kind, &c.name)).len();
                             view! {
                                 <a class="studio-row studio-row-link" href=href>
                                     <div class="studio-row-main">
@@ -400,7 +129,9 @@ pub fn CardViewPage() -> impl IntoView {
                 match card {
                     None => view!{ <div class="me-empty">"Not found"</div> }.into_any(),
                     Some(c) => {
-                        let links = cyberlinks_touching(&c.id);
+                        let particle = word_particle(&c.kind, &c.name);
+                        let links = links_touching(&particle);
+                        let word_href = format!("/world/word/{particle}");
                         let cid = c.id.clone();
                         let cid2 = c.id.clone();
                         view! {
@@ -411,7 +142,8 @@ pub fn CardViewPage() -> impl IntoView {
                                 <div class="studio-meta">{format!("parent {} · zone {} · {}", c.parent.clone().unwrap_or_else(||"—".into()), c.zone, c.note)}</div>
                                 <div class="studio-form-actions">
                                     <a class="chip chip-on" href=format!("/world/card/{}/edit", cid)>"EDIT"</a>
-                                    <a class="chip" href=format!("/world/links/new")>"+ LINK FROM HERE"</a>
+                                    <a class="chip" href=word_href.clone()>"AS WORD →"</a>
+                                    <a class="chip" href=format!("/world/links/new?from={particle}")>"+ LINK FROM HERE"</a>
                                     <button class="chip" on:click=move |_| {
                                         match delete_card(&cid2) {
                                             Ok(()) => { if let Some(w)=web_sys::window(){ let _=w.location().set_href("/world/cards"); } }
@@ -420,18 +152,18 @@ pub fn CardViewPage() -> impl IntoView {
                                     }>"DELETE"</button>
                                     <a class="chip" href="/world/cards">"← LIST"</a>
                                 </div>
-                                <div class="studio-section-h" style="margin-top:20px;"><span>"CYBERLINKS TOUCHING THIS PARTICLE"</span></div>
+                                <div class="studio-section-h" style="margin-top:20px;"><span>"LINKS TOUCHING THIS WORD"</span></div>
                                 <div class="studio-list">
                                     {if links.is_empty() {
                                         view!{ <div class="me-empty">"No links yet."</div> }.into_any()
                                     } else {
-                                        links.into_iter().map(|cl| {
-                                            let href = format!("/world/link/{}", cl.id);
+                                        links.into_iter().map(|(sid, l)| {
+                                            let href = format!("/world/signal/{sid}");
                                             view! {
                                                 <a class="studio-row studio-row-link" href=href>
                                                     <div class="studio-row-main">
-                                                        <span class="studio-kind">{cl.state.to_uppercase()}</span>
-                                                        <div class="studio-title">{format!("{} —[{}]→ {}", cl.from, cl.rel, cl.to)}</div>
+                                                        <span class="studio-kind">"LINKED"</span>
+                                                        <div class="studio-title">{format!("{} —[{}]→ {}", word_name(&l.from), word_name(&l.rel), word_name(&l.to))}</div>
                                                     </div>
                                                 </a>
                                             }
@@ -865,8 +597,8 @@ pub fn IntentViewPage() -> impl IntoView {
                 match it {
                     None => view!{ <div class="me-empty">"Not found"</div> }.into_any(),
                     Some(it) => {
-                        let link_href = it.target.clone().map(|t| {
-                            if t.starts_with("cl-") { format!("/world/link/{t}") } else { format!("/world/card/{t}") }
+                        let link_href = it.target.clone().filter(|t| !t.starts_with("cl-")).map(|t| {
+                            format!("/world/card/{t}")
                         });
                         view! {
                             <div class="studio-detail">
@@ -1090,6 +822,425 @@ pub fn ScheduleEditPage() -> impl IntoView {
                         let id_nav = id_save.clone();
                         match update_schedule(&id_save, &name.get(), &tpl.get(), tgt, every_n, enabled.get(), auto.get(), &note.get()) {
                             Ok(()) => { if let Some(w)=web_sys::window(){ let _=w.location().set_href(&format!("/world/schedule/{id_nav}")); } }
+                            Err(e) => err.set(Some(e)),
+                        }
+                    }>"SAVE"</button>
+                    <a class="chip" href=cancel_href>"← CANCEL"</a>
+                </div>
+            </div>
+        </StudioShell>
+    }
+}
+
+// ─── VIEWS (derived projections — top of the studio) ──────────────────
+
+#[component]
+pub fn ViewsListPage() -> impl IntoView {
+    let tick = RwSignal::new(0u32);
+    view! {
+        <StudioShell
+            title="Views"
+            kicker="PROJECTIONS"
+            lead="Views never mutate. They read ledger + cybergraph + intents and project inventory, kanban, graph, balance sheet, P&L, cash flow…"
+        >
+            <div class="studio-section-h">
+                <span>"DECLARED VIEWS"</span>
+                <a class="chip chip-on" href="/world/views/new">"+ VIEW"</a>
+            </div>
+            <div class="list-filters" style="margin-bottom:12px;">
+                {VIEW_KINDS.iter().map(|k| {
+                    view! { <span class="chip">{*k}</span> }
+                }).collect_view()}
+            </div>
+            <div class="studio-list">
+                {move || {
+                    let _ = tick.get();
+                    let views = load_views();
+                    if views.is_empty() {
+                        return view! {
+                            <div class="me-empty">
+                                "No views. "
+                                <a href="/world/views/new">"Declare a projection"</a>
+                                " — or open the Signal Studio hub once to seed system views."
+                            </div>
+                        }.into_any();
+                    }
+                    view! {
+                        {views.into_iter().map(|v| {
+                            let href = format!("/world/view/{}", v.id);
+                            let kind = v.kind.to_uppercase();
+                            view! {
+                                <a class="studio-row studio-row-link" href=href>
+                                    <div class="studio-row-main">
+                                        <span class="studio-kind">{kind}</span>
+                                        <div>
+                                            <div class="studio-title">{v.name}</div>
+                                            <div class="studio-meta">{format!(
+                                                "{} · focus {} · {}",
+                                                v.id,
+                                                v.focus.clone().unwrap_or_else(|| "·".into()),
+                                                v.note
+                                            )}</div>
+                                        </div>
+                                    </div>
+                                    <div class="studio-row-acts">
+                                        {v.system.then(|| view! { <span class="sys-tag">"SYS"</span> })}
+                                        <span class="chip">"OPEN →"</span>
+                                    </div>
+                                </a>
+                            }
+                        }).collect_view()}
+                    }.into_any()
+                }}
+            </div>
+        </StudioShell>
+    }
+}
+
+#[component]
+pub fn ViewNewPage() -> impl IntoView {
+    let name = RwSignal::new(String::new());
+    let kind = RwSignal::new("kanban".to_string());
+    let focus = RwSignal::new(String::new());
+    let filter = RwSignal::new(String::new());
+    let note = RwSignal::new(String::new());
+    let err = RwSignal::new(None::<String>);
+
+    view! {
+        <StudioShell
+            title="New view"
+            kicker="DECLARE PROJECTION"
+            lead="A view is a particle: kind + optional focus + filter. Materializing it only reads the graph — never writes."
+        >
+            <div class="studio-form-page">
+                {move || err.get().map(|e| view! { <div class="eco-msg err">{e}</div> })}
+                <label class="found-label">"NAME"</label>
+                <input class="found-input" prop:value=move || name.get()
+                    on:input=move |ev| name.set(event_target_value(&ev))
+                    placeholder="My inventory · Ops board · Plot graph" />
+                <label class="found-label">"KIND"</label>
+                <input class="found-input" prop:value=move || kind.get()
+                    on:input=move |ev| kind.set(event_target_value(&ev)) />
+                <div class="list-filters" style="margin:8px 0;">
+                    {VIEW_KINDS.iter().map(|k| {
+                        let kk = (*k).to_string();
+                        let kk2 = kk.clone();
+                        view! {
+                            <button class="chip" on:click=move |_| kind.set(kk2.clone())>{kk}</button>
+                        }
+                    }).collect_view()}
+                </div>
+                <label class="found-label">"FOCUS PARTICLE (optional)"</label>
+                <input class="found-input" prop:value=move || focus.get()
+                    on:input=move |ev| focus.set(event_target_value(&ev))
+                    placeholder="person-you · plot-… · card id" />
+                <label class="found-label">"FILTER"</label>
+                <input class="found-input" prop:value=move || filter.get()
+                    on:input=move |ev| filter.set(event_target_value(&ev))
+                    placeholder="substring · state · class · rel" />
+                <label class="found-label">"NOTE"</label>
+                <input class="found-input" prop:value=move || note.get()
+                    on:input=move |ev| note.set(event_target_value(&ev)) />
+                <div class="studio-form-actions">
+                    <button class="intent-commit" on:click=move |_| {
+                        let f = {
+                            let x = focus.get().trim().to_string();
+                            if x.is_empty() { None } else { Some(x) }
+                        };
+                        match create_view(&name.get(), &kind.get(), f, &filter.get(), &note.get()) {
+                            Ok(v) => {
+                                if let Some(w) = web_sys::window() {
+                                    let _ = w.location().set_href(&format!("/world/view/{}", v.id));
+                                }
+                            }
+                            Err(e) => err.set(Some(e)),
+                        }
+                    }>"CREATE VIEW"</button>
+                    <a class="chip" href="/world/views">"← CANCEL"</a>
+                </div>
+            </div>
+        </StudioShell>
+    }
+}
+
+#[component]
+pub fn ViewShowPage() -> impl IntoView {
+    let id = param("id");
+    let id_meta = id.clone();
+    let tick = RwSignal::new(0u32);
+    let msg = RwSignal::new(None::<(bool, String)>);
+
+    view! {
+        <StudioShell
+            title="View"
+            kicker="PROJECTION"
+            lead="Read-only materialization. Refresh re-reads ledger + cybergraph."
+        >
+            {move || msg.get().map(|(ok, t)| view! {
+                <div class=if ok { "eco-msg ok" } else { "eco-msg err" }>{t}</div>
+            })}
+            {move || {
+                let _ = tick.get();
+                let Some(meta) = get_view(&id_meta) else {
+                    return view! {
+                        <div class="me-empty">"View not found. "<a href="/world/views">"← list"</a></div>
+                    }.into_any();
+                };
+                let edit_href = format!("/world/view/{}/edit", meta.id);
+                let del_id = meta.id.clone();
+                let can_del = !meta.system;
+                match materialize_view(&meta.id) {
+                    Err(e) => view! { <div class="eco-msg err">{e}</div> }.into_any(),
+                    Ok(proj) => {
+                        let is_kanban = proj.kind == "kanban";
+                        let columns = proj.columns.clone();
+                        let empty = proj.rows.is_empty();
+                        view! {
+                            <div class="studio-detail view-detail">
+                                <div class="studio-kind-lg">{proj.kind.to_uppercase()}</div>
+                                <h3 class="studio-title-lg">{proj.title.clone()}</h3>
+                                <div class="studio-meta">{format!(
+                                    "{} · focus {} · filter «{}»",
+                                    meta.id,
+                                    meta.focus.clone().unwrap_or_else(|| "·".into()),
+                                    meta.filter
+                                )}</div>
+                                <div class="studio-meta">{meta.note.clone()}</div>
+                                <p class="view-summary">{proj.summary.clone()}</p>
+                                <div class="view-groups">
+                                    {proj.groups.iter().map(|(g, n)| {
+                                        view! { <span class="chip">{format!("{g} · {n}")}</span> }
+                                    }).collect_view()}
+                                </div>
+                                <div class="studio-form-actions" style="margin-bottom:16px;">
+                                    <button class="intent-commit" on:click=move |_| {
+                                        tick.update(|n| { *n += 1; });
+                                    }>"↻ REFRESH"</button>
+                                    <a class="chip" href=edit_href>"EDIT DECL"</a>
+                                    {can_del.then(move || {
+                                        let del_id = del_id.clone();
+                                        view! {
+                                            <button class="chip" on:click=move |_| {
+                                                match delete_view(&del_id) {
+                                                    Ok(()) => {
+                                                        if let Some(w) = web_sys::window() {
+                                                            let _ = w.location().set_href("/world/views");
+                                                        }
+                                                    }
+                                                    Err(e) => msg.set(Some((false, e))),
+                                                }
+                                            }>"DELETE"</button>
+                                        }
+                                    })}
+                                    <a class="chip" href="/world/views">"← LIST"</a>
+                                    <a class="chip" href="/world/links/new">"+ LINK"</a>
+                                </div>
+
+                                {if is_kanban {
+                                    let mut cols: Vec<(String, Vec<crate::erp::ViewRow>)> = Vec::new();
+                                    for (g, _) in &proj.groups {
+                                        cols.push((
+                                            g.clone(),
+                                            proj.rows.iter().filter(|r| &r.tag == g).cloned().collect(),
+                                        ));
+                                    }
+                                    for r in &proj.rows {
+                                        if !cols.iter().any(|(g, _)| g == &r.tag) {
+                                            cols.push((r.tag.clone(), vec![r.clone()]));
+                                        }
+                                    }
+                                    // dedupe items if added as orphan after group
+                                    for (g, items) in cols.iter_mut() {
+                                        if proj.groups.iter().any(|(gg, _)| gg == g) {
+                                            // already filled from groups
+                                        } else {
+                                            // orphan only
+                                            let _ = items;
+                                        }
+                                    }
+                                    view! {
+                                        <div class="view-kanban">
+                                            {cols.into_iter().map(|(col, items)| {
+                                                view! {
+                                                    <div class="kanban-col">
+                                                        <div class="kanban-h">{format!(
+                                                            "{} · {}",
+                                                            col.to_uppercase(),
+                                                            items.len()
+                                                        )}</div>
+                                                        <div class="kanban-body">
+                                                            {items.into_iter().map(|row| {
+                                                                let title = row
+                                                                    .cells
+                                                                    .iter()
+                                                                    .map(|(_, v)| v.as_str())
+                                                                    .collect::<Vec<_>>()
+                                                                    .join(" · ");
+                                                                let key = row.key.clone();
+                                                                if let Some(h) = row.href.clone() {
+                                                                    view! {
+                                                                        <a class="kanban-card-link" href=h>
+                                                                            <div class="kanban-card">
+                                                                                <div class="studio-title">{title}</div>
+                                                                                <div class="studio-meta">{key}</div>
+                                                                            </div>
+                                                                        </a>
+                                                                    }.into_any()
+                                                                } else {
+                                                                    view! {
+                                                                        <div class="kanban-card">
+                                                                            <div class="studio-title">{title}</div>
+                                                                            <div class="studio-meta">{key}</div>
+                                                                        </div>
+                                                                    }.into_any()
+                                                                }
+                                                            }).collect_view()}
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }).collect_view()}
+                                        </div>
+                                    }.into_any()
+                                } else {
+                                    view! {
+                                        <div class="view-table-wrap">
+                                            <table class="view-table">
+                                                <thead>
+                                                    <tr>
+                                                        {columns.iter().map(|c| {
+                                                            view! { <th>{c.clone()}</th> }
+                                                        }).collect_view()}
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {proj.rows.into_iter().map(|row| {
+                                                        let href = row.href.clone();
+                                                        view! {
+                                                            <tr>
+                                                                {columns.iter().map(|c| {
+                                                                    let val = row
+                                                                        .cells
+                                                                        .iter()
+                                                                        .find(|(k, _)| k == c)
+                                                                        .map(|(_, v)| v.clone())
+                                                                        .unwrap_or_default();
+                                                                    view! { <td>{val}</td> }
+                                                                }).collect_view()}
+                                                                <td>
+                                                                    {href.map(|h| {
+                                                                        view! { <a class="chip" href=h>"→"</a> }
+                                                                    })}
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    }).collect_view()}
+                                                </tbody>
+                                            </table>
+                                            {empty.then(|| view! {
+                                                <div class="me-empty" style="margin-top:12px;">
+                                                    "Empty projection — adjust filter/focus or create data first."
+                                                </div>
+                                            })}
+                                        </div>
+                                    }.into_any()
+                                }}
+                            </div>
+                        }.into_any()
+                    }
+                }
+            }}
+        </StudioShell>
+    }
+}
+
+#[component]
+pub fn ViewEditPage() -> impl IntoView {
+    let id = param("id");
+    let id_e = id.clone();
+    let id_save = id.clone();
+    let cancel_href = format!("/world/view/{id}");
+    let name = RwSignal::new(String::new());
+    let kind = RwSignal::new(String::new());
+    let focus = RwSignal::new(String::new());
+    let filter = RwSignal::new(String::new());
+    let note = RwSignal::new(String::new());
+    let err = RwSignal::new(None::<String>);
+    let is_sys = RwSignal::new(false);
+
+    Effect::new(move |_| {
+        if let Some(v) = get_view(&id_e) {
+            name.set(v.name);
+            kind.set(v.kind);
+            focus.set(v.focus.unwrap_or_default());
+            filter.set(v.filter);
+            note.set(v.note);
+            is_sys.set(v.system);
+        }
+    });
+
+    view! {
+        <StudioShell
+            title="Edit view"
+            kicker="EDIT DECLARATION"
+            lead="Editing the declaration only — projections re-materialize on open."
+        >
+            <div class="studio-form-page">
+                {move || err.get().map(|e| view! { <div class="eco-msg err">{e}</div> })}
+                {move || is_sys.get().then(|| view! {
+                    <div class="eco-msg ok">
+                        "System view — kind is locked; name / focus / filter / note editable."
+                    </div>
+                })}
+                <label class="found-label">"NAME"</label>
+                <input class="found-input" prop:value=move || name.get()
+                    on:input=move |ev| name.set(event_target_value(&ev)) />
+                <label class="found-label">"KIND"</label>
+                <input class="found-input" prop:value=move || kind.get()
+                    prop:disabled=move || is_sys.get()
+                    on:input=move |ev| kind.set(event_target_value(&ev)) />
+                <div class="list-filters" style="margin:8px 0;">
+                    {VIEW_KINDS.iter().map(|k| {
+                        let kk = (*k).to_string();
+                        let kk2 = kk.clone();
+                        view! {
+                            <button class="chip" on:click=move |_| {
+                                if !is_sys.get() {
+                                    kind.set(kk2.clone());
+                                }
+                            }>{kk}</button>
+                        }
+                    }).collect_view()}
+                </div>
+                <label class="found-label">"FOCUS"</label>
+                <input class="found-input" prop:value=move || focus.get()
+                    on:input=move |ev| focus.set(event_target_value(&ev)) />
+                <label class="found-label">"FILTER"</label>
+                <input class="found-input" prop:value=move || filter.get()
+                    on:input=move |ev| filter.set(event_target_value(&ev)) />
+                <label class="found-label">"NOTE"</label>
+                <input class="found-input" prop:value=move || note.get()
+                    on:input=move |ev| note.set(event_target_value(&ev)) />
+                <div class="studio-form-actions">
+                    <button class="intent-commit" on:click=move |_| {
+                        let f = {
+                            let x = focus.get().trim().to_string();
+                            if x.is_empty() { None } else { Some(x) }
+                        };
+                        let id_nav = id_save.clone();
+                        match update_view(
+                            &id_save,
+                            &name.get(),
+                            &kind.get(),
+                            f,
+                            &filter.get(),
+                            &note.get(),
+                        ) {
+                            Ok(()) => {
+                                if let Some(w) = web_sys::window() {
+                                    let _ = w.location().set_href(&format!("/world/view/{id_nav}"));
+                                }
+                            }
                             Err(e) => err.set(Some(e)),
                         }
                     }>"SAVE"</button>
