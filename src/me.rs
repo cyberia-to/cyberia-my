@@ -199,13 +199,15 @@ pub fn MePage() -> impl IntoView {
                         <div class="kpi-val">{move || stocks.get().len().to_string()}</div>
                         <div class="kpi-sub">"elements · products →"</div>
                     </a>
-                    <a class="kpi me-kpi" href="/market">
-                        <div class="kpi-lab">"LOTS"</div>
+                    <a class="kpi me-kpi" href="/orgs">
+                        <div class="kpi-lab">"ORGS"</div>
                         <div class="kpi-val">{move || {
-                            let me = profile.get().handle;
-                            orders.get().iter().filter(|o| o.owner == me).count().to_string()
+                            use crate::signal::{graph_links, word_particle};
+                            let me_w = word_particle("person", &profile.get().handle);
+                            let member_of = word_particle("relation", "member_of");
+                            graph_links().iter().filter(|(_, l)| l.rel == member_of && l.from == me_w).count().to_string()
                         }}</div>
-                        <div class="kpi-sub">"your market lots →"</div>
+                        <div class="kpi-sub">"memberships →"</div>
                     </a>
                 </div>
 
@@ -217,10 +219,10 @@ pub fn MePage() -> impl IntoView {
                             <span class="cta-sub">"transform stocks"</span>
                         </span>
                     </a>
-                    <a class="cta-btn cta-buy cta-lg" href="/market" style="text-decoration:none;">
+                    <a class="cta-btn cta-buy cta-lg" href="/services" style="text-decoration:none;">
                         <span class="cta-copy">
-                            <span class="cta-title">"MARKET"</span>
-                            <span class="cta-sub">"buy · sell"</span>
+                            <span class="cta-title">"SERVICES"</span>
+                            <span class="cta-sub">"order the fleet"</span>
                         </span>
                     </a>
                     <a class="cta-btn cta-event cta-lg" href="/robots" style="text-decoration:none;">

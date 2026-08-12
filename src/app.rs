@@ -5,13 +5,14 @@ use crate::console::ValleyConsole;
 use crate::elements::ElementsPage;
 use crate::events::EventsPage;
 use crate::genetics::GeneticsPage;
-use crate::market::MarketPage;
 use crate::me::MePage;
 use crate::nav::CyberiaNav;
+use crate::orgs::OrgsPage;
 use crate::places::PlacesPage;
 use crate::products::ProductsPage;
 use crate::plots::PlotsPage;
 use crate::robots::RobotsPage;
+use crate::services::ServicesPage;
 use crate::signal_pages::*;
 use crate::states::StatesPage;
 use crate::studio::*;
@@ -75,7 +76,9 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/elements") view=ElementsPage />
                 <Route path=path!("/products") view=ProductsPage />
                 <Route path=path!("/genetics") view=GeneticsPage />
-                <Route path=path!("/market") view=MarketPage />
+                <Route path=path!("/market") view=ProductsPage />
+                <Route path=path!("/services") view=ServicesPage />
+                <Route path=path!("/orgs") view=OrgsPage />
                 <Route path=path!("/calendar") view=EventsPage />
                 <Route path=path!("/events") view=EventsPage />
                 <Route path=path!("/robots") view=RobotsPage />

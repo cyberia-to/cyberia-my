@@ -20,6 +20,10 @@ pub struct SpeciesDef {
     /// what it yields — each becomes a coin word on seed
     pub products: &'static [&'static str],
     pub blurb: &'static str,
+    /// price of one living unit, CX
+    pub price: f64,
+    /// what one unit is — seedling · head · colony · crown · culm …
+    pub unit: &'static str,
 }
 
 pub const SPECIES: &[SpeciesDef] = &[
@@ -30,6 +34,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["banana", "banana-leaf"],
         blurb: "The valley staple — fruit in bunches, leaves as plates and wrap.",
+        price: 2.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Persea americana",
@@ -37,6 +43,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["avocado"],
         blurb: "Fat of the land — slow tree, rich yield.",
+        price: 5.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Coffea arabica",
@@ -44,6 +52,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["coffee-cherry", "coffee"],
         blurb: "Highland cash crop — cherry to bean to cup.",
+        price: 3.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Theobroma cacao",
@@ -51,6 +61,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["cacao-pod", "cacao"],
         blurb: "Food of the gods — pod, nib, chocolate.",
+        price: 4.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Cocos nucifera",
@@ -58,6 +70,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["coconut", "copra", "coco-fiber"],
         blurb: "The tree of a thousand uses — water, flesh, oil, fiber, timber.",
+        price: 3.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Mangifera indica",
@@ -65,6 +79,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["mango"],
         blurb: "Canopy fruit — shade above, sugar below.",
+        price: 4.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Carica papaya",
@@ -72,6 +88,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["papaya"],
         blurb: "Fast fruiter — months from seed to harvest.",
+        price: 1.0,
+        unit: "seedling",
     },
     SpeciesDef {
         latin: "Bambusa vulgaris",
@@ -79,6 +97,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "tree",
         products: &["bamboo-pole", "bamboo-shoot"],
         blurb: "The building material that grows itself — a meter a day.",
+        price: 1.5,
+        unit: "culm",
     },
     // —— crops & herbs ——
     SpeciesDef {
@@ -87,6 +107,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "crop",
         products: &["rice"],
         blurb: "The terrace grain — water, mud, sun.",
+        price: 2.0,
+        unit: "kg seed",
     },
     SpeciesDef {
         latin: "Ananas comosus",
@@ -94,6 +116,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "crop",
         products: &["pineapple"],
         blurb: "Ground bromeliad — sweet armor.",
+        price: 0.5,
+        unit: "crown",
     },
     SpeciesDef {
         latin: "Zingiber officinale",
@@ -101,6 +125,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "herb",
         products: &["ginger"],
         blurb: "Rhizome heat — kitchen and medicine both.",
+        price: 1.0,
+        unit: "rhizome",
     },
     SpeciesDef {
         latin: "Curcuma longa",
@@ -108,6 +134,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "herb",
         products: &["turmeric"],
         blurb: "Golden root — jamu's backbone.",
+        price: 1.0,
+        unit: "rhizome",
     },
     SpeciesDef {
         latin: "Vanilla planifolia",
@@ -115,6 +143,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "herb",
         products: &["vanilla-pod"],
         blurb: "The orchid you hand-pollinate — patience priced by the gram.",
+        price: 8.0,
+        unit: "cutting",
     },
     // —— animals ——
     SpeciesDef {
@@ -123,6 +153,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "animal",
         products: &["wool", "sheep-milk", "mutton"],
         blurb: "The flock — wool, milk, meat, and mowed grass.",
+        price: 90.0,
+        unit: "head",
     },
     SpeciesDef {
         latin: "Capra hircus",
@@ -130,6 +162,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "animal",
         products: &["goat-milk", "goat-meat"],
         blurb: "The browser — thrives where lawns fail.",
+        price: 70.0,
+        unit: "head",
     },
     // —— birds ——
     SpeciesDef {
@@ -138,6 +172,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "bird",
         products: &["egg", "chicken-meat"],
         blurb: "The daily layer — eggs in, scraps out.",
+        price: 8.0,
+        unit: "head",
     },
     SpeciesDef {
         latin: "Anas platyrhynchos domesticus",
@@ -145,6 +181,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "bird",
         products: &["duck-egg", "duck-meat"],
         blurb: "The paddy patrol — eats the pests rice can't.",
+        price: 10.0,
+        unit: "head",
     },
     // —— insects & fungi ——
     SpeciesDef {
@@ -153,6 +191,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "insect",
         products: &["honey", "beeswax"],
         blurb: "The pollination engine — every orchard's silent partner.",
+        price: 60.0,
+        unit: "colony",
     },
     SpeciesDef {
         latin: "Pleurotus ostreatus",
@@ -160,6 +200,8 @@ pub const SPECIES: &[SpeciesDef] = &[
         category: "fungus",
         products: &["mushroom"],
         blurb: "Grows on what everything else throws away.",
+        price: 2.0,
+        unit: "kg spawn",
     },
 ];
 
@@ -180,6 +222,44 @@ fn category_color(cat: &str) -> &'static str {
 /// Has this species been seeded into the graph already?
 fn seeded(latin: &str) -> bool {
     find_word(&word_particle("species", latin)).is_some()
+}
+
+/// Buy one living unit: CX out, stock in (id = common name), one signed
+/// signal you —buys→ species. Seeds the genome first if it isn't yet.
+fn buy_species(def: &SpeciesDef) -> Result<String, String> {
+    use crate::wallet::{debit_cx, load_balance, load_profile, push_intent, stock_add};
+    if load_balance().cx + 1e-9 < def.price {
+        return Err(format!(
+            "{:.1} CX needed — you hold {:.1}",
+            def.price,
+            load_balance().cx
+        ));
+    }
+    if !seeded(def.latin) {
+        seed_species(def)?;
+    }
+    let me = neuron().bech32;
+    debit_cx(def.price);
+    stock_add(def.common, 1.0);
+    let handle = load_profile().handle;
+    let you = mint_word("person", &handle, "YOU", &me, false);
+    let sp = word_particle("species", def.latin);
+    let rel = mint_word("relation", "buys", "market acquisition", "", true);
+    emit_signal(
+        vec![Link {
+            from: you,
+            rel,
+            to: sp,
+            weight: 1.0,
+            note: format!("-{:.1} CX · 1 {}", def.price, def.unit),
+        }],
+        &format!("buy 1 {} {}", def.unit, def.common),
+    )?;
+    push_intent(&handle, "gen_buy", &format!("{} 1 {}", def.common, def.unit));
+    Ok(format!(
+        "bought 1 {} {} · -{:.1} CX",
+        def.unit, def.common, def.price
+    ))
 }
 
 /// Seed one species: mint its word + product coin words, and commit one
@@ -287,9 +367,17 @@ pub fn GeneticsPage() -> impl IntoView {
                                 let word_href = format!("/world/word/{particle}");
                                 let grow_href = format!("/world/links/new?to={particle}");
                                 let latin = def.latin;
+                                let held = crate::wallet::stock_qty(def.common);
                                 let seed = move |_| {
                                     match seed_species(def) {
                                         Ok(_) => msg.set(Some((true, format!("{latin} seeded — genome in the graph, produces links committed")))),
+                                        Err(e) => msg.set(Some((false, e))),
+                                    }
+                                    tick.update(|n| *n += 1);
+                                };
+                                let buy = move |_| {
+                                    match buy_species(def) {
+                                        Ok(t) => msg.set(Some((true, t))),
                                         Err(e) => msg.set(Some((false, e))),
                                     }
                                     tick.update(|n| *n += 1);
@@ -315,6 +403,12 @@ pub fn GeneticsPage() -> impl IntoView {
                                             </div>
                                         </div>
                                         <div class="studio-row-acts">
+                                            {(held > 0.0).then(|| view! {
+                                                <span class="sys-tag">{format!("{held:.0} {}", def.unit)}</span>
+                                            })}
+                                            <button class="chip chip-on" on:click=buy>
+                                                {format!("BUY · {:.1} CX/{}", def.price, def.unit)}
+                                            </button>
                                             {if in_graph {
                                                 view! {
                                                     <span class="sys-tag">{format!("IN GRAPH · {n_links}")}</span>
@@ -323,7 +417,7 @@ pub fn GeneticsPage() -> impl IntoView {
                                                 }.into_any()
                                             } else {
                                                 view! {
-                                                    <button class="chip chip-on" on:click=seed>"SEED → GRAPH"</button>
+                                                    <button class="chip" on:click=seed>"SEED → GRAPH"</button>
                                                 }.into_any()
                                             }}
                                         </div>

@@ -653,3 +653,78 @@ pub fn fmt_qty(q: f64) -> String {
         format!("{q:.2}")
     }
 }
+
+/// The city's best ask for a good — THE price surface after /market died.
+pub fn city_ask(good_id: &str) -> Option<f64> {
+    load_orders()
+        .into_iter()
+        .filter(|o| o.good_id == good_id && o.side == "sell" && o.owner == "cyber-valley")
+        .map(|o| o.price_cx)
+        .fold(None, |a, b| Some(a.map_or(b, |x: f64| x.min(b))))
+}
+
+/// Buy a good at the city's best ask — depth decrements for real. One
+/// signed signal per trade: you —buys→ good word.
+pub fn product_buy(good_id: &str, qty: f64) -> Result<String, String> {
+    ensure_economy_boot();
+    if qty <= 0.0 {
+        return Err("qty must be > 0".into());
+    }
+    let mut orders = load_orders();
+    let idx = orders
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.good_id == good_id && o.side == "sell" && o.owner == "cyber-valley")
+        .min_by(|a, b| a.1.price_cx.partial_cmp(&b.1.price_cx).unwrap())
+        .map(|(i, _)| i)
+        .ok_or_else(|| "city has no ask for this good".to_string())?;
+    let px = orders[idx].price_cx;
+    let take = qty.min(orders[idx].qty);
+    let cost = take * px;
+    if load_balance().cx + 1e-9 < cost {
+        return Err(format!("need {cost:.1} CX, have {:.1}", load_balance().cx));
+    }
+    debit_cx(cost);
+    stock_add(good_id, take);
+    orders[idx].qty -= take;
+    if orders[idx].qty <= 1e-9 {
+        orders.remove(idx);
+    }
+    save_orders(&orders);
+    let handle = load_profile().handle;
+    push_intent(&handle, "buy", &format!("{good_id} x{take} @ {px:.2} CX"));
+    trade_signal(good_id, take, cost, false);
+    Ok(format!("bought {take} {good_id} · -{cost:.1} CX"))
+}
+
+/// Sell to the city at 70% of its ask (the old market_sell_to_city path),
+/// plus the signal the graph deserves.
+pub fn product_sell(good_id: &str, qty: f64) -> Result<String, String> {
+    let msg = market_sell_to_city(good_id, qty)?;
+    let px = city_ask(good_id).map(|p| p * 0.70).unwrap_or(1.0);
+    trade_signal(good_id, qty, qty * px, true);
+    Ok(msg)
+}
+
+fn trade_signal(good_id: &str, qty: f64, total: f64, sell: bool) {
+    use crate::signal::{emit_signal, mint_word, neuron, Link};
+    let me = neuron().bech32;
+    let handle = load_profile().handle;
+    let you = mint_word("person", &handle, "YOU", &me, false);
+    let coin = mint_word("coin", good_id, "", &me, false);
+    let rel = if sell {
+        mint_word("relation", "sells", "market disposal", "", true)
+    } else {
+        mint_word("relation", "buys", "market acquisition", "", true)
+    };
+    let _ = emit_signal(
+        vec![Link {
+            from: you,
+            rel,
+            to: coin,
+            weight: qty,
+            note: format!("{}{total:.2} CX", if sell { "+" } else { "-" }),
+        }],
+        &format!("{} {qty} {good_id}", if sell { "sell" } else { "buy" }),
+    );
+}

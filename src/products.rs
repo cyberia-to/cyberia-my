@@ -3,7 +3,8 @@
 //! genomes. The fundamental table itself lives at /elements.
 
 use crate::economy::{
-    elements, fmt_qty, good, products, run_bom, BomRecipe, GoodDef, GoodKind, BOMS, GOODS,
+    city_ask, elements, fmt_qty, good, product_buy, product_sell, products, run_bom, BomRecipe,
+    GoodDef, GoodKind, BOMS, GOODS,
 };
 use crate::land::FLAG_SVG;
 use crate::nav::CyberiaNav;
@@ -198,39 +199,68 @@ pub fn ProductsPage() -> impl IntoView {
 }
 
 fn goods_table(list: Vec<&'static GoodDef>, _is_el: bool) -> impl IntoView {
+    let msg = RwSignal::new(None::<(bool, String)>);
+    let tick = RwSignal::new(0u32);
     view! {
+        {move || msg.get().map(|(ok, t)| view! {
+            <div class=if ok { "eco-msg ok" } else { "eco-msg err" }>{t}</div>
+        })}
         <div class="states-table-wrap">
             <div class="states-table-h eco-table-h">
                 <span class="st-rank">"#"</span>
                 <span class="st-name">"GOOD"</span>
                 <span class="st-token">"UNIT"</span>
                 <span class="st-cap">"YOU"</span>
-                <span class="st-delta">"CLASS"</span>
-                <span class="st-region">"NOTE"</span>
+                <span class="st-delta">"PRICE"</span>
+                <span class="st-region">"TRADE · buy at ask, sell at 70%"</span>
             </div>
             <div class="states-table-body">
-                {list.into_iter().enumerate().map(|(i, g)| {
-                    let q = stock_qty(g.id);
-                    let has = q > 0.0;
-                    let kind = match g.kind {
-                        GoodKind::Element => "EL",
-                        GoodKind::Product => "PR",
-                    };
-                    let qty_cls = if has { "st-cap" } else { "st-cap soon" };
-                    view! {
-                        <div class="states-row eco-row">
-                            <span class="st-rank">{i + 1}</span>
-                            <span class="st-name">
-                                <span class="st-name-text">{g.name}</span>
-                                <span class="st-code">{kind}</span>
-                            </span>
-                            <span class="st-token">{g.unit}</span>
-                            <span class=qty_cls>{fmt_qty(q)}</span>
-                            <span class="st-delta">{g.class}</span>
-                            <span class="st-region">{g.blurb}</span>
-                        </div>
-                    }
-                }).collect_view()}
+                {move || {
+                    let _ = tick.get();
+                    list.iter().enumerate().map(|(i, g)| {
+                        let q = stock_qty(g.id);
+                        let has = q > 0.0;
+                        let kind = match g.kind {
+                            GoodKind::Element => "EL",
+                            GoodKind::Product => "PR",
+                        };
+                        let qty_cls = if has { "st-cap" } else { "st-cap soon" };
+                        let ask = city_ask(g.id);
+                        let gid = g.id;
+                        let buy = move |_| {
+                            msg.set(Some(match product_buy(gid, 1.0) {
+                                Ok(t) => (true, t),
+                                Err(t) => (false, t),
+                            }));
+                            tick.update(|n| *n += 1);
+                        };
+                        let sell = move |_| {
+                            msg.set(Some(match product_sell(gid, 1.0) {
+                                Ok(t) => (true, t),
+                                Err(t) => (false, t),
+                            }));
+                            tick.update(|n| *n += 1);
+                        };
+                        view! {
+                            <div class="states-row eco-row">
+                                <span class="st-rank">{i + 1}</span>
+                                <span class="st-name">
+                                    <span class="st-name-text">{g.name}</span>
+                                    <span class="st-code">{kind}</span>
+                                </span>
+                                <span class="st-token">{g.unit}</span>
+                                <span class=qty_cls>{fmt_qty(q)}</span>
+                                <span class="st-delta">{ask.map(|p| format!("{p:.2} CX")).unwrap_or_else(|| "—".into())}</span>
+                                <span class="st-region" style="display:flex; gap:6px; align-items:center;">
+                                    {ask.is_some().then(|| view! {
+                                        <button class="chip chip-on" on:click=buy>"BUY 1"</button>
+                                        <button class="chip" on:click=sell disabled=!has>"SELL 1"</button>
+                                    })}
+                                </span>
+                            </div>
+                        }
+                    }).collect_view()
+                }}
             </div>
         </div>
     }
