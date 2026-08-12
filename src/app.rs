@@ -9,6 +9,7 @@ use crate::market::MarketPage;
 use crate::me::MePage;
 use crate::nav::CyberiaNav;
 use crate::places::PlacesPage;
+use crate::products::ProductsPage;
 use crate::plots::PlotsPage;
 use crate::robots::RobotsPage;
 use crate::signal_pages::*;
@@ -71,6 +72,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/world/view/:id/edit") view=ViewEditPage />
 
                 <Route path=path!("/elements") view=ElementsPage />
+                <Route path=path!("/products") view=ProductsPage />
                 <Route path=path!("/genetics") view=GeneticsPage />
                 <Route path=path!("/market") view=MarketPage />
                 <Route path=path!("/calendar") view=EventsPage />

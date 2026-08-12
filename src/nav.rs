@@ -12,6 +12,7 @@ pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
             <a class=if a == "world" { "nav-btn nav-here" } else { "nav-btn" } href="/world">"WORLD"</a>
             <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href="/cities">"CITIES"</a>
             <a class=if a == "elements" { "nav-btn nav-here" } else { "nav-btn" } href="/elements">"ELEMENTS"</a>
+            <a class=if a == "products" { "nav-btn nav-here" } else { "nav-btn" } href="/products">"PRODUCTS"</a>
             <a class=if a == "genetics" { "nav-btn nav-here" } else { "nav-btn" } href="/genetics">"GENETICS"</a>
             <a class=if a == "market" { "nav-btn nav-here" } else { "nav-btn" } href="/market">"MARKET"</a>
             <a class=if a == "calendar" { "nav-btn nav-here" } else { "nav-btn" } href="/calendar">"CALENDAR"</a>

@@ -127,7 +127,7 @@ pub fn MarketPage() -> impl IntoView {
                             class=move || if side_f.get() == SideFilter::Mine { "chip chip-on" } else { "chip" }
                             on:click=move |_| side_f.set(SideFilter::Mine)
                         >"MY LOTS"</button>
-                        <a class="chip" href="/elements">"BOM →"</a>
+                        <a class="chip" href="/products">"BOM →"</a>
                     </div>
                 </div>
 
@@ -288,7 +288,7 @@ pub fn MarketPage() -> impl IntoView {
                         )
                     }}
                 </span>
-                <a class="cta-btn cta-buy cta-lg dock-found" href="/elements" style="text-decoration:none; max-width: 280px;">
+                <a class="cta-btn cta-buy cta-lg dock-found" href="/products" style="text-decoration:none; max-width: 280px;">
                     <span class="cta-copy">
                         <span class="cta-title">"BOM"</span>
                         <span class="cta-sub">"transform stocks"</span>

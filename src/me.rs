@@ -194,7 +194,7 @@ pub fn MePage() -> impl IntoView {
                         <div class="kpi-val">{move || intents.get().len().to_string()}</div>
                         <div class="kpi-sub">"ops queue →"</div>
                     </a>
-                    <a class="kpi me-kpi" href="/elements">
+                    <a class="kpi me-kpi" href="/products">
                         <div class="kpi-lab">"STOCKS"</div>
                         <div class="kpi-val">{move || stocks.get().len().to_string()}</div>
                         <div class="kpi-sub">"elements · products →"</div>
@@ -211,7 +211,7 @@ pub fn MePage() -> impl IntoView {
 
                 // quick actions
                 <div class="me-actions">
-                    <a class="cta-btn cta-lease cta-lg" href="/elements" style="text-decoration:none;">
+                    <a class="cta-btn cta-lease cta-lg" href="/products" style="text-decoration:none;">
                         <span class="cta-copy">
                             <span class="cta-title">"BOM"</span>
                             <span class="cta-sub">"transform stocks"</span>
@@ -241,7 +241,7 @@ pub fn MePage() -> impl IntoView {
                 <section class="me-section">
                     <div class="me-section-h">
                         <span>"YOUR STOCKS · ELEMENTS & PRODUCTS"</span>
-                        <a href="/elements">"BOM →"</a>
+                        <a href="/products">"BOM →"</a>
                     </div>
                     {move || {
                         let list = stocks.get();

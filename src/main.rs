@@ -11,6 +11,7 @@ mod market;
 mod me;
 mod nav;
 mod places;
+mod products;
 mod plots;
 mod robots;
 mod signal;
