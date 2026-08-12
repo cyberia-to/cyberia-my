@@ -1,5 +1,5 @@
-//! Signal Studio hub — the soft3 ladder as a construction surface.
-//! word → link → sentence → signal → motif → dialect → lexicon.
+//! /studio — the Signal Studio hub (construction surface on the soft3
+//! ladder) and /world — your presence: who you are in this world.
 //! Sub-routes are full pages (no overlays).
 
 use crate::economy::fmt_qty;
@@ -44,13 +44,13 @@ pub fn StudioShell(
                             <span class="phase-dot"></span>
                             "SIGNAL STUDIO"
                         </div>
-                        <CyberiaNav active="world" />
+                        <CyberiaNav active="studio" />
                     </div>
                 </div>
             </div>
             <div class="cities-stage">
                 <div class="studio-breadcrumb">
-                    <a href="/world">"SIGNAL"</a>
+                    <a href="/studio">"STUDIO"</a>
                     <span>" / "</span>
                     <span>{kicker.clone()}</span>
                 </div>
@@ -91,9 +91,9 @@ pub fn StudioShell(
     }
 }
 
-/// /world — the Signal Studio hub.
+/// /studio — the Signal Studio hub: create words, links, signals.
 #[component]
-pub fn WorldPage() -> impl IntoView {
+pub fn StudioPage() -> impl IntoView {
     Effect::new(move |_| {
         document().set_title("Cyberia — Signal Studio");
         ensure_erp_boot();
@@ -357,5 +357,215 @@ pub fn WorldPage() -> impl IntoView {
                 "Everything here is real: particles are hemera (Poseidon2) hashes, the neuron is a mudra domain key, committed signals carry ADR-036 signatures you can re-verify. The dialect — cards, coins, motifs, PLUMB — is a convention over the same graph."
             </p>
         </StudioShell>
+    }
+}
+
+/// /world — your presence: who you are in this world. The neuron, your
+/// word, your focus, and everything you hold — stocks, land, buildings,
+/// genomes, signals. The studio creates; this page answers "who am I".
+#[component]
+pub fn WorldPage() -> impl IntoView {
+    Effect::new(move |_| {
+        document().set_title("Cyberia — my world");
+        ensure_erp_boot();
+        ensure_graph_boot();
+        sync_plot_cards_from_leases();
+    });
+
+    view! {
+        <div class="page-shell cities-shell">
+            <div class="site-chrome cyberia-chrome">
+                <div class="chrome-inner">
+                    <div class="header-row1">
+                        <div class="logo-zone">
+                            <h1 class="logo">
+                                <a href="/cities" class="brand-flag" title="home" inner_html=FLAG_SVG></a>
+                                <span style="color: var(--cyber-green);">"cyber"</span>
+                                <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
+                                <span style="color: #fff;">"ia"</span>
+                            </h1>
+                        </div>
+                        <div class="cyberia-phase-pill">
+                            <span class="phase-dot"></span>
+                            {move || {
+                                let handle = crate::wallet::load_profile().handle;
+                                format!("MY WORLD · {}", handle.to_uppercase())
+                            }}
+                        </div>
+                        <CyberiaNav active="world" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="cities-stage">
+                {move || {
+                    use crate::signal::{links_touching, load_words, word_focus, word_name, word_particle};
+                    use crate::wallet::{load_leases, load_profile, load_stocks};
+
+                    let me = neuron();
+                    let handle = load_profile().handle;
+                    let my_word = word_particle("person", &handle);
+                    let focus = word_focus(&my_word);
+                    let my_links = links_touching(&my_word);
+                    let words = load_words();
+                    let my_words = words.iter().filter(|w| w.owner == me.bech32).count();
+                    let my_species: Vec<_> = words
+                        .iter()
+                        .filter(|w| w.kind == "species" && w.owner == me.bech32)
+                        .cloned()
+                        .collect();
+                    let my_signals = load_signals()
+                        .into_iter()
+                        .filter(|s| s.state == "committed" && s.neuron == me.bech32)
+                        .count();
+                    let leases = load_leases();
+                    let buildings: Vec<_> = crate::erp::load_cards()
+                        .into_iter()
+                        .filter(|c| c.kind == "building" && c.owner == handle)
+                        .collect();
+                    let mut stocks = load_stocks();
+                    stocks.retain(|s| s.qty > 0.0);
+                    stocks.sort_by(|a, b| b.qty.partial_cmp(&a.qty).unwrap_or(std::cmp::Ordering::Equal));
+                    let n_stocks = stocks.len();
+                    stocks.truncate(8);
+                    let word_href = format!("/world/word/{my_word}");
+
+                    view! {
+                        <div class="cities-hero">
+                            <div>
+                                <div class="cities-kicker">"WHO AM I IN THIS WORLD"</div>
+                                <h2 class="cities-title" style="text-transform:none;">{handle.clone()}</h2>
+                                <p class="cities-lead">
+                                    "One neuron, one word, and everything the graph says about you. Creation happens in the "
+                                    <a href="/studio" style="color: var(--cyber-green);">"Studio"</a>
+                                    " — this is your standing in the world."
+                                </p>
+                            </div>
+                        </div>
+
+                        // identity
+                        <div class="studio-section-h"><span>"IDENTITY — THE NEURON AND ITS WORD"</span></div>
+                        <div class="bank-kpi-grid me-counts">
+                            <div class="kpi me-kpi">
+                                <div class="kpi-lab">"NEURON"</div>
+                                <div class="kpi-val" style="font-size:11px; word-break:break-all;">{me.bech32.clone()}</div>
+                                <div class="kpi-sub">"signs everything you assert"</div>
+                            </div>
+                            <a class="kpi me-kpi" href=word_href.clone()>
+                                <div class="kpi-lab">"MY WORD"</div>
+                                <div class="kpi-val" style="font-size:15px;">{format!("person:{handle}")}</div>
+                                <div class="kpi-sub">"your particle in the graph →"</div>
+                            </a>
+                            <div class="kpi me-kpi">
+                                <div class="kpi-lab">"FOCUS"</div>
+                                <div class="kpi-val">{format!("φ {focus:.1}")}</div>
+                                <div class="kpi-sub">"what the graph holds you at"</div>
+                            </div>
+                            <div class="kpi me-kpi">
+                                <div class="kpi-lab">"CX"</div>
+                                <div class="kpi-val">{fmt_qty(load_balance().cx)}</div>
+                                <div class="kpi-sub">"soft balance"</div>
+                            </div>
+                        </div>
+
+                        // standing
+                        <div class="studio-section-h" style="margin-top:12px;"><span>"STANDING — WHAT YOU'VE PUT INTO THE WORLD"</span></div>
+                        <div class="bank-kpi-grid me-counts">
+                            <a class="kpi me-kpi" href="/world/signals">
+                                <div class="kpi-lab">"SIGNALS"</div>
+                                <div class="kpi-val">{my_signals.to_string()}</div>
+                                <div class="kpi-sub">"committed under your key →"</div>
+                            </a>
+                            <a class="kpi me-kpi" href=word_href.clone()>
+                                <div class="kpi-lab">"LINKS ON YOU"</div>
+                                <div class="kpi-val">{my_links.len().to_string()}</div>
+                                <div class="kpi-sub">"assertions touching your word →"</div>
+                            </a>
+                            <a class="kpi me-kpi" href="/world/words">
+                                <div class="kpi-lab">"WORDS MINTED"</div>
+                                <div class="kpi-val">{my_words.to_string()}</div>
+                                <div class="kpi-sub">"vocabulary you coined →"</div>
+                            </a>
+                            <a class="kpi me-kpi" href="/map">
+                                <div class="kpi-lab">"PLOTS"</div>
+                                <div class="kpi-val">{leases.len().to_string()}</div>
+                                <div class="kpi-sub">"land you lease →"</div>
+                            </a>
+                            <a class="kpi me-kpi" href="/world/cards">
+                                <div class="kpi-lab">"BUILDINGS"</div>
+                                <div class="kpi-val">{buildings.len().to_string()}</div>
+                                <div class="kpi-sub">"constructed on your plots →"</div>
+                            </a>
+                            <a class="kpi me-kpi" href="/genetics">
+                                <div class="kpi-lab">"GENOMES"</div>
+                                <div class="kpi-val">{my_species.len().to_string()}</div>
+                                <div class="kpi-sub">"species you seeded →"</div>
+                            </a>
+                        </div>
+
+                        // holdings
+                        <div class="studio-section-h" style="margin-top:12px;">
+                            <span>{format!("HOLDINGS — {n_stocks} STOCKS")}</span>
+                            <a class="chip chip-on" href="/elements">"ELEMENTS"</a>
+                            <a class="chip" href="/products">"PRODUCTS"</a>
+                        </div>
+                        <div class="studio-list">
+                            {if stocks.is_empty() {
+                                view! { <div class="me-empty">"Nothing held yet — buy an element, run a motif, work the land."</div> }.into_any()
+                            } else {
+                                view! {
+                                    {stocks.into_iter().map(|s| {
+                                        view! {
+                                            <div class="studio-row">
+                                                <div class="studio-row-main">
+                                                    <span class="studio-kind">"COIN"</span>
+                                                    <div>
+                                                        <div class="studio-title">{s.id.clone()}</div>
+                                                        <div class="studio-meta">{format!("{} held", fmt_qty(s.qty))}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }).collect_view()}
+                                }.into_any()
+                            }}
+                        </div>
+
+                        // the graph on you
+                        <div class="studio-section-h" style="margin-top:16px;">
+                            <span>"THE GRAPH ON YOU"</span>
+                            <a class="chip chip-on" href="/studio">"OPEN STUDIO"</a>
+                        </div>
+                        <div class="studio-list">
+                            {if my_links.is_empty() {
+                                view! { <div class="me-empty">"No assertions yet — the world hasn't said anything about you. Say something first: " <a href="/world/links/new">"draft a link"</a>"."</div> }.into_any()
+                            } else {
+                                view! {
+                                    {my_links.into_iter().take(10).map(|(sid, l)| {
+                                        let href = format!("/world/signal/{sid}");
+                                        view! {
+                                            <a class="studio-row studio-row-link" href=href>
+                                                <div class="studio-row-main">
+                                                    <span class="studio-kind">"LINKED"</span>
+                                                    <div>
+                                                        <div class="studio-title">{format!("{} —[{}]→ {}", word_name(&l.from), word_name(&l.rel), word_name(&l.to))}</div>
+                                                        <div class="studio-meta">{format!("{} · w={}", sid, l.weight)}</div>
+                                                    </div>
+                                                </div>
+                                                <span class="chip">"SIGNAL →"</span>
+                                            </a>
+                                        }
+                                    }).collect_view()}
+                                }.into_any()
+                            }}
+                        </div>
+
+                        <p class="bank-footnote">
+                            "Identity is position: your word means what the graph links it to, weighted by focus. Wallet detail lives at " <a href="/me">"/me"</a> "; construction at " <a href="/studio">"/studio"</a> "."
+                        </p>
+                    }
+                }}
+            </div>
+        </div>
     }
 }

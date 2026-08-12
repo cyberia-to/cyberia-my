@@ -10,6 +10,7 @@ pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
         <div class="map-zone cyberia-nav">
             <a class=if a == "you" { "nav-btn nav-here nav-you" } else { "nav-btn nav-you" } href="/me">"YOU"</a>
             <a class=if a == "world" { "nav-btn nav-here" } else { "nav-btn" } href="/world">"WORLD"</a>
+            <a class=if a == "studio" { "nav-btn nav-here" } else { "nav-btn" } href="/studio">"STUDIO"</a>
             <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href="/cities">"CITIES"</a>
             <a class=if a == "elements" { "nav-btn nav-here" } else { "nav-btn" } href="/elements">"ELEMENTS"</a>
             <a class=if a == "products" { "nav-btn nav-here" } else { "nav-btn" } href="/products">"PRODUCTS"</a>

@@ -124,7 +124,7 @@ pub fn CitiesPage() -> impl IntoView {
                             "Land-first network cities. Open a live map, or found a new one."
                         </p>
                     </div>
-                    <a class="cta-btn cta-lease cta-lg" href="/world" style="text-decoration:none;">
+                    <a class="cta-btn cta-lease cta-lg" href="/studio" style="text-decoration:none;">
                         <span class="cta-copy">
                             <span class="cta-title">"SIGNAL STUDIO"</span>
                             <span class="cta-sub">"words · links · signals"</span>

@@ -232,7 +232,7 @@ pub fn MePage() -> impl IntoView {
                     <a class="cta-btn cta-found cta-lg" href="/world" style="text-decoration:none;">
                         <span class="cta-copy">
                             <span class="cta-title">"WORLD"</span>
-                            <span class="cta-sub">"signal studio"</span>
+                            <span class="cta-sub">"my presence"</span>
                         </span>
                     </a>
                 </div>

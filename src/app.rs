@@ -15,7 +15,7 @@ use crate::robots::RobotsPage;
 use crate::signal_pages::*;
 use crate::states::StatesPage;
 use crate::studio::*;
-use crate::world::WorldPage;
+use crate::world::{StudioPage, WorldPage};
 use leptos::prelude::*;
 use leptos_router::components::*;
 use leptos_router::path;
@@ -29,7 +29,7 @@ pub fn App() -> impl IntoView {
                     <div class="page-shell" style="padding:40px;">
                         <h1 style="color: var(--cyber-red);">"404"</h1>
                         <p style="color:#888; margin-top:12px;">"City or page not found."</p>
-                        <a href="/world" style="color: var(--cyber-green);">"← Signal Studio"</a>
+                        <a href="/studio" style="color: var(--cyber-green);">"← Signal Studio"</a>
                     </div>
                 }
             }>
@@ -38,9 +38,10 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/me") view=MePage />
                 <Route path=path!("/you") view=MePage />
 
-                // Signal Studio hub + full-page forms
+                // /world = who am I; /studio = the constructor hub
                 <Route path=path!("/world") view=WorldPage />
-                <Route path=path!("/erp") view=WorldPage />
+                <Route path=path!("/studio") view=StudioPage />
+                <Route path=path!("/erp") view=StudioPage />
                 <Route path=path!("/world/words") view=WordsListPage />
                 <Route path=path!("/world/words/new") view=WordNewPage />
                 <Route path=path!("/world/word/:particle") view=WordViewPage />
