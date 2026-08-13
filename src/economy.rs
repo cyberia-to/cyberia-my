@@ -529,14 +529,8 @@ pub fn market_buy(order_id: u64, qty: f64) -> Result<String, String> {
     if bal.cx + 1e-9 < cost {
         return Err(format!("need {cost:.1} CX, have {:.1}", bal.cx));
     }
-    debit_cx(cost);
-    // seller credit if not seed
-    if order.owner != "cyber-valley" {
-        // peer: we only have one wallet in soft3 — credit CX only for seed asymmetry
-        // peer sells: they already lost stock when listing; CX would need multi-wallet.
-        // soft3 single-agent: seed is infinite-ish seller; peer sells from your list only to city buy-back later.
-        credit_cx(0.0);
-    }
+    debit_cx(cost, "products", &format!("buy {take} {}", order.good_id));
+    // peer-seller credit needs multi-wallet; single-agent soft3 skips it
     stock_add(&order.good_id, take);
     if take + 1e-9 >= order.qty {
         orders.remove(idx);
@@ -635,7 +629,7 @@ pub fn market_sell_to_city(good_id: &str, qty: f64) -> Result<String, String> {
         .unwrap_or(1.0);
     stock_add(good_id, -qty);
     let rev = qty * px;
-    credit_cx(rev);
+    credit_cx(rev, "products", &format!("sell {qty} {good_id} → city"));
     push_intent(
         "YOU",
         "sell",
@@ -684,7 +678,7 @@ pub fn product_buy(good_id: &str, qty: f64) -> Result<String, String> {
     if load_balance().cx + 1e-9 < cost {
         return Err(format!("need {cost:.1} CX, have {:.1}", load_balance().cx));
     }
-    debit_cx(cost);
+    debit_cx(cost, "products", &format!("buy {take} {good_id}"));
     stock_add(good_id, take);
     orders[idx].qty -= take;
     if orders[idx].qty <= 1e-9 {

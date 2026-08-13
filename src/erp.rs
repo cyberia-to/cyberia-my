@@ -2001,71 +2001,44 @@ fn proj_memory(
 }
 
 fn proj_cash_flow(filter: &str) -> (Vec<String>, Vec<ViewRow>, Vec<(String, usize)>, String) {
-    use crate::wallet::{load_balance, load_orders};
-    let cx = load_balance().cx;
-    let mut rows = vec![ViewRow {
-        key: "cash".into(),
-        tag: "operating".into(),
-        cells: vec![
-            ("flow".into(), "operating".into()),
-            ("item".into(), "CX balance".into()),
-            ("amount".into(), format!("{cx:.4}")),
-        ],
-        href: Some("/me".into()),
-    }];
-    let mut buy = 0.0f64;
-    let mut sell = 0.0f64;
-    for o in load_orders() {
-        if o.owner == "cyber-valley" {
-            continue;
-        }
-        let blob = format!("{} {} {}", o.side, o.good_id, o.price_cx);
+    // the CX journal — every debit/credit lands here (wallet::LedgerEntry)
+    let ledger = crate::wallet::load_ledger();
+    let mut rows = Vec::new();
+    let mut by_cat: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let (mut tin, mut tout) = (0.0f64, 0.0f64);
+    for (i, e) in ledger.iter().enumerate().rev() {
+        let blob = format!("{} {} {}", e.cat, e.dir, e.note);
         if !filt_match(&blob, filter) {
             continue;
         }
-        let amt = o.qty * o.price_cx;
-        if o.side == "buy" {
-            buy += amt;
-            rows.push(ViewRow {
-                key: format!("ord-{}", o.id),
-                tag: "investing".into(),
-                cells: vec![
-                    ("flow".into(), "investing".into()),
-                    ("item".into(), format!("buy {}", o.good_id)),
-                    ("amount".into(), format!("-{amt:.2}")),
-                ],
-                href: Some("/market".into()),
-            });
+        if e.dir == "in" {
+            tin += e.amount;
         } else {
-            sell += amt;
-            rows.push(ViewRow {
-                key: format!("ord-{}", o.id),
-                tag: "financing".into(),
-                cells: vec![
-                    ("flow".into(), "financing".into()),
-                    ("item".into(), format!("sell {}", o.good_id)),
-                    ("amount".into(), format!("{amt:.2}")),
-                ],
-                href: Some("/market".into()),
-            });
+            tout += e.amount;
         }
+        *by_cat.entry(e.cat.clone()).or_insert(0) += 1;
+        rows.push(ViewRow {
+            key: format!("cf-{i}"),
+            tag: e.dir.clone(),
+            cells: vec![
+                ("cat".into(), e.cat.clone()),
+                ("dir".into(), e.dir.clone()),
+                (
+                    "flow".into(),
+                    format!("{}{:.1}", if e.dir == "in" { "+" } else { "-" }, e.amount),
+                ),
+                ("note".into(), e.note.clone()),
+            ],
+            href: Some("/me".into()),
+        });
     }
-    let groups = vec![
-        ("operating".into(), 1),
-        (
-            "investing".into(),
-            rows.iter().filter(|r| r.tag == "investing").count(),
-        ),
-        (
-            "financing".into(),
-            rows.iter().filter(|r| r.tag == "financing").count(),
-        ),
-    ];
+    let n = rows.len();
+    let groups: Vec<(String, usize)> = by_cat.into_iter().collect();
     (
-        vec!["flow".into(), "item".into(), "amount".into()],
+        vec!["cat".into(), "dir".into(), "flow".into(), "note".into()],
         rows,
         groups,
-        format!("cash flow soft · CX {cx:.2} · buy book {buy:.2} · sell book {sell:.2}"),
+        format!("{n} movements · in +{tin:.1} · out -{tout:.1} · net {:+.1} CX", tin - tout),
     )
 }
 

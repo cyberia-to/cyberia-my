@@ -239,7 +239,7 @@ fn buy_species(def: &SpeciesDef) -> Result<String, String> {
         seed_species(def)?;
     }
     let me = neuron().bech32;
-    debit_cx(def.price);
+    debit_cx(def.price, "genetics", &format!("1 {} {}", def.unit, def.common));
     stock_add(def.common, 1.0);
     let handle = load_profile().handle;
     let you = mint_word("person", &handle, "YOU", &me, false);

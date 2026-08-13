@@ -124,7 +124,7 @@ fn order_service(def: &ServiceDef, qty: f64) -> Result<String, String> {
     }
     let me = neuron().bech32;
     let handle = load_profile().handle;
-    debit_cx(total);
+    debit_cx(total, "services", &format!("{} ×{qty}", def.name));
     let svc = mint_word("service", def.name, &format!("crew {}", def.crew), &me, false);
     let you = mint_word("person", &handle, "YOU", &me, false);
     let rel = mint_word("relation", "orders", "service request", "", true);

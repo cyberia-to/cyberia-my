@@ -8,7 +8,8 @@ use crate::land::FLAG_SVG;
 use crate::nav::CyberiaNav;
 use crate::robots::{load_owned, OwnedRobot};
 use crate::wallet::{
-    ensure_economy_boot, load_balance, load_intents, load_leases, load_orders, load_profile,
+    ensure_economy_boot, load_balance, load_intents, load_leases, load_ledger, load_orders,
+    load_profile,
     load_stocks, save_balance, save_profile, IntentRec, Lease, SoftBalance, StockLine,
 };
 use leptos::prelude::*;
@@ -266,6 +267,118 @@ pub fn MePage() -> impl IntoView {
                                             <span class="me-chip-name">{name}</span>
                                             <span class="me-chip-meta">{format!("{} {} · {}", fmt_qty(s.qty), unit, s.id)}</span>
                                         </a>
+                                    }
+                                }).collect_view()}
+                            </div>
+                        }.into_any()
+                    }}
+                </section>
+
+                // ── P&L — income vs spend by category, from the CX journal ──
+                <section class="me-section">
+                    <div class="me-section-h">
+                        <span>"P&L · BY CATEGORY"</span>
+                        <span style="color:#556; font-size:10px;">"from the CX journal"</span>
+                    </div>
+                    {move || {
+                        let _ = intents.get();
+                        let ledger = load_ledger();
+                        if ledger.is_empty() {
+                            return view! {
+                                <div class="me-empty">"No CX movements recorded yet — trade an element, order a service, buy a robot."</div>
+                            }.into_any();
+                        }
+                        let mut cats: std::collections::BTreeMap<String, (f64, f64)> = std::collections::BTreeMap::new();
+                        for e in &ledger {
+                            let slot = cats.entry(e.cat.clone()).or_insert((0.0, 0.0));
+                            if e.dir == "in" { slot.0 += e.amount; } else { slot.1 += e.amount; }
+                        }
+                        let (tin, tout): (f64, f64) = cats.values().fold((0.0, 0.0), |a, v| (a.0 + v.0, a.1 + v.1));
+                        let net = tin - tout;
+                        view! {
+                            <div class="pnl-table">
+                                <div class="pnl-row pnl-head">
+                                    <span>"CATEGORY"</span>
+                                    <span class="pnl-num">"IN"</span>
+                                    <span class="pnl-num">"OUT"</span>
+                                    <span class="pnl-num">"NET"</span>
+                                </div>
+                                {cats.into_iter().map(|(cat, (cin, cout))| {
+                                    let n = cin - cout;
+                                    view! {
+                                        <div class="pnl-row">
+                                            <span style="text-transform:uppercase; letter-spacing:1px;">{cat}</span>
+                                            <span class="pnl-num" style="color:var(--cyber-green);">{if cin > 0.0 { format!("+{}", fmt_qty(cin)) } else { "—".into() }}</span>
+                                            <span class="pnl-num" style="color:var(--cyber-red);">{if cout > 0.0 { format!("-{}", fmt_qty(cout)) } else { "—".into() }}</span>
+                                            <span class="pnl-num" style=format!("color:{};", if n >= 0.0 { "var(--cyber-green)" } else { "var(--cyber-red)" })>
+                                                {format!("{}{}", if n >= 0.0 { "+" } else { "" }, fmt_qty(n))}
+                                            </span>
+                                        </div>
+                                    }
+                                }).collect_view()}
+                                <div class="pnl-row pnl-total">
+                                    <span>"TOTAL"</span>
+                                    <span class="pnl-num" style="color:var(--cyber-green);">{format!("+{}", fmt_qty(tin))}</span>
+                                    <span class="pnl-num" style="color:var(--cyber-red);">{format!("-{}", fmt_qty(tout))}</span>
+                                    <span class="pnl-num" style=format!("font-weight:700; color:{};", if net >= 0.0 { "var(--cyber-green)" } else { "var(--cyber-red)" })>
+                                        {format!("{}{}", if net >= 0.0 { "+" } else { "" }, fmt_qty(net))}
+                                    </span>
+                                </div>
+                            </div>
+                        }.into_any()
+                    }}
+                </section>
+
+                // ── CASHFLOW — the journal itself, newest first, running balance ──
+                <section class="me-section">
+                    <div class="me-section-h">
+                        <span>"CASHFLOW"</span>
+                        <span style="color:#556; font-size:10px;">{move || {
+                            let _ = intents.get();
+                            format!("{} movements · balance {} CX", load_ledger().len(), fmt_qty(load_balance().cx))
+                        }}</span>
+                    </div>
+                    {move || {
+                        let _ = intents.get();
+                        let ledger = load_ledger();
+                        if ledger.is_empty() {
+                            return view! {
+                                <div class="me-empty">"The journal is empty — every CX in or out will land here."</div>
+                            }.into_any();
+                        }
+                        // walk backwards from the live balance to reconstruct running balance
+                        let mut bal = load_balance().cx;
+                        let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
+                        for e in ledger.iter().rev().take(25) {
+                            let when = {
+                                let d = js_sys::Date::new(&wasm_bindgen::JsValue::from_f64(e.t));
+                                let iso: String = d.to_iso_string().into();
+                                iso.get(5..16).unwrap_or("").replace('T', " ")
+                            };
+                            let signed = if e.dir == "in" { e.amount } else { -e.amount };
+                            rows.push((when, e.cat.clone(), e.note.clone(), signed, bal));
+                            bal -= signed;
+                        }
+                        view! {
+                            <div class="pnl-table">
+                                <div class="pnl-row pnl-head cash-row">
+                                    <span>"WHEN · WHAT"</span>
+                                    <span class="pnl-num">"FLOW"</span>
+                                    <span class="pnl-num">"BALANCE"</span>
+                                </div>
+                                {rows.into_iter().map(|(when, cat, note, flow, bal)| {
+                                    view! {
+                                        <div class="pnl-row cash-row">
+                                            <span>
+                                                <span style="color:#556; font-size:10px; margin-right:8px;">{when}</span>
+                                                <span style="color:var(--cyber-cyan); font-size:10px; letter-spacing:1px; margin-right:8px;">{cat.to_uppercase()}</span>
+                                                <span style="color:#99a;">{note}</span>
+                                            </span>
+                                            <span class="pnl-num" style=format!("color:{};", if flow >= 0.0 { "var(--cyber-green)" } else { "var(--cyber-red)" })>
+                                                {format!("{}{}", if flow >= 0.0 { "+" } else { "" }, fmt_qty(flow))}
+                                            </span>
+                                            <span class="pnl-num" style="color:#889;">{fmt_qty(bal)}</span>
+                                        </div>
                                     }
                                 }).collect_view()}
                             </div>

@@ -312,7 +312,7 @@ pub fn GalleryPage() -> impl IntoView {
                                 if load_balance().cx + 1e-9 < m.price {
                                     msg.set(Some((false, format!("{:.0} CX needed — you hold {:.1}", m.price, load_balance().cx))));
                                 } else {
-                                    debit_cx(m.price);
+                                    debit_cx(m.price, "robots", &format!("gallery · {}", m.name));
                                     match mint_robot(&name, m.body, m.quadrant, m.blurb) {
                                         Ok(id) => msg.set(Some((true, format!("{name} is yours · -{:.0} CX · card {id}", m.price)))),
                                         Err(e) => msg.set(Some((false, e))),
@@ -374,7 +374,7 @@ pub fn GaragePage() -> impl IntoView {
             msg.set(Some((false, format!("{ASSEMBLY_FEE:.0} CX assembly fee needed"))));
             return;
         }
-        debit_cx(ASSEMBLY_FEE);
+        debit_cx(ASSEMBLY_FEE, "robots", &format!("garage assembly · {n}"));
         match mint_robot(&n, &body.get(), quadrant(), "garage build") {
             Ok(id) => {
                 msg.set(Some((true, format!("{n} assembled · quadrant {} · card {id}", quadrant()))));
@@ -484,7 +484,7 @@ pub fn FactoryPage() -> impl IntoView {
         }
         let handle = load_profile().handle;
         let me = neuron().bech32;
-        debit_cx(total);
+        debit_cx(total, "factory", &format!("{} ×{}", m.name, q));
         let factory_w = mint_word("service", "robot factory", "customized robot runs", &me, true);
         let you_w = mint_word("person", &handle, "YOU", &me, false);
         let orders_rel = mint_word("relation", "orders", "service request", "", true);

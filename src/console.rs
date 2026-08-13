@@ -1517,7 +1517,7 @@ pub fn ValleyConsole() -> impl IntoView {
                                         );
                                         save_intents(q);
                                     });
-                                    debit_cx(15.0);
+                                    debit_cx(15.0, "robots", "unit buy · map");
                                     sheet.set(Sheet::None);
                                 }
                             >
@@ -1623,7 +1623,7 @@ pub fn ValleyConsole() -> impl IntoView {
                                         );
                                         save_intents(q);
                                     });
-                                    debit_cx(10.0);
+                                    debit_cx(10.0, "land", "lease · map");
                                     sheet.set(Sheet::None);
                                 }
                             >

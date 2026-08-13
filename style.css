@@ -3012,3 +3012,24 @@ button.city-card:hover {
 .bot-tags .chip { font-size: 9px; }
 .bot-blurb { font-size: 12px; color: #778; line-height: 1.5; flex: 1; }
 .bot-buy { align-self: flex-start; }
+
+/* P&L + cashflow tables on /me */
+.pnl-table { border: 1px solid var(--line, #1a1a24); border-radius: 4px; overflow: hidden; }
+.pnl-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 90px 90px;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #14141c;
+    font-size: 12px;
+    align-items: baseline;
+}
+.pnl-row:last-child { border-bottom: none; }
+.pnl-row.pnl-head { color: #556; font-size: 10px; letter-spacing: 2px; background: rgba(255,255,255,0.02); }
+.pnl-row.pnl-total { background: rgba(255,255,255,0.02); font-weight: 700; }
+.pnl-row.cash-row { grid-template-columns: 1fr 90px 90px; }
+.pnl-num { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) {
+    .pnl-row { grid-template-columns: 1fr 64px 64px 64px; font-size: 11px; }
+    .pnl-row.cash-row { grid-template-columns: 1fr 64px 64px; }
+}

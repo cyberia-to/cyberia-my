@@ -149,18 +149,64 @@ pub fn save_intents(list: &[IntentRec]) {
     }
 }
 
-/// Bump soft balance after buy/lease (mock economics).
-pub fn debit_cx(amount: f64) {
+/// One CX movement — the cashflow journal every debit/credit writes.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LedgerEntry {
+    /// js epoch ms
+    pub t: f64,
+    /// "in" | "out"
+    pub dir: String,
+    pub amount: f64,
+    /// elements | products | genetics | services | robots | factory | land | endowment | other
+    pub cat: String,
+    pub note: String,
+}
+
+pub const LEDGER_KEY: &str = "cyberia_ledger";
+
+pub fn load_ledger() -> Vec<LedgerEntry> {
+    ls_get(LEDGER_KEY)
+        .and_then(|raw| serde_json::from_str(&raw).ok())
+        .unwrap_or_default()
+}
+
+fn record_flow(dir: &str, amount: f64, cat: &str, note: &str) {
+    if amount <= 0.0 {
+        return;
+    }
+    let mut l = load_ledger();
+    l.push(LedgerEntry {
+        t: js_sys::Date::now(),
+        dir: dir.into(),
+        amount,
+        cat: cat.into(),
+        note: note.into(),
+    });
+    // keep the journal bounded; the tail is the story that matters
+    if l.len() > 500 {
+        let cut = l.len() - 500;
+        l.drain(..cut);
+    }
+    if let Ok(raw) = serde_json::to_string(&l) {
+        ls_set(LEDGER_KEY, &raw);
+    }
+}
+
+/// Spend CX — every outflow lands in the cashflow journal.
+pub fn debit_cx(amount: f64, cat: &str, note: &str) {
     let mut b = load_balance();
     b.cx = (b.cx - amount).max(0.0);
     b.depth = (b.depth + amount * 0.15).min(99.0);
     save_balance(&b);
+    record_flow("out", amount, cat, note);
 }
 
-pub fn credit_cx(amount: f64) {
+/// Receive CX — every inflow lands in the cashflow journal.
+pub fn credit_cx(amount: f64, cat: &str, note: &str) {
     let mut b = load_balance();
     b.cx += amount;
     save_balance(&b);
+    record_flow("in", amount, cat, note);
 }
 
 pub fn load_stocks() -> Vec<StockLine> {
@@ -299,6 +345,7 @@ pub fn ensure_economy_boot() {
         id += 1;
     }
     save_orders(&orders);
+    record_flow("in", load_balance().cx, "endowment", "genesis — starting balance");
     ls_set(BOOT_KEY, "1");
     push_intent("SYSTEM", "boot", "economy");
 }

@@ -543,7 +543,7 @@ pub fn RobotsPage() -> impl IntoView {
                                     },
                                 );
                                 save_intents(&q);
-                                debit_cx(15.0);
+                                debit_cx(15.0, "robots", "unit buy");
                                 sheet_open.set(false);
                             }
                         >

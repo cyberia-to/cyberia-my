@@ -231,7 +231,7 @@ fn trade(e: &ElementDef, qty: f64, sell: bool) -> Result<String, String> {
             return Err(format!("hold {:.3} kg — not enough", stock_qty(e.name)));
         }
         stock_add(e.name, -qty);
-        credit_cx(total);
+        credit_cx(total, "elements", &format!("sell {qty} kg {}", e.name));
         let rel = mint_word("relation", "sells", "market disposal", "", true);
         emit_signal(
             vec![Link {
@@ -252,7 +252,7 @@ fn trade(e: &ElementDef, qty: f64, sell: bool) -> Result<String, String> {
                 load_balance().cx
             ));
         }
-        debit_cx(total);
+        debit_cx(total, "elements", &format!("buy {qty} kg {}", e.name));
         stock_add(e.name, qty);
         let rel = mint_word("relation", "buys", "market acquisition", "", true);
         emit_signal(
