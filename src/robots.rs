@@ -313,6 +313,8 @@ pub fn RobotsPage() -> impl IntoView {
                     </div>
                 </div>
 
+                <crate::portal::PortalNav active="fleet" />
+
                 // ── YOUR FLEET ──
                 {move || {
                     let list = owned.get();

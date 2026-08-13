@@ -10,6 +10,7 @@ mod land;
 mod me;
 mod nav;
 mod places;
+mod portal;
 mod products;
 mod plots;
 mod orgs;
