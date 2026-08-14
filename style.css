@@ -3033,3 +3033,17 @@ button.city-card:hover {
     .pnl-row { grid-template-columns: 1fr 64px 64px 64px; font-size: 11px; }
     .pnl-row.cash-row { grid-template-columns: 1fr 64px 64px; }
 }
+
+/* Site-wide mock marker — every phase pill carries the red truth */
+.cyberia-phase-pill::after {
+    content: "MOCK";
+    color: var(--cyber-red);
+    border: 1px solid var(--cyber-red);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-left: 9px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    white-space: nowrap;
+}

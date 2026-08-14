@@ -45,22 +45,21 @@ fn load_earth() -> EarthFile {
     serde_json::from_str(EARTH_JSON).expect("earth_states.json")
 }
 
-/// Format capital from billions USD → $1.2T / $340B / $1.6M …
+/// Format capital in ETH units — simpler numbers than raw dollars:
+/// billions USD → Ξ at the mock rate → 7.2B Ξ / 480M Ξ / 1.3M Ξ …
 fn fmt_cap(b_usd: f64) -> String {
     if b_usd <= 0.0 {
         return "soon".into();
     }
-    let usd = b_usd * 1e9;
-    let (v, s) = if usd >= 1e12 {
-        (usd / 1e12, "T")
-    } else if usd >= 1e9 {
-        (usd / 1e9, "B")
-    } else if usd >= 1e6 {
-        (usd / 1e6, "M")
-    } else if usd >= 1e3 {
-        (usd / 1e3, "k")
+    let eth = b_usd * 1e9 / MOCK_ETH_USD;
+    let (v, s) = if eth >= 1e9 {
+        (eth / 1e9, "B")
+    } else if eth >= 1e6 {
+        (eth / 1e6, "M")
+    } else if eth >= 1e3 {
+        (eth / 1e3, "k")
     } else {
-        (usd, "")
+        (eth, "")
     };
     let num = if v >= 100.0 {
         format!("{v:.0}")
@@ -69,7 +68,7 @@ fn fmt_cap(b_usd: f64) -> String {
     } else {
         format!("{v:.2}")
     };
-    format!("${num}{s}")
+    format!("{num}{s} Ξ")
 }
 
 fn fmt_pop(n: u64) -> String {
@@ -427,7 +426,7 @@ pub fn StatesPage() -> impl IntoView {
                         <div class="cyberia-phase-pill">
                             <span class="phase-dot"></span>
                             {move || match board.get() {
-                                Board::Bank => "BANK · MOCK · SCR".to_string(),
+                                Board::Bank => "BANK · SCR".to_string(),
                                 Board::Earth => format!("{} EARTH · BY CAP", n_show()),
                             }}
                         </div>
@@ -671,7 +670,7 @@ pub fn StatesPage() -> impl IntoView {
                             <span class="st-rank">"#"</span>
                             <span class="st-name">"STATE"</span>
                             <span class="st-token">"TOKEN"</span>
-                            <span class="st-cap">"CAPITAL"</span>
+                            <span class="st-cap">"CAPITAL Ξ"</span>
                             <span class="st-delta">"Δ"</span>
                             <span class="st-pop">"POP"</span>
                             <span class="st-region">"REGION"</span>
