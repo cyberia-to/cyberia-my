@@ -1085,6 +1085,7 @@ pub fn ValleyConsole() -> impl IntoView {
                                             let id_fill = flat.id.clone();
                                             let id_stroke = flat.id.clone();
                                             let id_sw = flat.id.clone();
+                                            let id_sw2 = flat.id.clone();
                                             let id_cls = flat.id.clone();
                                             let id_lab = flat.id.clone();
                                             let id_hov = flat.id.clone();
@@ -1124,7 +1125,7 @@ pub fn ValleyConsole() -> impl IntoView {
                                                         fill="none"
                                                         stroke="#000000"
                                                         stroke-width=move || {
-                                                            let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
+                                                            let sel = selected_flat.get().as_deref() == Some(id_sw2.as_str());
                                                             let z = map_zoom.get().max(0.25);
                                                             let base = if sel { 4.2 } else { 3.2 };
                                                             format!("{:.3}", base / z)
