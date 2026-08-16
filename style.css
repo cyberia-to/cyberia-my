@@ -2362,19 +2362,22 @@ button.city-card:hover {
 }
 .flat-path {
     cursor: pointer;
+    /* no blur filters — parcels stay sharp tiles */
     transition:
-        fill 0.1s,
-        stroke 0.1s,
-        filter 0.1s;
+        fill 0.08s ease,
+        stroke 0.08s ease,
+        stroke-width 0.08s ease;
+    stroke-opacity: 0.95;
 }
 .flat-path.is-hov {
-    filter: brightness(1.25) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+    stroke-opacity: 1;
 }
 .flat-path.is-sel {
-    filter: brightness(1.15) drop-shadow(0 0 8px rgba(0, 255, 65, 0.45));
+    stroke-opacity: 1;
+    /* thin outer glow via second paint would need another path; keep solid white stroke only */
 }
 .flat-path:hover {
-    filter: brightness(1.2);
+    stroke-opacity: 1;
 }
 .flat-label {
     fill: #e0e0e0;
