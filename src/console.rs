@@ -496,25 +496,25 @@ fn zone_key(flat: &Flat) -> &str {
 
 fn flat_fill(zone_or_id: &str, selected: bool) -> &'static str {
     let z = zone_or_id.to_lowercase();
-    // Punchy zone tiles — high opacity so parcels read as land, not fog
+    // Soft glass tiles — readable color, not neon slabs (edges carry definition)
     let (hi, lo) = if z.contains("avalon") {
-        ("#ff7a18", "rgba(255,102,0,0.78)")
+        ("rgba(255,120,20,0.48)", "rgba(255,102,0,0.22)")
     } else if z.contains("sinwood") {
-        ("#14ff50", "rgba(0,230,50,0.76)")
+        ("rgba(20,255,80,0.46)", "rgba(0,230,50,0.20)")
     } else if z.contains("bridge") {
-        ("#2af0ff", "rgba(0,210,240,0.72)")
+        ("rgba(40,235,255,0.44)", "rgba(0,210,240,0.18)")
     } else if z.contains("core") {
-        ("#ffe033", "rgba(255,210,0,0.74)")
+        ("rgba(255,220,40,0.46)", "rgba(255,210,0,0.20)")
     } else if z.contains("ether") {
-        ("#c060ff", "rgba(150,70,255,0.76)")
+        ("rgba(180,100,255,0.46)", "rgba(150,70,255,0.20)")
     } else if z.contains("asgard") {
-        ("#ff3860", "rgba(255,20,70,0.74)")
+        ("rgba(255,50,90,0.44)", "rgba(255,20,70,0.18)")
     } else if z.contains("edem") || z.contains("canyon") {
-        ("#00ffd0", "rgba(0,240,190,0.72)")
+        ("rgba(0,255,210,0.44)", "rgba(0,240,190,0.18)")
     } else if z.contains("front") || z.contains("avatar") {
-        ("#c8c8d0", "rgba(160,160,170,0.68)")
+        ("rgba(200,200,210,0.40)", "rgba(160,160,170,0.16)")
     } else {
-        ("#b0b0b0", "rgba(140,140,140,0.65)")
+        ("rgba(180,180,180,0.40)", "rgba(140,140,140,0.16)")
     };
     if selected {
         hi
@@ -550,21 +550,21 @@ fn flat_stroke_col(zone_or_id: &str, selected: bool) -> &'static str {
 fn zone_hover_fill(zone_or_id: &str) -> &'static str {
     let z = zone_or_id.to_lowercase();
     if z.contains("avalon") {
-        "rgba(255,140,40,0.92)"
+        "rgba(255,130,30,0.38)"
     } else if z.contains("sinwood") {
-        "rgba(50,255,100,0.90)"
+        "rgba(40,255,90,0.36)"
     } else if z.contains("bridge") {
-        "rgba(60,245,255,0.88)"
+        "rgba(50,240,255,0.34)"
     } else if z.contains("core") {
-        "rgba(255,230,60,0.90)"
+        "rgba(255,225,50,0.36)"
     } else if z.contains("ether") {
-        "rgba(190,110,255,0.90)"
+        "rgba(170,90,255,0.36)"
     } else if z.contains("asgard") {
-        "rgba(255,60,100,0.88)"
+        "rgba(255,40,80,0.34)"
     } else if z.contains("edem") || z.contains("canyon") {
-        "rgba(40,255,210,0.88)"
+        "rgba(20,255,200,0.34)"
     } else {
-        "rgba(220,220,230,0.80)"
+        "rgba(200,200,200,0.28)"
     }
 }
 
