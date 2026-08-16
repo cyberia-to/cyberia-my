@@ -18,7 +18,7 @@ js-sys = "0.3"
 # lytics tracker), signals carry ADR-036 signatures. `default-features =
 # false` on mudra drops the bip32/bip39 bridge — wasm stays lean.
 hemera = { package = "cyber-hemera", path = "../hemera/rs" }
-mudra = { path = "../mudra", default-features = false }
+mudra = { package = "cyber-mudra", path = "../mudra", default-features = false }
 getrandom = { version = "0.2", features = ["js"] }
 web-sys = { version = "0.3", features = [
     "Window",
