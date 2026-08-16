@@ -1123,7 +1123,7 @@ pub fn ValleyConsole() -> impl IntoView {
                                                     d=path
                                                     fill="rgba(255,255,255,0.015)"
                                                     stroke="rgba(255,255,255,0.12)"
-                                                    stroke-width=move || format!("{:.3}", 1.0 / map_zoom.get().max(0.25))
+                                                    stroke-width="1.25"
                                                     stroke-dasharray="4 3"
                                                     vector-effect="non-scaling-stroke"
                                                 />
@@ -1186,9 +1186,8 @@ pub fn ValleyConsole() -> impl IntoView {
                                                         stroke="#000000"
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw2.as_str());
-                                                            let z = map_zoom.get().max(0.25);
-                                                            let base = if sel { 4.2 } else { 3.2 };
-                                                            format!("{:.3}", base / z)
+                                                            // non-scaling-stroke: screen px, constant under viewBox zoom
+                                                            if sel { "3.2" } else { "2.4" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
@@ -1219,9 +1218,8 @@ pub fn ValleyConsole() -> impl IntoView {
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw.as_str());
-                                                            let z = map_zoom.get().max(0.25);
-                                                            let base = if sel { 2.6 } else if hov { 2.1 } else { 1.55 };
-                                                            format!("{:.3}", base / z)
+                                                            // screen px via non-scaling-stroke — sharp at every zoom
+                                                            if sel { "1.8" } else if hov { "1.5" } else { "1.15" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
