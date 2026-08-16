@@ -496,22 +496,25 @@ fn zone_key(flat: &Flat) -> &str {
 
 fn flat_fill(zone_or_id: &str, selected: bool) -> &'static str {
     let z = zone_or_id.to_lowercase();
+    // Solid, readable parcels — not washed-out glass. Selected = brighter.
     let (hi, lo) = if z.contains("avalon") {
-        ("rgba(255,102,0,0.48)", "rgba(255,102,0,0.16)")
+        ("rgba(255,120,20,0.72)", "rgba(255,102,0,0.42)")
     } else if z.contains("sinwood") {
-        ("rgba(0,255,65,0.45)", "rgba(0,255,65,0.14)")
+        ("rgba(20,255,80,0.70)", "rgba(0,220,55,0.40)")
     } else if z.contains("bridge") {
-        ("rgba(0,229,255,0.42)", "rgba(0,229,255,0.12)")
+        ("rgba(40,235,255,0.65)", "rgba(0,200,230,0.36)")
     } else if z.contains("core") {
-        ("rgba(255,215,0,0.42)", "rgba(255,215,0,0.12)")
+        ("rgba(255,220,40,0.68)", "rgba(255,200,0,0.38)")
     } else if z.contains("ether") {
-        ("rgba(153,69,255,0.42)", "rgba(153,69,255,0.12)")
+        ("rgba(180,100,255,0.68)", "rgba(140,70,255,0.40)")
     } else if z.contains("asgard") {
-        ("rgba(255,0,64,0.38)", "rgba(255,0,64,0.10)")
+        ("rgba(255,50,90,0.66)", "rgba(255,0,64,0.38)")
     } else if z.contains("edem") || z.contains("canyon") {
-        ("rgba(0,255,200,0.38)", "rgba(0,255,200,0.10)")
+        ("rgba(0,255,210,0.66)", "rgba(0,230,180,0.36)")
+    } else if z.contains("front") || z.contains("avatar") {
+        ("rgba(200,200,210,0.55)", "rgba(150,150,160,0.32)")
     } else {
-        ("rgba(160,160,160,0.35)", "rgba(160,160,160,0.10)")
+        ("rgba(180,180,180,0.55)", "rgba(120,120,120,0.30)")
     };
     if selected {
         hi
@@ -525,37 +528,44 @@ fn flat_stroke_col(zone_or_id: &str, selected: bool) -> &'static str {
     if selected {
         return "#ffffff";
     }
+    // Opaque zone-edge so parcels read as tiles, not smears
     if z.contains("avalon") {
-        "rgba(255,102,0,0.65)"
+        "#ff7a1a"
     } else if z.contains("sinwood") {
-        "rgba(0,255,65,0.55)"
+        "#00ff41"
     } else if z.contains("bridge") {
-        "rgba(0,229,255,0.55)"
+        "#00e5ff"
     } else if z.contains("core") {
-        "rgba(255,215,0,0.55)"
+        "#ffd700"
     } else if z.contains("ether") {
-        "rgba(153,69,255,0.55)"
+        "#b44bff"
     } else if z.contains("asgard") {
-        "rgba(255,0,64,0.5)"
+        "#ff2850"
+    } else if z.contains("edem") || z.contains("canyon") {
+        "#00ffc8"
     } else {
-        "rgba(140,140,140,0.45)"
+        "#888888"
     }
 }
 
 fn zone_hover_fill(zone_or_id: &str) -> &'static str {
     let z = zone_or_id.to_lowercase();
     if z.contains("avalon") {
-        "rgba(255,102,0,0.40)"
+        "rgba(255,130,30,0.62)"
     } else if z.contains("sinwood") {
-        "rgba(0,255,65,0.40)"
+        "rgba(40,255,90,0.58)"
     } else if z.contains("bridge") {
-        "rgba(0,229,255,0.38)"
+        "rgba(50,240,255,0.55)"
     } else if z.contains("core") {
-        "rgba(255,215,0,0.38)"
+        "rgba(255,225,50,0.58)"
     } else if z.contains("ether") {
-        "rgba(153,69,255,0.38)"
+        "rgba(170,90,255,0.58)"
+    } else if z.contains("asgard") {
+        "rgba(255,40,80,0.55)"
+    } else if z.contains("edem") || z.contains("canyon") {
+        "rgba(20,255,200,0.55)"
     } else {
-        "rgba(200,200,200,0.28)"
+        "rgba(200,200,200,0.45)"
     }
 }
 
@@ -1132,10 +1142,13 @@ pub fn ValleyConsole() -> impl IntoView {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw.as_str());
                                                             let z = map_zoom.get().max(0.25);
-                                                            // keep stroke ~constant on screen under CSS camera scale
-                                                            let base = if sel { 2.0 } else if hov { 1.6 } else { 0.85 };
+                                                            // crisp parcel edges; slightly thicker, screen-stable
+                                                            let base = if sel { 2.4 } else if hov { 1.9 } else { 1.35 };
                                                             format!("{:.3}", base / z)
                                                         }
+                                                        stroke-linejoin="round"
+                                                        stroke-linecap="round"
+                                                        shape-rendering="geometricPrecision"
                                                         class=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_cls.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_cls.as_str());
