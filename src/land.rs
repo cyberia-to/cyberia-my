@@ -14,6 +14,38 @@ pub struct MapData {
     #[serde(default)]
     pub districts: Vec<LandFlat>,
     pub places: Vec<LandFlat>,
+    /// 21 cybics knowledge domains as citadel shill points (no core/bridge).
+    #[serde(default)]
+    pub domains: Vec<DomainPoint>,
+}
+
+/// Cybics domain marker on the volcano citadel.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct DomainPoint {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub triad: String,
+    #[serde(default)]
+    pub question: String,
+    #[serde(default)]
+    pub zone: String,
+    /// Display district (rockets := etherland on map).
+    #[serde(default)]
+    pub district: String,
+    #[serde(default)]
+    pub plot: String,
+    #[serde(default)]
+    pub phase: u32,
+    #[serde(default)]
+    pub geom: String,
+    pub coords: Vec<[f64; 2]>,
+    #[serde(default)]
+    pub shill: String,
+    #[serde(default)]
+    pub href: String,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

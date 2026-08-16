@@ -30,7 +30,42 @@ struct MapData {
     #[serde(default)]
     districts: Vec<Flat>,
     places: Vec<Flat>,
+    /// 21 cybics domains as shill points on citadel volcano (no core/bridge).
+    #[serde(default)]
+    domains: Vec<DomainMark>,
     source: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+struct DomainMark {
+    id: String,
+    name: String,
+    #[serde(default)]
+    triad: String,
+    #[serde(default)]
+    question: String,
+    #[serde(default)]
+    zone: String,
+    #[serde(default)]
+    district: String,
+    #[serde(default)]
+    shill: String,
+    #[serde(default)]
+    href: String,
+    coords: Vec<[f64; 2]>,
+}
+
+fn triad_color(triad: &str) -> &'static str {
+    match triad {
+        "form" => "#00b4ff",  // cyan — rules
+        "mass" => "#ff6501",  // orange — matter
+        "space" => "#1700fe", // blue — where
+        "life" => "#00ff01",  // green — alive
+        "word" => "#6b00fe",  // violet — meaning
+        "work" => "#ffc501",  // yellow — making
+        "play" => "#fe0000",  // red — coordinate
+        _ => "#00ff01",
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -1152,13 +1187,77 @@ pub fn ValleyConsole() -> impl IntoView {
                                         }.into_any()
                                     }).collect_view()}
 
+                                    // 21 cybics domain shill points — citadel volcano only
+                                    {m_places.domains.iter().map(|dom| {
+                                        if dom.coords.is_empty() {
+                                            return view! { <g></g> }.into_any();
+                                        }
+                                        let (x, y) = project(
+                                            dom.coords[0][0],
+                                            dom.coords[0][1],
+                                            &m_places.bbox,
+                                            W,
+                                            H,
+                                            PAD,
+                                        );
+                                        let name = dom.name.clone();
+                                        let triad = dom.triad.clone();
+                                        let q = dom.question.clone();
+                                        let district = if dom.district.is_empty() {
+                                            dom.zone.clone()
+                                        } else {
+                                            dom.district.clone()
+                                        };
+                                        let color = triad_color(&dom.triad);
+                                        let title = format!(
+                                            "{} · {} · {}\n{}",
+                                            triad.to_uppercase(),
+                                            name,
+                                            district.to_uppercase(),
+                                            q
+                                        );
+                                        view! {
+                                            <g
+                                                class="domain-dot"
+                                                transform=move || screen_stable_tf(x, y, map_zoom.get())
+                                            >
+                                                <title>{title.clone()}</title>
+                                                <circle
+                                                    cx="0"
+                                                    cy="0"
+                                                    r="5.5"
+                                                    fill=color
+                                                    fill-opacity="0.22"
+                                                    stroke=color
+                                                    stroke-width="1.4"
+                                                    class="domain-ring"
+                                                />
+                                                <circle
+                                                    cx="0"
+                                                    cy="0"
+                                                    r="2.4"
+                                                    fill=color
+                                                    class="domain-core"
+                                                />
+                                                <text
+                                                    x="0"
+                                                    y="-9"
+                                                    text-anchor="middle"
+                                                    class="domain-label"
+                                                    fill=color
+                                                >{name}</text>
+                                            </g>
+                                        }
+                                        .into_any()
+                                    }).collect_view()}
+
                                     <text
                                         class="map-caption"
                                         text-anchor="start"
                                         transform=move || screen_stable_tf(PAD, H - 10.0, map_zoom.get())
                                     >
                                         {format!(
-                                            "N ↑  ·  {} plots  ·  {:.1} ha plots / {:.0} ha site",
+                                            "N ↑  ·  {} plots  ·  {:.1} ha plots / {:.0} ha site  ·  21 domains",
                                             m_cap.stats.plot_count,
                                             m_cap.stats.plot_ha,
                                             m_cap.stats.district_ha,
@@ -1183,16 +1282,16 @@ pub fn ValleyConsole() -> impl IntoView {
                         })}
 
                         <div class="map-hud-hint">
-                            "scroll zoom · drag pan · ←→↑↓ pan · +/− zoom · 0 reset"
+                            "scroll zoom · drag pan · domain glows = 21 cybics · citadel only (no core/bridge)"
                         </div>
                     </div>
                     <div class="flat-legend">
                         <span class="leg sin">"SINWOOD"</span>
                         <span class="leg avalon">"AVALON"</span>
-                        <span class="leg bridge">"BRIDGE"</span>
-                        <span class="leg core">"CORE"</span>
-                        <span class="leg ether">"ETHERLAND"</span>
-                        <span class="leg dim">"dashed = district · hover plot"</span>
+                        <span class="leg ether">"ROCKETS"</span>
+                        <span class="leg asgard">"ASGARD"</span>
+                        <span class="leg edem">"EDEM"</span>
+                        <span class="leg dim">"21 domains · no core · no bridge"</span>
                     </div>
                 </section>
 
