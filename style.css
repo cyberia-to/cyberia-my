@@ -2365,21 +2365,23 @@ button.city-card:hover {
     pointer-events: none;
     white-space: nowrap;
 }
+.flat-path-under {
+    pointer-events: none;
+    opacity: 0.9;
+}
 .flat-path {
     cursor: pointer;
-    /* no blur filters — parcels stay sharp tiles */
+    /* no CSS filters — blur = smeared parcels under camera scale */
     transition:
-        fill 0.08s ease,
-        stroke 0.08s ease,
-        stroke-width 0.08s ease;
-    stroke-opacity: 0.95;
+        fill 0.06s ease,
+        stroke 0.06s ease;
+    stroke-opacity: 1;
 }
 .flat-path.is-hov {
     stroke-opacity: 1;
 }
 .flat-path.is-sel {
     stroke-opacity: 1;
-    /* thin outer glow via second paint would need another path; keep solid white stroke only */
 }
 .flat-path:hover {
     stroke-opacity: 1;
