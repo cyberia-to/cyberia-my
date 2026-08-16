@@ -699,11 +699,51 @@ fn poly_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> Stri
     s
 }
 
-/// Keep HUD-sized marks (labels, dots) constant on screen while the
-/// map-world CSS scale zooms geometry. Anchor at (x,y) in SVG units.
+/// Keep HUD-sized marks (labels, dots) constant on screen while viewBox zooms.
+/// Anchor at (x,y) in SVG/world units.
 fn screen_stable_tf(x: f64, y: f64, zoom: f64) -> String {
     let s = 1.0 / zoom.max(0.25);
     format!("translate({x:.2},{y:.2}) scale({s:.4})")
+}
+
+/// SVG camera: viewBox centered at `center` with size (W/z)×(H/z).
+/// Pure vector zoom — no CSS scale raster blur.
+fn map_view_box(center: (f64, f64), zoom: f64, w: f64, h: f64) -> String {
+    let z = zoom.max(0.25);
+    let vw = w / z;
+    let vh = h / z;
+    format!(
+        "{:.4} {:.4} {:.4} {:.4}",
+        center.0 - vw * 0.5,
+        center.1 - vh * 0.5,
+        vw,
+        vh
+    )
+}
+
+/// Map client point (relative to wrap) → world/SVG coords under current camera.
+fn client_to_world(
+    cx: f64,
+    cy: f64,
+    wrap_w: f64,
+    wrap_h: f64,
+    center: (f64, f64),
+    zoom: f64,
+    w: f64,
+    h: f64,
+) -> (f64, f64) {
+    let z = zoom.max(0.25);
+    let vw = w / z;
+    let vh = h / z;
+    let left = center.0 - vw * 0.5;
+    let top = center.1 - vh * 0.5;
+    // meet: uniform scale of viewBox into wrap
+    let fit = (wrap_w / vw).min(wrap_h / vh);
+    let ox = (wrap_w - vw * fit) * 0.5;
+    let oy = (wrap_h - vh * fit) * 0.5;
+    let wx = left + (cx - ox) / fit;
+    let wy = top + (cy - oy) / fit;
+    (wx, wy)
 }
 
 fn centroid(coords: &[[f64; 2]]) -> (f64, f64) {
@@ -790,9 +830,11 @@ pub fn ValleyConsole() -> impl IntoView {
     let split_axis = RwSignal::new(0usize);
     let split_ratio = RwSignal::new(0.50_f64); // 0..1 across bbox
 
-    // game map camera — static viewport, zoom/pan never scroll the panel
+    // game map camera — SVG viewBox zoom/pan (vector-sharp; never CSS scale)
+    const MAP_W: f64 = 960.0;
+    const MAP_H: f64 = 720.0;
     let map_zoom = RwSignal::new(1.0_f64);
-    let map_pan = RwSignal::new((0.0_f64, 0.0_f64)); // px in wrap space
+    let map_center = RwSignal::new((MAP_W * 0.5, MAP_H * 0.5)); // world/SVG units
     let map_hover = RwSignal::new(None::<(String, String, f64)>); // id, label, m2
     let map_dragging = RwSignal::new(false);
     let map_drag_last = RwSignal::new((0.0_f64, 0.0_f64));
@@ -802,30 +844,50 @@ pub fn ValleyConsole() -> impl IntoView {
         map_zoom.update(|z| *z = (*z * factor).clamp(0.6, 8.0));
     };
     let zoom_at = move |factor: f64, cx: f64, cy: f64| {
-        // keep world point under (cx,cy) stable while scaling
+        // keep world point under cursor stable while viewBox zooms
         let z0 = map_zoom.get_untracked();
         let z1 = (z0 * factor).clamp(0.6, 8.0);
         if (z1 - z0).abs() < 1e-9 {
             return;
         }
-        let (px, py) = map_pan.get_untracked();
-        // point in world = (screen - pan) / z
-        let wx = (cx - px) / z0;
-        let wy = (cy - py) / z0;
-        let npx = cx - wx * z1;
-        let npy = cy - wy * z1;
+        let c0 = map_center.get_untracked();
+        let (ww, wh) = if let Some(el) = map_wrap_ref.get_untracked() {
+            let r = el.get_bounding_client_rect();
+            (r.width(), r.height())
+        } else {
+            (MAP_W, MAP_H)
+        };
+        let (wx, wy) = client_to_world(cx, cy, ww, wh, c0, z0, MAP_W, MAP_H);
+        let vw1 = MAP_W / z1;
+        let vh1 = MAP_H / z1;
+        let fit1 = (ww / vw1).min(wh / vh1);
+        let ox1 = (ww - vw1 * fit1) * 0.5;
+        let oy1 = (wh - vh1 * fit1) * 0.5;
+        let left1 = wx - (cx - ox1) / fit1;
+        let top1 = wy - (cy - oy1) / fit1;
+        let c1 = (left1 + vw1 * 0.5, top1 + vh1 * 0.5);
         map_zoom.set(z1);
-        map_pan.set((npx, npy));
+        map_center.set(c1);
     };
-    let pan_by = move |dx: f64, dy: f64| {
-        map_pan.update(|(x, y)| {
-            *x += dx;
-            *y += dy;
+    let pan_by = move |dx_screen: f64, dy_screen: f64| {
+        let z = map_zoom.get_untracked().max(0.25);
+        let (ww, wh) = if let Some(el) = map_wrap_ref.get_untracked() {
+            let r = el.get_bounding_client_rect();
+            (r.width(), r.height())
+        } else {
+            (MAP_W, MAP_H)
+        };
+        let vw = MAP_W / z;
+        let vh = MAP_H / z;
+        let fit = (ww / vw).min(wh / vh).max(1e-9);
+        map_center.update(|(cx, cy)| {
+            *cx -= dx_screen / fit;
+            *cy -= dy_screen / fit;
         });
     };
     let reset_cam = move || {
         map_zoom.set(1.0);
-        map_pan.set((0.0, 0.0));
+        map_center.set((MAP_W * 0.5, MAP_H * 0.5));
     };
 
     Effect::new(move |_| {
@@ -1026,15 +1088,13 @@ pub fn ValleyConsole() -> impl IntoView {
                             const H: f64 = 720.0;
                             const PAD: f64 = 20.0;
                             view! {
-                                <div
-                                    class="map-world"
-                                    style:transform=move || {
-                                        let z = map_zoom.get();
-                                        let (x, y) = map_pan.get();
-                                        format!("translate({x}px, {y}px) scale({z})")
-                                    }
+                                <div class="map-world">
+                                <svg
+                                    class="flat-map"
+                                    viewBox=move || map_view_box(map_center.get(), map_zoom.get(), W, H)
+                                    preserveAspectRatio="xMidYMid meet"
                                 >
-                                <svg class="flat-map" viewBox=format!("0 0 {W} {H}") preserveAspectRatio="xMidYMid meet">
+                                    // full world backdrop (fixed world bounds)
                                     <rect x="0" y="0" width=W height=H fill="#070707" />
                                     {(0..12).map(|i| {
                                         let x = PAD + i as f64 * (W - 2.0*PAD) / 11.0;
