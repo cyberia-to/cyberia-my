@@ -2242,18 +2242,13 @@ button.city-card:hover {
 .flat-map-wrap:focus-visible {
     box-shadow: inset 0 0 0 1px rgba(0, 255, 65, 0.35);
 }
-/* camera world — pan/zoom via transform, origin top-left */
+/* map-world fills wrap; zoom is SVG viewBox (vectors stay sharp) */
 .map-world {
     width: 100%;
     height: 100%;
-    transform-origin: 0 0;
-    /* avoid will-change: promotes blurry intermediate raster layers */
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
-    /* sharper CSS-scaled SVG */
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
 }
 .flat-map {
     width: 100%;
@@ -2267,7 +2262,7 @@ button.city-card:hover {
     );
     border-radius: 0;
     overflow: visible;
-    /* crisp vector rasterization */
+    /* pure vectors — re-rasterized on every viewBox change */
     shape-rendering: geometricPrecision;
 }
 /* left game zoom / pan rail */
