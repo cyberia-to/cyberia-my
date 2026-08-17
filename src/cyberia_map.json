@@ -7505,15 +7505,15 @@
       "kind": "domain",
       "triad": "form",
       "question": "what are the rules?",
-      "zone": "avalon",
-      "district": "avalon",
-      "plot": "avalon-4",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09079625906982,
-          -8.302311728314656
+          115.09789307935044,
+          -8.298232662063217
         ]
       ],
       "shill": "cybics · form · math",
@@ -7525,15 +7525,15 @@
       "kind": "domain",
       "triad": "mass",
       "question": "what is it made of?",
-      "zone": "sinwood",
-      "district": "sinwood",
-      "plot": "sinwood-21",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09064255332747,
-          -8.300469825457531
+          115.09576274785634,
+          -8.298921866714183
         ]
       ],
       "shill": "cybics · mass · quant",
@@ -7545,15 +7545,15 @@
       "kind": "domain",
       "triad": "space",
       "question": "where does it happen?",
-      "zone": "etherland",
-      "district": "rockets",
-      "plot": "etherland-6",
+      "zone": "front",
+      "district": "frontier",
+      "plot": "front-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.08929309159667,
-          -8.301535880189423
+          115.09541651399118,
+          -8.298011811069724
         ]
       ],
       "shill": "cybics · space · cosmo",
@@ -7566,14 +7566,14 @@
       "triad": "life",
       "question": "who is alive?",
       "zone": "edem",
-      "district": "edem",
+      "district": "asgard",
       "plot": "edem-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09021728581138,
-          -8.302270619059561
+          115.09007058540206,
+          -8.302186456518301
         ]
       ],
       "shill": "cybics · life · bio",
@@ -7585,15 +7585,15 @@
       "kind": "domain",
       "triad": "word",
       "question": "what does it mean?",
-      "zone": "asgard",
-      "district": "asgard",
-      "plot": "asgard-1",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.0896089517369,
-          -8.30264703334779
+          115.0969538316108,
+          -8.298455993549172
         ]
       ],
       "shill": "cybics · word · lang",
@@ -7605,15 +7605,15 @@
       "kind": "domain",
       "triad": "work",
       "question": "how is it made?",
-      "zone": "avalon",
-      "district": "avalon",
-      "plot": "avalon-13",
+      "zone": "front",
+      "district": "frontier",
+      "plot": "front-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09028320975094,
-          -8.301700211953392
+          115.09109580872472,
+          -8.299415445454553
         ]
       ],
       "shill": "cybics · work · ai",
@@ -7625,15 +7625,15 @@
       "kind": "domain",
       "triad": "play",
       "question": "how do we coordinate?",
-      "zone": "sinwood",
-      "district": "sinwood",
-      "plot": "sinwood-25-alex-dzin",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.0901789815069,
-          -8.30120531593477
+          115.09178105840692,
+          -8.299966192863561
         ]
       ],
       "shill": "cybics · play · socio",
@@ -7645,15 +7645,15 @@
       "kind": "domain",
       "triad": "form",
       "question": "what are the rules?",
-      "zone": "etherland",
-      "district": "rockets",
-      "plot": "etherland-0",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.0893211383646,
-          -8.302146471410778
+          115.09226331271913,
+          -8.300548031718215
         ]
       ],
       "shill": "cybics · form · info",
@@ -7665,15 +7665,15 @@
       "kind": "domain",
       "triad": "mass",
       "question": "what is it made of?",
-      "zone": "edem",
-      "district": "edem",
-      "plot": "edem-1",
+      "zone": "front",
+      "district": "frontier",
+      "plot": "front-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09060743129082,
-          -8.30263889449815
+          115.0948353357175,
+          -8.297310620655143
         ]
       ],
       "shill": "cybics · mass · chemo",
@@ -7685,15 +7685,15 @@
       "kind": "domain",
       "triad": "space",
       "question": "where does it happen?",
-      "zone": "asgard",
-      "district": "asgard",
-      "plot": "asgard-7",
+      "zone": "sinwood",
+      "district": "core",
+      "plot": "sinwood-4",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.08980075068261,
-          -8.303131080187416
+          115.09044100596532,
+          -8.299910459318893
         ]
       ],
       "shill": "cybics · space · geo",
@@ -7705,15 +7705,15 @@
       "kind": "domain",
       "triad": "life",
       "question": "who is alive?",
-      "zone": "avalon",
-      "district": "avalon",
-      "plot": "avalon-15",
+      "zone": "front",
+      "district": "frontier",
+      "plot": "front-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09089332068811,
-          -8.302000016988623
+          115.09398211654977,
+          -8.298056567904698
         ]
       ],
       "shill": "cybics · life · neuro",
@@ -7727,13 +7727,13 @@
       "question": "what does it mean?",
       "zone": "sinwood",
       "district": "sinwood",
-      "plot": "sinwood-15",
+      "plot": "sinwood-0-monastery",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.08990879734837,
-          -8.301090891936603
+          115.09089035581573,
+          -8.301049357325375
         ]
       ],
       "shill": "cybics · word · spiri",
@@ -7745,15 +7745,15 @@
       "kind": "domain",
       "triad": "work",
       "question": "how is it made?",
-      "zone": "etherland",
-      "district": "rockets",
-      "plot": "etherland-4",
+      "zone": "sinwood",
+      "district": "sinwood",
+      "plot": "sinwood-2",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.08880364288078,
-          -8.301554646894116
+          115.08978264083954,
+          -8.300391533094132
         ]
       ],
       "shill": "cybics · work · tech",
@@ -7765,15 +7765,15 @@
       "kind": "domain",
       "triad": "play",
       "question": "how do we coordinate?",
-      "zone": "edem",
-      "district": "edem",
-      "plot": "edem-2",
+      "zone": "etherland",
+      "district": "rockets",
+      "plot": "etherland-2",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.0904688926596,
-          -8.30242020187579
+          115.08892566297492,
+          -8.301863866594141
         ]
       ],
       "shill": "cybics · play · crypto",
@@ -7785,15 +7785,15 @@
       "kind": "domain",
       "triad": "form",
       "question": "what are the rules?",
-      "zone": "asgard",
-      "district": "asgard",
-      "plot": "asgard-6",
+      "zone": "front",
+      "district": "frontier",
+      "plot": "front-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09048846034058,
-          -8.302921523929376
+          115.09256008460355,
+          -8.299250083503987
         ]
       ],
       "shill": "cybics · form · comp",
@@ -7805,15 +7805,15 @@
       "kind": "domain",
       "triad": "mass",
       "question": "what is it made of?",
-      "zone": "avalon",
-      "district": "avalon",
-      "plot": "avalon-7",
+      "zone": "etherland",
+      "district": "rockets",
+      "plot": "etherland-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.08941562399109,
-          -8.301097082945372
+          115.08938500311035,
+          -8.302070655007064
         ]
       ],
       "shill": "cybics · mass · energo",
@@ -7825,15 +7825,15 @@
       "kind": "domain",
       "triad": "space",
       "question": "where does it happen?",
-      "zone": "sinwood",
-      "district": "sinwood",
-      "plot": "sinwood-29",
+      "zone": "front",
+      "district": "frontier",
+      "plot": "front-0",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09087551615228,
-          -8.300691017778297
+          115.09298976861827,
+          -8.298710429270772
         ]
       ],
       "shill": "cybics · space · eco",
@@ -7845,15 +7845,15 @@
       "kind": "domain",
       "triad": "life",
       "question": "who is alive?",
-      "zone": "etherland",
-      "district": "rockets",
-      "plot": "etherland-3",
+      "zone": "sinwood",
+      "district": "sinwood",
+      "plot": "sinwood-26-banya",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.08843074380277,
-          -8.301753977993096
+          115.09041016802279,
+          -8.301049169876444
         ]
       ],
       "shill": "cybics · life · sense",
@@ -7865,15 +7865,15 @@
       "kind": "domain",
       "triad": "word",
       "question": "what does it mean?",
-      "zone": "edem",
-      "district": "edem",
-      "plot": "edem-0",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09018244763291,
-          -8.302323906801997
+          115.09482167068359,
+          -8.298977100349738
         ]
       ],
       "shill": "cybics · word · meta",
@@ -7885,15 +7885,15 @@
       "kind": "domain",
       "triad": "work",
       "question": "how is it made?",
-      "zone": "asgard",
-      "district": "asgard",
-      "plot": "asgard-5",
+      "zone": "canyon",
+      "district": "frontier",
+      "plot": "canyon-1",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09008279364797,
-          -8.302894995020916
+          115.09380899961718,
+          -8.299876679193614
         ]
       ],
       "shill": "cybics · work · cyber",
@@ -7905,20 +7905,20 @@
       "kind": "domain",
       "triad": "play",
       "question": "how do we coordinate?",
-      "zone": "sinwood",
-      "district": "sinwood",
-      "plot": "sinwood-27",
+      "zone": "avalon",
+      "district": "wild",
+      "plot": "avalon-14",
       "phase": 0,
       "geom": "point",
       "coords": [
         [
-          115.09054710361123,
-          -8.300874654610162
+          115.09057018328453,
+          -8.30193308014297
         ]
       ],
       "shill": "cybics · play · game",
       "href": "https://cyber.page/game"
     }
   ],
-  "domains_note": "21 cybics domains as shill points on citadel volcano: avalon, sinwood, rockets(=etherland), edem, asgard — no core, no bridge"
+  "domains_note": "21 cybics shill points — baked from browser drag (Brave localStorage) · re-bake 2026-08-16"
 }

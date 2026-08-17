@@ -291,16 +291,28 @@ name = "cyber-hemera"
 version = "0.3.0"
 
 [[package]]
+name = "cyber-mudra"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "bech32",
+ "cyber-hemera",
+ "k256",
+ "ripemd",
+ "sha2",
+]
+
+[[package]]
 name = "cyberia"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "cyber-hemera",
+ "cyber-mudra",
  "getrandom 0.2.17",
  "js-sys",
  "leptos",
  "leptos_router",
- "mudra",
  "serde",
  "serde_json",
  "wasm-bindgen",
@@ -1055,18 +1067,6 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
-
-[[package]]
-name = "mudra"
-version = "0.1.0"
-dependencies = [
- "base64",
- "bech32",
- "cyber-hemera",
- "k256",
- "ripemd",
- "sha2",
-]
 
 [[package]]
 name = "next_tuple"

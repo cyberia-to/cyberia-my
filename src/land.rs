@@ -14,12 +14,12 @@ pub struct MapData {
     #[serde(default)]
     pub districts: Vec<LandFlat>,
     pub places: Vec<LandFlat>,
-    /// 21 cybics knowledge domains as citadel shill points (no core/bridge).
+    /// 21 cybics knowledge domains as shill points across full citadel (dashed envelope).
     #[serde(default)]
     pub domains: Vec<DomainPoint>,
 }
 
-/// Cybics domain marker on the volcano citadel.
+/// Cybics domain marker on the citadel map.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct DomainPoint {
     pub id: String,

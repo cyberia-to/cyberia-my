@@ -2309,9 +2309,10 @@ button.city-card:hover {
     margin-left: auto;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
     color: var(--cyber-yellow);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 .map-tooltip {
     position: absolute;
@@ -2362,24 +2363,21 @@ button.city-card:hover {
 }
 .flat-path-under {
     pointer-events: none;
-    opacity: 0.9;
+    opacity: 0.75;
 }
 .flat-path {
     cursor: pointer;
     /* no CSS filters — blur = smeared parcels under camera scale */
     transition:
-        fill 0.06s ease,
-        stroke 0.06s ease;
-    stroke-opacity: 1;
+        fill 0.08s ease,
+        stroke 0.08s ease,
+        stroke-width 0.08s ease;
 }
+/* idle edges are dim in SVG; hot states carry full stroke in attributes */
 .flat-path.is-hov {
-    stroke-opacity: 1;
+    /* hover glow reads as selection affordance */
 }
 .flat-path.is-sel {
-    stroke-opacity: 1;
-}
-.flat-path:hover {
-    stroke-opacity: 1;
 }
 .flat-label {
     fill: #e0e0e0;
@@ -2436,10 +2434,19 @@ button.city-card:hover {
 }
 .domain-dot {
     pointer-events: auto;
-    cursor: help;
+    cursor: grab;
+}
+.domain-dot.is-drag {
+    cursor: grabbing;
+}
+.domain-dot.is-sel .domain-ring {
+    filter: drop-shadow(0 0 8px currentColor);
 }
 .domain-dot .domain-ring {
     filter: drop-shadow(0 0 4px currentColor);
+}
+.domain-dot .domain-hit {
+    pointer-events: auto;
 }
 .domain-label {
     font-size: 8.5px;
@@ -2451,6 +2458,103 @@ button.city-card:hover {
     stroke: rgba(0, 0, 0, 0.9);
     stroke-width: 2.5px;
     text-transform: uppercase;
+}
+.board-tabs {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.board-tab {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #666;
+    text-decoration: none;
+    padding: 3px 8px;
+    border: 1px solid #222;
+    border-radius: 2px;
+    background: #0a0a0a;
+}
+.board-tab:hover {
+    color: #ccc;
+    border-color: #333;
+}
+.board-tab.on {
+    color: var(--cyber-green);
+    border-color: rgba(0, 255, 65, 0.45);
+    background: rgba(0, 255, 65, 0.08);
+}
+.domain-board-actions {
+    display: flex;
+    gap: 6px;
+    padding: 4px 8px 10px;
+}
+.domain-triad-group {
+    margin: 0 0 10px;
+    padding: 0 0 6px;
+    border-bottom: 1px solid #141414;
+}
+.domain-triad-group:last-child {
+    border-bottom: none;
+}
+.domain-triad-h {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 10px 4px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, #0a0a0a 70%, transparent);
+}
+.domain-triad-name {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    flex: 0 0 auto;
+}
+.domain-triad-q {
+    font-size: 10px;
+    color: #666;
+    font-style: italic;
+    letter-spacing: 0.3px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.domain-triad-n {
+    font-size: 10px;
+    font-weight: 700;
+    color: #333;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+}
+.domain-triad-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 2px 6px 4px;
+}
+.domain-card {
+    border-left: 2px solid var(--dom-color, #444);
+}
+.domain-card-compact {
+    padding: 7px 10px;
+    min-height: 0;
+}
+.domain-card-compact .fleet-top {
+    margin-bottom: 0;
+}
+.domain-card-compact .fleet-status {
+    color: #555;
+    font-size: 9px;
+    letter-spacing: 0.6px;
+}
+.domain-card.sel {
+    border-color: var(--dom-color, var(--cyber-green));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dom-color, #0f0) 35%, transparent);
 }
 .district-label {
     fill: rgba(255, 255, 255, 0.22);

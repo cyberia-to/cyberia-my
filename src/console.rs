@@ -13,7 +13,8 @@ use crate::wallet::{
     debit_cx, load_intents, load_leases, save_intents, save_leases, IntentRec, Lease,
 };
 use leptos::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use wasm_bindgen::JsCast;
 
 const MAP_JSON: &str = include_str!("cyberia_map.json");
@@ -30,13 +31,13 @@ struct MapData {
     #[serde(default)]
     districts: Vec<Flat>,
     places: Vec<Flat>,
-    /// 21 cybics domains as shill points on citadel volcano (no core/bridge).
+    /// 21 cybics domains as citadel shill points (no core/bridge).
     #[serde(default)]
     domains: Vec<DomainMark>,
     source: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 struct DomainMark {
     id: String,
     name: String,
@@ -55,6 +56,14 @@ struct DomainMark {
     coords: Vec<[f64; 2]>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LeftBoard {
+    Fleets,
+    Domains,
+}
+
+const DOMAIN_POS_KEY: &str = "cyberia.domain_positions.v1";
+
 fn triad_color(triad: &str) -> &'static str {
     match triad {
         "form" => "#00b4ff",  // cyan — rules
@@ -65,6 +74,22 @@ fn triad_color(triad: &str) -> &'static str {
         "work" => "#ffc501",  // yellow — making
         "play" => "#fe0000",  // red — coordinate
         _ => "#00ff01",
+    }
+}
+
+/// Canonical cybics triad order for domain board grouping.
+const TRIAD_ORDER: &[&str] = &["form", "mass", "space", "life", "word", "work", "play"];
+
+fn triad_question(triad: &str) -> &'static str {
+    match triad {
+        "form" => "what are the rules?",
+        "mass" => "what is it made of?",
+        "space" => "where does it happen?",
+        "life" => "who is alive?",
+        "word" => "what does it mean?",
+        "work" => "how is it made?",
+        "play" => "how do we coordinate?",
+        _ => "",
     }
 }
 
@@ -84,6 +109,45 @@ struct BBox {
     max_lon: f64,
     min_lat: f64,
     max_lat: f64,
+}
+
+fn load_domain_positions() -> HashMap<String, [f64; 2]> {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|ls| ls.get_item(DOMAIN_POS_KEY).ok().flatten())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_domain_positions(domains: &[DomainMark]) {
+    let mut m = HashMap::new();
+    for d in domains {
+        if let Some(c) = d.coords.first() {
+            m.insert(d.id.clone(), [c[0], c[1]]);
+            m.insert(d.name.clone(), [c[0], c[1]]);
+        }
+    }
+    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        if let Ok(s) = serde_json::to_string(&m) {
+            let _ = ls.set_item(DOMAIN_POS_KEY, &s);
+        }
+    }
+}
+
+fn clear_domain_positions() {
+    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        let _ = ls.remove_item(DOMAIN_POS_KEY);
+    }
+}
+
+fn apply_domain_positions(mut domains: Vec<DomainMark>) -> Vec<DomainMark> {
+    let pos = load_domain_positions();
+    for d in &mut domains {
+        if let Some(c) = pos.get(&d.id).or_else(|| pos.get(&d.name)) {
+            d.coords = vec![[c[0], c[1]]];
+        }
+    }
+    domains
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -523,48 +587,72 @@ fn flat_fill(zone_or_id: &str, selected: bool) -> &'static str {
     }
 }
 
-fn flat_stroke_col(zone_or_id: &str, selected: bool) -> &'static str {
+/// Idle borders stay dim so hover/select glow actually reads.
+/// Hot = hover or selected — zone neon / white.
+fn flat_stroke_col(zone_or_id: &str, selected: bool, hover: bool) -> &'static str {
     let z = zone_or_id.to_lowercase();
     if selected {
         return "#ffffff";
     }
+    if hover {
+        // bright edge — the only "glowing" state
+        return if z.contains("avalon") {
+            "#ffb070"
+        } else if z.contains("sinwood") {
+            "#7dff9a"
+        } else if z.contains("bridge") {
+            "#9af6ff"
+        } else if z.contains("core") {
+            "#ffe98a"
+        } else if z.contains("ether") {
+            "#e0a8ff"
+        } else if z.contains("asgard") {
+            "#ff8aa0"
+        } else if z.contains("edem") || z.contains("canyon") {
+            "#8affe8"
+        } else {
+            "#e8e8e8"
+        };
+    }
+    // idle: deep, low-contrast seams (tile grid, not neon wire)
     if z.contains("avalon") {
-        "#ffb070"
+        "rgba(255,120,40,0.18)"
     } else if z.contains("sinwood") {
-        "#7dff9a"
+        "rgba(40,220,80,0.16)"
     } else if z.contains("bridge") {
-        "#9af6ff"
+        "rgba(40,210,230,0.16)"
     } else if z.contains("core") {
-        "#ffe98a"
+        "rgba(230,200,40,0.16)"
     } else if z.contains("ether") {
-        "#e0a8ff"
+        "rgba(160,90,255,0.16)"
     } else if z.contains("asgard") {
-        "#ff8aa0"
+        "rgba(255,50,90,0.16)"
     } else if z.contains("edem") || z.contains("canyon") {
-        "#8affe8"
+        "rgba(0,230,190,0.16)"
     } else {
-        "#cccccc"
+        "rgba(180,180,180,0.14)"
     }
 }
 
 fn zone_hover_fill(zone_or_id: &str) -> &'static str {
+    // fill lift on hover — still secondary to the glowing stroke
     let z = zone_or_id.to_lowercase();
     if z.contains("avalon") {
-        "rgba(255,130,30,0.38)"
+        "rgba(255,130,30,0.42)"
     } else if z.contains("sinwood") {
-        "rgba(40,255,90,0.36)"
+        "rgba(40,255,90,0.40)"
     } else if z.contains("bridge") {
-        "rgba(50,240,255,0.34)"
+        "rgba(50,240,255,0.38)"
     } else if z.contains("core") {
-        "rgba(255,225,50,0.36)"
+        "rgba(255,225,50,0.40)"
     } else if z.contains("ether") {
-        "rgba(170,90,255,0.36)"
+        "rgba(170,90,255,0.40)"
     } else if z.contains("asgard") {
-        "rgba(255,40,80,0.34)"
+        "rgba(255,40,80,0.38)"
     } else if z.contains("edem") || z.contains("canyon") {
-        "rgba(20,255,200,0.34)"
+        "rgba(20,255,200,0.38)"
     } else {
-        "rgba(200,200,200,0.28)"
+        "rgba(200,200,200,0.32)"
     }
 }
 
@@ -682,6 +770,17 @@ fn project(lon: f64, lat: f64, bbox: &BBox, w: f64, h: f64, pad: f64) -> (f64, f
     (x, y)
 }
 
+/// Inverse of `project` — SVG/world → lon/lat (for domain drag).
+fn unproject(x: f64, y: f64, bbox: &BBox, w: f64, h: f64, pad: f64) -> (f64, f64) {
+    let dx = (bbox.max_lon - bbox.min_lon).max(1e-9);
+    let dy = (bbox.max_lat - bbox.min_lat).max(1e-9);
+    let uw = (w - 2.0 * pad).max(1e-9);
+    let uh = (h - 2.0 * pad).max(1e-9);
+    let lon = bbox.min_lon + (x - pad) / uw * dx;
+    let lat = bbox.min_lat + (1.0 - (y - pad) / uh) * dy;
+    (lon, lat)
+}
+
 fn poly_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> String {
     if coords.is_empty() {
         return String::new();
@@ -698,6 +797,12 @@ fn poly_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> Stri
     s.push('Z');
     s
 }
+
+/// Game camera zoom range.
+/// Max ~1000 → ~1.5 m view width on Gesing site → 10 cm tile ≈ 60–70 screen px
+/// (enough to layout tiny hex/tiles as a planning game).
+const MAP_ZOOM_MIN: f64 = 0.5;
+const MAP_ZOOM_MAX: f64 = 1000.0;
 
 /// Keep HUD-sized marks (labels, dots) constant on screen while viewBox zooms.
 /// Anchor at (x,y) in SVG/world units.
@@ -719,6 +824,45 @@ fn map_view_box(center: (f64, f64), zoom: f64, w: f64, h: f64) -> String {
         vw,
         vh
     )
+}
+
+/// Site envelope size in meters from lon/lat bbox (approx WGS84).
+fn site_span_m(bbox: &BBox) -> (f64, f64) {
+    let lat0 = (bbox.min_lat + bbox.max_lat) * 0.5;
+    let m_lat = 111_320.0;
+    let m_lon = 111_320.0 * lat0.to_radians().cos();
+    let ew = (bbox.max_lon - bbox.min_lon) * m_lon;
+    let ns = (bbox.max_lat - bbox.min_lat) * m_lat;
+    (ew, ns)
+}
+
+/// Visible world width (meters) at current zoom — for HUD scale readout.
+fn view_width_m(zoom: f64, map_w: f64, pad: f64, site_ew_m: f64) -> f64 {
+    let z = zoom.max(0.25);
+    let usable = (map_w - 2.0 * pad).max(1.0);
+    let m_per_svg = site_ew_m / usable;
+    (map_w / z) * m_per_svg
+}
+
+fn format_zoom_hud(zoom: f64, view_m: f64) -> String {
+    let z = zoom;
+    let z_s = if z >= 100.0 {
+        format!("×{z:.0}")
+    } else if z >= 10.0 {
+        format!("×{z:.1}")
+    } else {
+        format!("×{z:.2}")
+    };
+    let scale = if view_m >= 100.0 {
+        format!("~{view_m:.0} m")
+    } else if view_m >= 10.0 {
+        format!("~{view_m:.1} m")
+    } else if view_m >= 1.0 {
+        format!("~{view_m:.2} m")
+    } else {
+        format!("~{:.0} cm", view_m * 100.0)
+    };
+    format!("{z_s} · {scale}")
 }
 
 /// Map client point (relative to wrap) → world/SVG coords under current camera.
@@ -764,10 +908,24 @@ fn status_color(s: &str) -> &'static str {
     }
 }
 
+/// Ops map — fleets rail + flats.
 #[component]
 pub fn ValleyConsole() -> impl IntoView {
+    view! { <MapConsole domains_board=false /> }
+}
+
+/// Domains board — same camera, left rail = 21 cybics (draggable shill points).
+#[component]
+pub fn DomainsBoard() -> impl IntoView {
+    view! { <MapConsole domains_board=true /> }
+}
+
+#[component]
+fn MapConsole(domains_board: bool) -> impl IntoView {
     let map = load_map();
     let map = std::sync::Arc::new(map);
+    let map_bbox = map.bbox.clone();
+    let base_domains = map.domains.clone();
 
     let selected_flat = RwSignal::new({
         let from_q = web_sys::window()
@@ -830,23 +988,48 @@ pub fn ValleyConsole() -> impl IntoView {
     let split_axis = RwSignal::new(0usize);
     let split_ratio = RwSignal::new(0.50_f64); // 0..1 across bbox
 
+    // left rail: fleets (ops) or domains (shill points)
+    let left_board = RwSignal::new(if domains_board {
+        LeftBoard::Domains
+    } else {
+        LeftBoard::Fleets
+    });
+    let domains = RwSignal::new(apply_domain_positions(base_domains.clone()));
+    let selected_domain = RwSignal::new(
+        domains
+            .get_untracked()
+            .first()
+            .map(|d| d.id.clone())
+            .or_else(|| Some("domain-ai".into())),
+    );
+    // live domain drag (id) — positions persist to localStorage
+    let domain_drag = RwSignal::new(None::<String>);
+    let domain_did_drag = RwSignal::new(false);
+
     // game map camera — SVG viewBox zoom/pan (vector-sharp; never CSS scale)
+    // max zoom high enough for ~10 cm tile/hex planning on the ground
     const MAP_W: f64 = 960.0;
     const MAP_H: f64 = 720.0;
+    const MAP_PAD: f64 = 20.0;
+    let site_ew_m = site_span_m(&map.bbox).0;
     let map_zoom = RwSignal::new(1.0_f64);
     let map_center = RwSignal::new((MAP_W * 0.5, MAP_H * 0.5)); // world/SVG units
     let map_hover = RwSignal::new(None::<(String, String, f64)>); // id, label, m2
     let map_dragging = RwSignal::new(false);
+    // true once pointer moved past threshold — suppress plot-click select after pan
+    let map_did_drag = RwSignal::new(false);
     let map_drag_last = RwSignal::new((0.0_f64, 0.0_f64));
     let map_wrap_ref = NodeRef::<leptos::html::Div>::new();
 
+    // focus camera on a domain id (used from list cards)
+
     let zoom_by = move |factor: f64| {
-        map_zoom.update(|z| *z = (*z * factor).clamp(0.6, 8.0));
+        map_zoom.update(|z| *z = (*z * factor).clamp(MAP_ZOOM_MIN, MAP_ZOOM_MAX));
     };
     let zoom_at = move |factor: f64, cx: f64, cy: f64| {
         // keep world point under cursor stable while viewBox zooms
         let z0 = map_zoom.get_untracked();
-        let z1 = (z0 * factor).clamp(0.6, 8.0);
+        let z1 = (z0 * factor).clamp(MAP_ZOOM_MIN, MAP_ZOOM_MAX);
         if (z1 - z0).abs() < 1e-9 {
             return;
         }
@@ -891,10 +1074,21 @@ pub fn ValleyConsole() -> impl IntoView {
     };
 
     Effect::new(move |_| {
-        document().set_title("Cyberia — map · Gesing, Bali");
+        let title = if left_board.get() == LeftBoard::Domains {
+            "Cyberia — domains · Gesing, Bali"
+        } else {
+            "Cyberia — map · Gesing, Bali"
+        };
+        document().set_title(title);
     });
 
     let map_for_svg = map.clone();
+    let nav_active = if domains_board { "domains" } else { "map" };
+    // split clones so left-rail closure and map markers don't fight over ownership
+    let base_domains_rail = base_domains.clone();
+    let base_domains_map = base_domains.clone();
+    let map_bbox_rail = map_bbox.clone();
+    let map_bbox_drag = map_bbox.clone();
 
     view! {
         <div class="page-shell cyberia-shell">
@@ -912,23 +1106,188 @@ pub fn ValleyConsole() -> impl IntoView {
                 <div class="cyberia-phase-pill">
                     <span class="phase-dot"></span>
                     {move || {
-                        let n = flats.get().len();
-                        format!("PHASE 0 · {n} PLOTS · GESING")
+                        if left_board.get() == LeftBoard::Domains {
+                            let n = domains.get().len();
+                            format!("21 CYBICS · {n} DOMAINS · DRAG")
+                        } else {
+                            let n = flats.get().len();
+                            format!("PHASE 0 · {n} PLOTS · GESING")
+                        }
                     }}
                 </div>
-                <CyberiaNav active="map" />
+                <CyberiaNav active=nav_active />
             </div>
             </div>
             </div>
 
             <div class="cyberia-stage">
-                // LEFT — FLEETS
+                // LEFT — FLEETS or DOMAINS
                 <section class="cyberia-panel cyberia-fleets">
                     <div class="cyberia-panel-h">
-                        <span class="panel-kicker">"FLEETS"</span>
-                        <span class="panel-sub">{format!("{} workers · {} machines", WORKERS.len(), MACHINES.len())}</span>
+                        <div class="board-tabs">
+                            <a
+                                class=move || if left_board.get() == LeftBoard::Fleets { "board-tab on" } else { "board-tab" }
+                                href="/map"
+                                on:click=move |ev| {
+                                    if !domains_board {
+                                        ev.prevent_default();
+                                        left_board.set(LeftBoard::Fleets);
+                                    }
+                                }
+                            >"FLEETS"</a>
+                            <a
+                                class=move || if left_board.get() == LeftBoard::Domains { "board-tab on" } else { "board-tab" }
+                                href="/domains"
+                                on:click=move |ev| {
+                                    if domains_board {
+                                        ev.prevent_default();
+                                        left_board.set(LeftBoard::Domains);
+                                    }
+                                }
+                            >"DOMAINS"</a>
+                        </div>
+                        <span class="panel-sub">
+                            {move || match left_board.get() {
+                                LeftBoard::Fleets => format!("{} workers · {} machines", WORKERS.len(), MACHINES.len()),
+                                LeftBoard::Domains => {
+                                    let n = domains.get().len();
+                                    format!("{n} cybics · drag on map")
+                                }
+                            }}
+                        </span>
                     </div>
                     <div class="fleet-list">
+                    {move || match left_board.get() {
+                        LeftBoard::Domains => {
+                            let list = domains.get();
+                            let baked_reset = base_domains_rail.clone();
+                            let bbox_list = map_bbox_rail.clone();
+                            // group by triad — question once per group, not on every card
+                            let mut by_triad: HashMap<String, Vec<DomainMark>> = HashMap::new();
+                            for d in list {
+                                by_triad.entry(d.triad.clone()).or_default().push(d);
+                            }
+                            // stable order inside group: name alpha
+                            for v in by_triad.values_mut() {
+                                v.sort_by(|a, b| a.name.cmp(&b.name));
+                            }
+                            let mut groups: Vec<(String, Vec<DomainMark>)> = TRIAD_ORDER
+                                .iter()
+                                .filter_map(|t| {
+                                    by_triad
+                                        .remove(*t)
+                                        .map(|v| ((*t).to_string(), v))
+                                })
+                                .collect();
+                            // any unknown triad tail
+                            let mut rest: Vec<_> = by_triad.into_iter().collect();
+                            rest.sort_by(|a, b| a.0.cmp(&b.0));
+                            groups.extend(rest);
+
+                            view! {
+                                <div class="fleet-section">"CYBICS · BY TRIAD"</div>
+                                <div class="domain-board-actions">
+                                    <button
+                                        class="act-pill"
+                                        type="button"
+                                        title="reset domain positions to baked map"
+                                        on:click=move |_| {
+                                            clear_domain_positions();
+                                            domains.set(baked_reset.clone());
+                                        }
+                                    >"RESET"</button>
+                                    <button
+                                        class="act-pill"
+                                        type="button"
+                                        title="log lon/lat JSON overrides to browser console"
+                                        on:click=move |_| {
+                                            let list = domains.get_untracked();
+                                            let mut pos = HashMap::new();
+                                            for d in &list {
+                                                if let Some(c) = d.coords.first() {
+                                                    pos.insert(d.name.clone(), [c[0], c[1]]);
+                                                }
+                                            }
+                                            let s = serde_json::to_string_pretty(&pos).unwrap_or_else(|_| "{}".into());
+                                            web_sys::console::log_1(&s.into());
+                                            if let Some(w) = web_sys::window() {
+                                                let _ = w.alert_with_message(
+                                                    "Domain positions logged to console (F12).\nAlso saved in localStorage.",
+                                                );
+                                            }
+                                        }
+                                    >"EXPORT"</button>
+                                </div>
+                                {groups.into_iter().map(|(triad, doms)| {
+                                    let color = triad_color(&triad);
+                                    let q = triad_question(&triad);
+                                    let triad_up = triad.to_uppercase();
+                                    let n = doms.len();
+                                    let bbox_group = bbox_list.clone();
+                                    view! {
+                                        <div class="domain-triad-group" style=format!("--dom-color: {color}")>
+                                            <div class="domain-triad-h">
+                                                <span class="domain-triad-name" style:color=color>{triad_up}</span>
+                                                <span class="domain-triad-q">{q}</span>
+                                                <span class="domain-triad-n">{format!("{n}")}</span>
+                                            </div>
+                                            <div class="domain-triad-cards">
+                                                {doms.into_iter().map(|dom| {
+                                                    let id = dom.id.clone();
+                                                    let id2 = id.clone();
+                                                    let name = dom.name.clone();
+                                                    let district = if dom.district.is_empty() {
+                                                        dom.zone.clone()
+                                                    } else {
+                                                        dom.district.clone()
+                                                    };
+                                                    let color = triad_color(&dom.triad);
+                                                    let bbox_focus = bbox_group.clone();
+                                                    view! {
+                                                        <button
+                                                            class=move || {
+                                                                let sel = selected_domain.get().as_deref() == Some(id.as_str());
+                                                                format!("fleet-card domain-card domain-card-compact{}", if sel { " sel" } else { "" })
+                                                            }
+                                                            style=format!("--dom-color: {color}")
+                                                            on:click=move |_| {
+                                                                selected_domain.set(Some(id2.clone()));
+                                                                if let Some(dom) = domains
+                                                                    .get_untracked()
+                                                                    .into_iter()
+                                                                    .find(|d| d.id == id2)
+                                                                {
+                                                                    if let Some(c) = dom.coords.first() {
+                                                                        let (x, y) = project(
+                                                                            c[0],
+                                                                            c[1],
+                                                                            &bbox_focus,
+                                                                            MAP_W,
+                                                                            MAP_H,
+                                                                            MAP_PAD,
+                                                                        );
+                                                                        map_center.set((x, y));
+                                                                        if map_zoom.get_untracked() < 3.0 {
+                                                                            map_zoom.set(4.0);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        >
+                                                            <div class="fleet-top">
+                                                                <span class="fleet-name" style:color=color>{name.to_uppercase()}</span>
+                                                                <span class="fleet-status">{district.to_uppercase()}</span>
+                                                            </div>
+                                                        </button>
+                                                    }
+                                                }).collect_view()}
+                                            </div>
+                                        </div>
+                                    }
+                                }).collect_view()}
+                            }.into_any()
+                        }
+                        LeftBoard::Fleets => view! {
                         <div class="fleet-section">"WORKERS · HARD FORCE"</div>
                         {WORKERS.iter().map(|f| render_fleet_card(f, selected_fleet)).collect_view()}
                         <div class="fleet-section">"MACHINES"</div>
@@ -965,9 +1324,14 @@ pub fn ValleyConsole() -> impl IntoView {
                                 </button>
                             }
                         }).collect_view()}
+                        }.into_any()
+                    }}
                     </div>
                     <div class="cyberia-hint">
-                        "Pick a fleet unit, a flat on the map, an action — then commit intent. Or buy a robot / lease land."
+                        {move || match left_board.get() {
+                            LeftBoard::Domains => "Select a domain · drag its glow on the map · positions save in this browser",
+                            LeftBoard::Fleets => "Pick a fleet unit, a flat on the map, an action — then commit intent. Or buy a robot / lease land.",
+                        }}
                     </div>
                 </section>
 
@@ -983,8 +1347,12 @@ pub fn ValleyConsole() -> impl IntoView {
                                 map.stats.district_ha,
                             )}
                         </span>
-                        <span class="map-zoom-readout">
-                            {move || format!("×{:.1}", map_zoom.get())}
+                        <span class="map-zoom-readout" title="zoom · visible width (game scale)">
+                            {move || {
+                                let z = map_zoom.get();
+                                let m = view_width_m(z, MAP_W, MAP_PAD, site_ew_m);
+                                format_zoom_hud(z, m)
+                            }}
                         </span>
                     </div>
                     <div
@@ -996,7 +1364,8 @@ pub fn ValleyConsole() -> impl IntoView {
                             ev.stop_propagation();
                             let dy = ev.delta_y();
                             if dy == 0.0 { return; }
-                            let factor = if dy < 0.0 { 1.12 } else { 1.0 / 1.12 };
+                            // slightly faster step so deep game zoom (×1000) is reachable
+                            let factor = if dy < 0.0 { 1.18 } else { 1.0 / 1.18 };
                             if let Some(el) = map_wrap_ref.get_untracked() {
                                 let rect = el.get_bounding_client_rect();
                                 let cx = ev.client_x() as f64 - rect.left();
@@ -1014,52 +1383,127 @@ pub fn ValleyConsole() -> impl IntoView {
                                 "ArrowRight" | "d" | "D" => { ev.prevent_default(); pan_by(-step, 0.0); }
                                 "ArrowUp" | "w" | "W" => { ev.prevent_default(); pan_by(0.0, step); }
                                 "ArrowDown" | "s" | "S" => { ev.prevent_default(); pan_by(0.0, -step); }
-                                "+" | "=" => { ev.prevent_default(); zoom_by(1.15); }
-                                "-" | "_" => { ev.prevent_default(); zoom_by(1.0 / 1.15); }
+                                "+" | "=" => { ev.prevent_default(); zoom_by(1.25); }
+                                "-" | "_" => { ev.prevent_default(); zoom_by(1.0 / 1.25); }
                                 "0" => { ev.prevent_default(); reset_cam(); }
                                 _ => {}
                             }
                         }
                         on:pointerdown=move |ev| {
-                            // only pan with primary button on empty space / background
+                            // pan from anywhere on the map (plots, empty, places) —
+                            // filled flats used to block drag; click still selects if no pan
+                            // domain-dot starts its own drag via stop_propagation
                             if ev.button() != 0 { return; }
+                            if domain_drag.get_untracked().is_some() { return; }
                             let target = ev.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok());
-                            let on_zone = target
+                            let on_ui = target
                                 .as_ref()
-                                .and_then(|el| el.closest(".flat-poly, .flat-path, .place-dot").ok().flatten())
+                                .and_then(|el| el.closest(".map-zoom-rail, .map-cam-btn, .domain-dot").ok().flatten())
                                 .is_some();
-                            if on_zone {
-                                return; // zone click selects, no drag
+                            if on_ui {
+                                return;
                             }
                             map_dragging.set(true);
+                            map_did_drag.set(false);
                             map_drag_last.set((ev.client_x() as f64, ev.client_y() as f64));
                             if let Some(el) = map_wrap_ref.get_untracked() {
                                 let _ = el.set_pointer_capture(ev.pointer_id());
                             }
                         }
                         on:pointermove=move |ev| {
+                            // —— domain drag (shill points) ——
+                            if let Some(dom_id) = domain_drag.get_untracked() {
+                                let (ww, wh) = if let Some(el) = map_wrap_ref.get_untracked() {
+                                    let r = el.get_bounding_client_rect();
+                                    (r.width(), r.height())
+                                } else {
+                                    (MAP_W, MAP_H)
+                                };
+                                let rect = map_wrap_ref
+                                    .get_untracked()
+                                    .map(|el| el.get_bounding_client_rect());
+                                let (cx, cy) = if let Some(r) = rect {
+                                    (
+                                        ev.client_x() as f64 - r.left(),
+                                        ev.client_y() as f64 - r.top(),
+                                    )
+                                } else {
+                                    (ev.client_x() as f64, ev.client_y() as f64)
+                                };
+                                let (lx, ly) = map_drag_last.get_untracked();
+                                let dx = (ev.client_x() as f64) - lx;
+                                let dy = (ev.client_y() as f64) - ly;
+                                if !domain_did_drag.get_untracked() {
+                                    if dx * dx + dy * dy < 16.0 {
+                                        return;
+                                    }
+                                    domain_did_drag.set(true);
+                                }
+                                let (wx, wy) = client_to_world(
+                                    cx,
+                                    cy,
+                                    ww,
+                                    wh,
+                                    map_center.get_untracked(),
+                                    map_zoom.get_untracked(),
+                                    MAP_W,
+                                    MAP_H,
+                                );
+                                let (lon, lat) = unproject(wx, wy, &map_bbox_drag, MAP_W, MAP_H, MAP_PAD);
+                                domains.update(|list| {
+                                    if let Some(d) = list.iter_mut().find(|d| d.id == dom_id) {
+                                        d.coords = vec![[lon, lat]];
+                                    }
+                                });
+                                map_drag_last.set((ev.client_x() as f64, ev.client_y() as f64));
+                                return;
+                            }
+
                             if !map_dragging.get_untracked() { return; }
                             let (lx, ly) = map_drag_last.get_untracked();
                             let cx = ev.client_x() as f64;
                             let cy = ev.client_y() as f64;
-                            pan_by(cx - lx, cy - ly);
+                            let dx = cx - lx;
+                            let dy = cy - ly;
+                            // ~5px threshold so a tap still counts as plot select
+                            if !map_did_drag.get_untracked() {
+                                if dx * dx + dy * dy < 25.0 {
+                                    return;
+                                }
+                                map_did_drag.set(true);
+                            }
+                            pan_by(dx, dy);
                             map_drag_last.set((cx, cy));
                         }
-                        on:pointerup=move |_| map_dragging.set(false)
-                        on:pointercancel=move |_| map_dragging.set(false)
+                        on:pointerup=move |_| {
+                            if domain_drag.get_untracked().is_some() {
+                                if domain_did_drag.get_untracked() {
+                                    save_domain_positions(&domains.get_untracked());
+                                }
+                                domain_drag.set(None);
+                                domain_did_drag.set(false);
+                            }
+                            map_dragging.set(false);
+                        }
+                        on:pointercancel=move |_| {
+                            domain_drag.set(None);
+                            domain_did_drag.set(false);
+                            map_dragging.set(false);
+                            map_did_drag.set(false);
+                        }
                         on:pointerleave=move |_| {
                             if !map_dragging.get_untracked() {
                                 map_hover.set(None);
                             }
                         }
                     >
-                        // left zoom rail (game-style)
+                        // left zoom rail (game-style) — deep zoom for cm-scale tile planning
                         <div class="map-zoom-rail" aria-label="map zoom">
-                            <button class="map-cam-btn" type="button" title="zoom in"
-                                on:click=move |ev| { ev.stop_propagation(); zoom_by(1.2); }
+                            <button class="map-cam-btn" type="button" title="zoom in (to ~10cm tile scale)"
+                                on:click=move |ev| { ev.stop_propagation(); zoom_by(1.35); }
                             >"+"</button>
                             <button class="map-cam-btn" type="button" title="zoom out"
-                                on:click=move |ev| { ev.stop_propagation(); zoom_by(1.0 / 1.2); }
+                                on:click=move |ev| { ev.stop_propagation(); zoom_by(1.0 / 1.35); }
                             >"−"</button>
                             <button class="map-cam-btn" type="button" title="reset view"
                                 on:click=move |ev| { ev.stop_propagation(); reset_cam(); }
@@ -1165,6 +1609,12 @@ pub fn ValleyConsole() -> impl IntoView {
                                             view! {
                                                 <g class="flat-poly"
                                                     on:click=move |ev| {
+                                                        // after a pan, browser still fires click — ignore it
+                                                        if map_did_drag.get_untracked() {
+                                                            map_did_drag.set(false);
+                                                            ev.stop_propagation();
+                                                            return;
+                                                        }
                                                         ev.stop_propagation();
                                                         selected_flat.set(Some(id_click.clone()));
                                                     }
@@ -1179,15 +1629,16 @@ pub fn ValleyConsole() -> impl IntoView {
                                                         });
                                                     }
                                                 >
-                                                    // dark under-stroke separates neighbors (tile look)
+                                                    // dark under-stroke: thin seam idle, wide halo on hover/select
                                                     <path
                                                         d=d_under
                                                         fill="none"
                                                         stroke="#000000"
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw2.as_str());
+                                                            let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw2.as_str());
                                                             // non-scaling-stroke: screen px, constant under viewBox zoom
-                                                            if sel { "3.2" } else { "2.4" }
+                                                            if sel { "4.0" } else if hov { "3.4" } else { "1.35" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
@@ -1209,17 +1660,13 @@ pub fn ValleyConsole() -> impl IntoView {
                                                         stroke=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_stroke.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_stroke.as_str());
-                                                            if hov || sel {
-                                                                "#ffffff".into()
-                                                            } else {
-                                                                flat_stroke_col(&z_stroke, sel).to_string()
-                                                            }
+                                                            flat_stroke_col(&z_stroke, sel, hov).to_string()
                                                         }
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw.as_str());
-                                                            // screen px via non-scaling-stroke — sharp at every zoom
-                                                            if sel { "1.8" } else if hov { "1.5" } else { "1.15" }
+                                                            // glow only when hot — idle is a hairline seam
+                                                            if sel { "2.2" } else if hov { "1.9" } else { "0.75" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
@@ -1275,19 +1722,18 @@ pub fn ValleyConsole() -> impl IntoView {
                                         }.into_any()
                                     }).collect_view()}
 
-                                    // 21 cybics domain shill points — citadel volcano only
-                                    {m_places.domains.iter().map(|dom| {
-                                        if dom.coords.is_empty() {
-                                            return view! { <g></g> }.into_any();
-                                        }
-                                        let (x, y) = project(
-                                            dom.coords[0][0],
-                                            dom.coords[0][1],
-                                            &m_places.bbox,
-                                            W,
-                                            H,
-                                            PAD,
-                                        );
+                                    // 21 cybics domain shill points — draggable; node graph is stable (pos from signal)
+                                    {
+                                        let bbox = m_places.bbox.clone();
+                                        // meta from baked list (ids/names fixed); coords live in `domains` signal
+                                        let domain_meta = base_domains_map.clone();
+                                        domain_meta.iter().map(|dom| {
+                                        let id = dom.id.clone();
+                                        let id_cls = id.clone();
+                                        let id_tf = id.clone();
+                                        let id_down = id.clone();
+                                        let id_r = id.clone();
+                                        let id_sw = id.clone();
                                         let name = dom.name.clone();
                                         let triad = dom.triad.clone();
                                         let q = dom.question.clone();
@@ -1298,26 +1744,70 @@ pub fn ValleyConsole() -> impl IntoView {
                                         };
                                         let color = triad_color(&dom.triad);
                                         let title = format!(
-                                            "{} · {} · {}\n{}",
+                                            "{} · {} · {}\n{} · drag to move",
                                             triad.to_uppercase(),
                                             name,
                                             district.to_uppercase(),
                                             q
                                         );
+                                        let bbox2 = bbox.clone();
                                         view! {
                                             <g
-                                                class="domain-dot"
-                                                transform=move || screen_stable_tf(x, y, map_zoom.get())
+                                                class=move || {
+                                                    let sel = selected_domain.get().as_deref() == Some(id_cls.as_str());
+                                                    let dragging = domain_drag.get().as_deref() == Some(id_cls.as_str());
+                                                    format!(
+                                                        "domain-dot{}{}",
+                                                        if sel { " is-sel" } else { "" },
+                                                        if dragging { " is-drag" } else { "" },
+                                                    )
+                                                }
+                                                transform=move || {
+                                                    let (x, y) = domains
+                                                        .get()
+                                                        .into_iter()
+                                                        .find(|d| d.id == id_tf)
+                                                        .and_then(|d| d.coords.first().copied())
+                                                        .map(|c| project(c[0], c[1], &bbox2, W, H, PAD))
+                                                        .unwrap_or((0.0, 0.0));
+                                                    screen_stable_tf(x, y, map_zoom.get())
+                                                }
+                                                on:pointerdown=move |ev| {
+                                                    ev.stop_propagation();
+                                                    ev.prevent_default();
+                                                    if ev.button() != 0 { return; }
+                                                    selected_domain.set(Some(id_down.clone()));
+                                                    domain_drag.set(Some(id_down.clone()));
+                                                    domain_did_drag.set(false);
+                                                    map_dragging.set(false);
+                                                    map_drag_last.set((ev.client_x() as f64, ev.client_y() as f64));
+                                                    if let Some(el) = map_wrap_ref.get_untracked() {
+                                                        let _ = el.set_pointer_capture(ev.pointer_id());
+                                                    }
+                                                }
                                             >
                                                 <title>{title.clone()}</title>
                                                 <circle
                                                     cx="0"
                                                     cy="0"
-                                                    r="5.5"
+                                                    r="10"
+                                                    fill="transparent"
+                                                    class="domain-hit"
+                                                />
+                                                <circle
+                                                    cx="0"
+                                                    cy="0"
+                                                    r=move || {
+                                                        let sel = selected_domain.get().as_deref() == Some(id_r.as_str());
+                                                        if sel { "7.5" } else { "5.5" }
+                                                    }
                                                     fill=color
                                                     fill-opacity="0.22"
                                                     stroke=color
-                                                    stroke-width="1.4"
+                                                    stroke-width=move || {
+                                                        let sel = selected_domain.get().as_deref() == Some(id_sw.as_str());
+                                                        if sel { "2.0" } else { "1.4" }
+                                                    }
                                                     class="domain-ring"
                                                 />
                                                 <circle
@@ -1333,11 +1823,12 @@ pub fn ValleyConsole() -> impl IntoView {
                                                     text-anchor="middle"
                                                     class="domain-label"
                                                     fill=color
-                                                >{name}</text>
+                                                >{name.clone()}</text>
                                             </g>
                                         }
                                         .into_any()
-                                    }).collect_view()}
+                                    }).collect_view()
+                                    }
 
                                     <text
                                         class="map-caption"
@@ -1370,7 +1861,11 @@ pub fn ValleyConsole() -> impl IntoView {
                         })}
 
                         <div class="map-hud-hint">
-                            "scroll zoom · drag pan · domain glows = 21 cybics · citadel only (no core/bridge)"
+                            {move || if left_board.get() == LeftBoard::Domains {
+                                "drag domain glows to place · pan empty space · scroll zoom · saved in browser"
+                            } else {
+                                "drag pan · scroll zoom · drag domain glows · /domains for domain board"
+                            }}
                         </div>
                     </div>
                     <div class="flat-legend">
@@ -1379,7 +1874,7 @@ pub fn ValleyConsole() -> impl IntoView {
                         <span class="leg ether">"ROCKETS"</span>
                         <span class="leg asgard">"ASGARD"</span>
                         <span class="leg edem">"EDEM"</span>
-                        <span class="leg dim">"21 domains · no core · no bridge"</span>
+                        <span class="leg dim">"21 domains · drag to place · /domains board"</span>
                     </div>
                 </section>
 

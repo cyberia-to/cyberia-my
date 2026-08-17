@@ -1,7 +1,7 @@
 //! cyberia.my router — Signal Studio pages are full URLs (no overlays).
 
 use crate::cities::CitiesPage;
-use crate::console::ValleyConsole;
+use crate::console::{DomainsBoard, ValleyConsole};
 use crate::elements::ElementsPage;
 use crate::events::EventsPage;
 use crate::genetics::GeneticsPage;
@@ -9,9 +9,9 @@ use crate::me::MePage;
 use crate::nav::CyberiaNav;
 use crate::orgs::OrgsPage;
 use crate::places::PlacesPage;
-use crate::portal::{FactoryPage, GaragePage, GalleryPage};
-use crate::products::ProductsPage;
 use crate::plots::PlotsPage;
+use crate::portal::{FactoryPage, GalleryPage, GaragePage};
+use crate::products::ProductsPage;
 use crate::robots::RobotsPage;
 use crate::services::ServicesPage;
 use crate::signal_pages::*;
@@ -90,6 +90,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/places") view=PlacesPage />
                 <Route path=path!("/states") view=StatesPage />
                 <Route path=path!("/map") view=ValleyConsole />
+                <Route path=path!("/domains") view=DomainsBoard />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />
             </Routes>
