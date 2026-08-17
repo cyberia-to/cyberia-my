@@ -1,3 +1,9 @@
+---
+tags: cyberia, research
+crystal-type: entity
+crystal-domain: cyberia
+alias: cyberia.my, fleets and flats
+---
 # cyberia.my — fleets & flats
 
 Gesing land console: plots map, hard-force workers, intents (buy robot, lease / split / merge land).
@@ -27,7 +33,7 @@ Rsyncs `dist/` → `cyberproxy:/var/www/html/cyberia.my/`.
 
 ## Earth states list
 
-`/states` mirrors terrestrial countries from `../cyberstates/states/*.toml`
+`/states` mirrors terrestrial countries from `cyberstates/states/*.toml` (workspace root)
 (non-aggregate, non–solar-system), sorted by capital (`money_supply_b_usd`).
 
 Refresh snapshot after cyberstates market updates:

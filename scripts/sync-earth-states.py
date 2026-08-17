@@ -14,7 +14,18 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CYBER = ROOT.parent / "cyberstates"
+
+
+def _find_cyberstates(start: Path) -> Path:
+    """Walk up from project root; works at ~/cyber/cyberia-my or research/cyberia-my."""
+    for p in [start, *start.parents]:
+        cand = p / "cyberstates"
+        if cand.is_dir():
+            return cand
+    raise SystemExit(f"cyberstates/ not found above {start}")
+
+
+CYBER = _find_cyberstates(ROOT)
 STATES_DIR = CYBER / "states"
 OUT = ROOT / "src" / "earth_states.json"
 
