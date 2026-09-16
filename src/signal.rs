@@ -344,6 +344,12 @@ pub fn verify_signal(id: &str) -> Result<(), String> {
     let Some(s) = find_signal(id) else {
         return Err("signal not found".into());
     };
+    verify_stored_signal(&s)
+}
+
+/// Verify the original stored envelope without browser storage or a new key.
+/// Used by migration/readers as well as the browser's VERIFY action.
+pub fn verify_stored_signal(s: &Signal) -> Result<(), String> {
     if s.state != "committed" {
         return Err("not committed".into());
     }
