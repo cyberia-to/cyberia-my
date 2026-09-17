@@ -18,20 +18,41 @@ pub struct CityCard {
     pub plots: u32,
     pub status: String, // live | founding
     pub href: String,
+    /// settlement kind — city | city with portal | …
+    #[serde(default = "default_kind")]
+    pub kind: String,
 }
 
-/// Built-in cities — Cyber Valley always #1.
+fn default_kind() -> String {
+    "city".into()
+}
+
+/// Built-in cities — Cyber Valley always #1, Cyberia (Armenia) #2.
 fn seed_cities() -> Vec<CityCard> {
-    vec![CityCard {
-        id: "cyber-valley".into(),
-        name: "Cyber Valley".into(),
-        region: "Gesing · Bali · Indonesia".into(),
-        blurb: "Phase 0 land map — 126 plots, hard-force fleets, intents.".into(),
-        ha: 37.0,
-        plots: 126,
-        status: "live".into(),
-        href: "/map".into(),
-    }]
+    vec![
+        CityCard {
+            id: "cyber-valley".into(),
+            name: "Cyber Valley".into(),
+            region: "Gesing · Bali · Indonesia".into(),
+            blurb: "Phase 0 land map — 126 plots, hard-force fleets, intents.".into(),
+            ha: 37.0,
+            plots: 126,
+            status: "live".into(),
+            href: "/map".into(),
+            kind: "city".into(),
+        },
+        CityCard {
+            id: "cyberia".into(),
+            name: "Cyberia".into(),
+            region: "Armenia".into(),
+            blurb: "City with a portal — founded by Cyberia. Land map lands later.".into(),
+            ha: 0.0,
+            plots: 0,
+            status: "founding".into(),
+            href: "/cities#cyberia".into(),
+            kind: "city with portal".into(),
+        },
+    ]
 }
 
 pub fn load_found() -> Vec<CityCard> {
@@ -137,14 +158,14 @@ pub fn CitiesPage() -> impl IntoView {
                         let live = c.status == "live";
                         let href = c.href.clone();
                         let name = c.name.clone();
-                        let region = c.region.clone();
+                        let region = format!("{} · {}", c.region, c.kind);
                         let blurb = c.blurb.clone();
                         let ha = c.ha;
                         let plots = c.plots;
                         let status = c.status.to_uppercase();
                         let rank = i + 1;
                         view! {
-                            <a class=if live { "city-card live" } else { "city-card founding" } href=href>
+                            <a class=if live { "city-card live" } else { "city-card founding" } href=href id=c.id.clone()>
                                 <div class="city-card-top">
                                     <span class="city-rank">{format!("#{rank:02}")}</span>
                                     <span class=if live { "city-status live" } else { "city-status founding" }>
@@ -274,6 +295,7 @@ pub fn CitiesPage() -> impl IntoView {
                                     plots: 0,
                                     status: "founding".into(),
                                     href: format!("/cities#{id}"),
+                                    kind: default_kind(),
                                 };
                                 list.push(card);
                                 save_found(&list);
