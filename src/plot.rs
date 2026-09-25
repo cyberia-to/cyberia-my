@@ -85,7 +85,7 @@ pub fn PlotPage() -> impl IntoView {
     let location = use_location();
     let map = load_map();
     let id = params.get_untracked().get("id").unwrap_or_default();
-    let lease_mode = location.pathname.get_untracked().ends_with("/lease");
+    let lease_mode = location.pathname.get_untracked().trim_end_matches('/').ends_with("/lease");
     let flat = map.phase0.iter().find(|f| f.id == id).cloned();
 
     let Some(flat) = flat else {
