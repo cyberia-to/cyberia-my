@@ -2077,11 +2077,15 @@ button.city-card:hover {
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr) 270px;
+    grid-template-columns: 200px minmax(0, 1fr) 324px;
     grid-template-rows: minmax(0, 1fr);
     gap: 8px;
     padding: 8px 10px;
     overflow: hidden;
+}
+/* /map: the fleets rail left the main screen — map + render only */
+.cyberia-stage.no-rail {
+    grid-template-columns: minmax(0, 1fr) 324px;
 }
 .cyberia-panel {
     background: #050505;
@@ -2429,6 +2433,37 @@ button.city-card:hover {
 .flat-legend .leg.edem {
     color: #00ff01;
 }
+.flat-legend .leg.swatch {
+    --sw: #fff;
+    color: var(--sw);
+}
+.flat-legend .leg.swatch::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
+    border-radius: 2px;
+    background: var(--sw);
+    box-shadow: 0 0 6px var(--sw);
+    vertical-align: -1px;
+}
+.taken-sheet .taken-line {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #d7d7d7;
+}
+.prism-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--cyber-green);
+    text-decoration: none;
+}
+.prism-link:hover {
+    text-decoration: underline;
+}
 .flat-legend .leg.dim {
     color: #444;
 }
@@ -2600,39 +2635,69 @@ button.city-card:hover {
 .render-3d {
     padding: 10px 8px;
     flex: 0 0 auto;
-    min-height: 160px;
-    max-height: 42%;
+    min-height: 320px;
+    max-height: 66%;
     display: flex;
     align-items: center;
     justify-content: center;
     border-bottom: 1px solid #111;
     overflow: hidden;
 }
-.render-pair {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    width: 100%;
-    align-items: start;
-}
-.render-tag {
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    color: #555;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-.prism-scene {
-    perspective: 600px;
+/* one scene: the plot dominates the window, the assigned unit rides below it */
+.render-stage {
+    perspective: 1400px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    width: 100%;
+    height: 100%;
+    gap: 6px;
     min-width: 0;
+    min-height: 0;
 }
-/* stylized unit: worker (cyan biped) / machine (orange blocky) */
-.bot-scene {
-    perspective: 500px;
+.worksite-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid #111;
+}
+.worksite-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+}
+.wi-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #e0e0e0;
+}
+.wi-role {
+    font-size: 10px;
+    color: #777;
+    margin-top: 2px;
+}
+.wi-status {
+    font-size: 10px;
+    color: #555;
+    margin-top: 1px;
+}
+/* the strip's unit figure — same biped/machine markup as before, just
+   scaled down (via `scale`, not `transform`, so bot-bob/bot-spin keep
+   animating the figure inside undisturbed) to fit next to the identity text */
+.bot-mini {
+    width: 36px;
+    height: 48px;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+}
+.bot-mini .bot-figure {
+    scale: 0.5;
+    transform-origin: top left;
 }
 .bot-figure {
     --bot-color: var(--cyber-cyan);
@@ -2783,49 +2848,114 @@ button.city-card:hover {
     );
     filter: blur(2px);
 }
-.prism {
+/* the selected plot's real footprint, tilted and spinning like the old
+   abstract prism did — but the outline is the actual land polygon, and it
+   carries the worksite dot where the assigned robot stands */
+.plot-slab {
     --prism-color: var(--cyber-green);
-    width: 110px;
-    height: 70px;
+    width: min(80%, 380px);
+    aspect-ratio: 1 / 1;
     position: relative;
     transform-style: preserve-3d;
-    transform: rotateX(58deg) rotateZ(-28deg);
+    transform: rotateX(32deg) rotateZ(-28deg);
     animation: prism-spin 14s linear infinite;
+}
+.plot-slab.placing {
+    animation: none;
+    transform: rotateX(0deg) rotateZ(0deg);
 }
 @keyframes prism-spin {
     from {
-        transform: rotateX(58deg) rotateZ(-28deg);
+        transform: rotateX(32deg) rotateZ(-28deg);
     }
     to {
-        transform: rotateX(58deg) rotateZ(332deg);
+        transform: rotateX(32deg) rotateZ(332deg);
     }
 }
-.prism-face {
-    position: absolute;
-    border: 1px solid color-mix(in srgb, var(--prism-color) 70%, #fff 0%);
-    background: color-mix(in srgb, var(--prism-color) 18%, transparent);
+.plot-slab-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--prism-color) 30%, transparent));
 }
-.prism-top {
-    width: 110px;
-    height: 70px;
-    transform: translateZ(36px);
-    box-shadow: 0 0 24px color-mix(in srgb, var(--prism-color) 30%, transparent);
+.plot-slab.placing .plot-slab-svg {
+    cursor: crosshair;
 }
-.prism-front {
-    width: 110px;
-    height: 36px;
-    transform: rotateX(-90deg) translateY(-18px) translateZ(35px);
-    transform-origin: bottom;
-    background: color-mix(in srgb, var(--prism-color) 12%, #000 40%);
+.plot-slab-path {
+    fill: color-mix(in srgb, var(--prism-color) 20%, transparent);
+    stroke: color-mix(in srgb, var(--prism-color) 75%, #fff 0%);
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
 }
-.prism-side {
-    width: 70px;
-    height: 36px;
-    left: 110px;
-    transform: rotateY(90deg) rotateX(-90deg) translateY(-18px)
-        translateZ(-35px);
-    transform-origin: left bottom;
-    background: color-mix(in srgb, var(--prism-color) 8%, #000 50%);
+.plot-work-dot {
+    --bot-color: var(--cyber-cyan);
+    stroke: #000;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+.plot-work-dot.default {
+    fill: color-mix(in srgb, var(--bot-color) 55%, #000 20%);
+    opacity: 0.8;
+}
+.plot-work-dot.set {
+    fill: var(--bot-color);
+    filter: drop-shadow(0 0 5px var(--bot-color));
+}
+.plot-work-pulse {
+    --bot-color: var(--cyber-cyan);
+    fill: none;
+    stroke: var(--bot-color);
+    stroke-width: 1.5;
+    opacity: 0.5;
+    vector-effect: non-scaling-stroke;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: work-pulse 2.2s ease-out infinite;
+}
+@keyframes work-pulse {
+    0% {
+        transform: scale(0.6);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(2.2);
+        opacity: 0;
+    }
+}
+.gps-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.gps-btn {
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    color: #aaa;
+    cursor: pointer;
+}
+.gps-btn:hover {
+    border-color: var(--cyber-cyan);
+    color: var(--cyber-cyan);
+}
+/* default action — most owners set the worksite remotely, not standing on
+   the plot, so map-tap outranks device GPS */
+.gps-btn.primary {
+    border-color: var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    background: color-mix(in srgb, var(--cyber-cyan) 10%, #0a0a0a);
+}
+.gps-btn.primary:hover {
+    background: color-mix(in srgb, var(--cyber-cyan) 18%, #0a0a0a);
+}
+.gps-status {
+    font-size: 9px;
+    color: #555;
+    min-height: 11px;
 }
 .prism-meta {
     text-align: center;
@@ -2981,6 +3111,13 @@ button.city-card:hover {
         grid-column: 1 / -1;
         grid-row: 2;
     }
+    .cyberia-stage.no-rail {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) 260px;
+    }
+    .cyberia-stage.no-rail .cyberia-flats {
+        grid-column: 1;
+    }
     .cyberia-dock {
         flex-wrap: wrap;
     }
@@ -3016,6 +3153,15 @@ button.city-card:hover {
     .cyberia-right {
         grid-column: 1;
         grid-row: 3;
+    }
+    .cyberia-stage.no-rail {
+        grid-template-rows: minmax(260px, 52vh) minmax(240px, 48vh);
+    }
+    .cyberia-stage.no-rail .cyberia-flats {
+        grid-row: 1;
+    }
+    .cyberia-stage.no-rail .cyberia-right {
+        grid-row: 2;
     }
     .cyberia-soft3 {
         display: none;
@@ -3179,4 +3325,555 @@ button.city-card:hover {
     font-weight: 700;
     letter-spacing: 2px;
     white-space: nowrap;
+}
+
+/* ── /plot/:id — a flat's own page ─────────────────────────────────── */
+.plot-stage-wrap {
+    max-width: 1320px;
+}
+.plot-hero {
+    margin-bottom: 18px;
+}
+.plot-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 14px;
+    align-items: start;
+}
+.plot-stage.lease-first {
+    grid-template-columns: 400px minmax(0, 1fr);
+}
+.plot-stage.lease-first .plot-col-side {
+    order: -1;
+}
+.plot-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+.plot-card {
+    background: #050505;
+    border: 1px solid #151515;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.plot-deal.is-lease {
+    border-color: rgba(0, 172, 255, 0.55);
+    box-shadow: 0 0 0 1px rgba(0, 172, 255, 0.18), 0 0 28px rgba(0, 172, 255, 0.12);
+}
+
+/* land board */
+.land-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 10px 4px;
+}
+.land-tool {
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 6px 10px;
+    border-radius: 3px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    color: #aaa;
+    cursor: pointer;
+}
+.land-tool:hover {
+    border-color: var(--cyber-cyan);
+    color: var(--cyber-cyan);
+}
+.land-tool.on {
+    border-color: var(--cyber-cyan);
+    color: #000;
+    background: var(--cyber-cyan);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+}
+/* place-only figures: grey, and they stay grey even when picked */
+.land-tool.ghost {
+    color: #4b4b4d;
+    border-color: #262626;
+    font-weight: 400;
+}
+.land-tool.ghost:hover {
+    color: #777;
+    border-color: #444;
+}
+.land-tool.ghost.on {
+    background: #2a2a2c;
+    border-color: #4b4b4d;
+    color: #d7d7d7;
+    box-shadow: none;
+}
+.land-tools-sep {
+    width: 1px;
+    height: 18px;
+    background: #222;
+    margin: 0 4px;
+}
+.land-svg {
+    display: block;
+    width: 100%;
+    max-height: 62vh;
+    background: #070707;
+    cursor: crosshair;
+}
+.land-cell {
+    fill: rgba(255, 255, 255, 0.025);
+    stroke: rgba(255, 255, 255, 0.09);
+    stroke-width: 0.6;
+    vector-effect: non-scaling-stroke;
+}
+.land-pruned {
+    fill: rgba(0, 254, 0, 0.32);
+    stroke: #00fe00;
+    stroke-width: 0.8;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+}
+.land-fig rect {
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+}
+.land-fig text {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+.land-fig.live rect {
+    fill: rgba(0, 229, 255, 0.55);
+    stroke: var(--cyber-cyan);
+    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+}
+.land-fig.live text {
+    fill: #000;
+}
+.land-fig.ghost rect {
+    fill: rgba(75, 75, 77, 0.55);
+    stroke: #777;
+    stroke-dasharray: 3 2;
+}
+.land-fig.ghost text {
+    fill: #d7d7d7;
+}
+.land-measure {
+    stroke: var(--cyber-magenta);
+    stroke-width: 1.6;
+    stroke-dasharray: 4 3;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+}
+.land-measure-label {
+    fill: var(--cyber-magenta);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    paint-order: stroke;
+    stroke: #000;
+    stroke-width: 3px;
+    pointer-events: none;
+}
+.land-mark {
+    fill: var(--cyber-magenta);
+    stroke: #000;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+}
+.land-readout {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px 10px;
+    font-size: 11px;
+    border-top: 1px solid #111;
+}
+.land-hint {
+    color: var(--cyber-cyan);
+}
+.land-stats {
+    color: #555;
+    white-space: nowrap;
+}
+
+/* deal track */
+.deal-now {
+    --st: #00acff;
+    margin: 10px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--st) 55%, #000);
+    border-left: 4px solid var(--st);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--st) 9%, #050505);
+}
+.deal-now-step {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--st);
+}
+.deal-now-line {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #d7d7d7;
+    line-height: 1.45;
+}
+.deal-now-since {
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #777;
+}
+.deal-steps {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+.deal-dot {
+    flex: 1 1 0;
+    height: 5px;
+    border-radius: 2px;
+    background: #1e1e1e;
+}
+.deal-dot.on {
+    background: var(--st);
+    box-shadow: 0 0 6px var(--st);
+}
+.deal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+.deal-actions .intent-commit {
+    flex: 1 1 auto;
+}
+.deal-history {
+    padding: 0 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.deal-event {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 6px 8px;
+    border: 1px solid #141414;
+    border-radius: 3px;
+    background: #080808;
+    font-size: 11px;
+}
+.deal-event-step {
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #d7d7d7;
+}
+.deal-event-note {
+    color: #777;
+}
+.deal-event-ts {
+    color: #4b4b4d;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* documents */
+.plot-docs {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.docs-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+.docs-generated {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+.doc-dl,
+.doc-upload {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 10px;
+    border: 1px solid #1f1f1f;
+    border-radius: 3px;
+    background: #0a0a0a;
+    text-decoration: none;
+    cursor: pointer;
+}
+.doc-dl:hover,
+.doc-upload:hover {
+    border-color: var(--cyber-green);
+}
+.doc-upload {
+    border-style: dashed;
+    border-color: #333;
+}
+.doc-upload input[type="file"] {
+    display: none;
+}
+.doc-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--cyber-green);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.doc-upload .doc-name {
+    color: #d7d7d7;
+}
+.doc-meta {
+    font-size: 10px;
+    color: #777;
+}
+.doc-x {
+    flex: 0 0 auto;
+    width: 34px;
+    border: 1px solid #1f1f1f;
+    border-radius: 3px;
+    background: #0a0a0a;
+    color: #777;
+    cursor: pointer;
+}
+.doc-x:hover {
+    color: var(--cyber-red);
+    border-color: var(--cyber-red);
+}
+.docs-note {
+    min-height: 12px;
+    font-size: 10px;
+    color: var(--cyber-yellow);
+}
+.docs-empty {
+    font-size: 11px;
+    color: #4b4b4d;
+    padding: 2px 0 4px;
+}
+.docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+@media (max-width: 980px) {
+    .plot-stage,
+    .plot-stage.lease-first {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* FLAT panel (replaced INTENT on /map) */
+.intent-v.dim {
+    color: #777;
+    font-weight: 400;
+}
+.flat-cta {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 8px;
+}
+.intent-commit.dd {
+    border-color: #00acff;
+    color: #00acff;
+    background: rgba(0, 172, 255, 0.08);
+}
+.intent-commit.dd:hover {
+    background: rgba(0, 172, 255, 0.16);
+}
+.dd-done {
+    margin-top: 8px;
+    padding: 9px 10px;
+    border: 1px solid rgba(0, 172, 255, 0.45);
+    border-left: 3px solid #00acff;
+    border-radius: 2px;
+    background: rgba(0, 172, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.dd-done-t {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #00acff;
+}
+.dd-done-s {
+    font-size: 10px;
+    color: #777;
+}
+.flat-open {
+    margin-top: 8px;
+    text-align: center;
+}
+.ii-act.docs {
+    color: #00acff;
+}
+.ii-act.build {
+    color: var(--cyber-cyan);
+}
+
+/* lease book: price + off-book */
+.intent-v.price {
+    color: #00acff;
+    font-variant-numeric: tabular-nums;
+}
+.dd-done.reserved {
+    border-color: #2a2a2c;
+    border-left-color: #4b4b4d;
+    background: #0a0a0a;
+}
+.dd-done.reserved .dd-done-t {
+    color: #777;
+}
+.mt-price {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    font-variant-numeric: tabular-nums;
+}
+.deal-now-price {
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+/* on-request land (joint venture · business · whole-district HGB) —
+   one card, tinted by the land use colour */
+.use-card {
+    --use: #ff5b00;
+    margin-top: 8px;
+    padding: 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--use) 45%, transparent);
+    border-left: 3px solid var(--use);
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--use) 7%, #050505);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.use-t {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--use);
+}
+.use-s {
+    font-size: 10px;
+    color: #d7d7d7;
+}
+.use-s.dim {
+    color: #777;
+}
+.use-tracks {
+    margin: 4px 0 0 14px;
+    padding: 0;
+    font-size: 10px;
+    color: #d7d7d7;
+    line-height: 1.6;
+}
+.intent-commit.use {
+    --use: #ff5b00;
+    border-color: var(--use);
+    color: var(--use);
+    background: color-mix(in srgb, var(--use) 8%, transparent);
+}
+.intent-commit.use:hover {
+    background: color-mix(in srgb, var(--use) 16%, transparent);
+}
+.dd-done.use {
+    --use: #ff5b00;
+    border-color: color-mix(in srgb, var(--use) 45%, transparent);
+    border-left-color: var(--use);
+    background: color-mix(in srgb, var(--use) 6%, transparent);
+}
+.dd-done.use .dd-done-t {
+    color: var(--use);
+}
+.ii-act.jv {
+    color: #ff5b00;
+}
+.ii-act.hgb {
+    color: #00acff;
+}
+.mt-use {
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+}
+.mt-price {
+    color: #d7d7d7;
+}
+.flat-legend .leg.hatch::before,
+.flat-legend .leg.dash::before {
+    content: "";
+    display: inline-block;
+    width: 11px;
+    height: 9px;
+    margin-right: 5px;
+    border-radius: 2px;
+    vertical-align: -1px;
+}
+.flat-legend .leg.hatch::before {
+    background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.8) 0 1px, transparent 1px 3px);
+}
+.flat-legend .leg.dash::before {
+    border: 1px dashed #fff;
+}
+.flat-legend .leg.hatch,
+.flat-legend .leg.dash {
+    color: #d7d7d7;
+}
+.flat-transfer {
+    animation: transfer-march 1.2s linear infinite;
+}
+@keyframes transfer-march {
+    to {
+        stroke-dashoffset: -14;
+    }
+}
+
+/* special places — high-energy ground breathes on the map */
+.flat-path.is-special {
+    animation: high-energy 2.6s ease-in-out infinite;
+}
+@keyframes high-energy {
+    0%,
+    100% {
+        filter: drop-shadow(0 0 0 rgba(255, 0, 0, 0));
+    }
+    50% {
+        filter: drop-shadow(0 0 7px #ff0000) brightness(1.35);
+    }
+}
+.use-s.mark {
+    margin-top: 3px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+.flat-legend .leg {
+    white-space: nowrap;
+}
+.flat-legend {
+    flex-wrap: wrap;
+    row-gap: 4px;
 }

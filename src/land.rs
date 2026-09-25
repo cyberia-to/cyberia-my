@@ -309,7 +309,7 @@ pub fn plot_containing(plots: &[LandFlat], lon: f64, lat: f64) -> Option<&LandFl
     plots.iter().find(|p| point_in_poly(lon, lat, &p.coords))
 }
 
-fn point_in_poly(lon: f64, lat: f64, coords: &[[f64; 2]]) -> bool {
+pub fn point_in_poly(lon: f64, lat: f64, coords: &[[f64; 2]]) -> bool {
     let ring = open_ring(coords);
     if ring.len() < 3 {
         return false;

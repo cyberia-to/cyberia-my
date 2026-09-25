@@ -6,9 +6,10 @@ use crate::elements::ElementsPage;
 use crate::events::EventsPage;
 use crate::genetics::GeneticsPage;
 use crate::me::MePage;
-use crate::nav::CyberiaNav;
+use crate::nav::{CyberiaNav, MenuPage};
 use crate::orgs::OrgsPage;
 use crate::places::PlacesPage;
+use crate::plot::PlotPage;
 use crate::plots::PlotsPage;
 use crate::portal::{FactoryPage, GalleryPage, GaragePage};
 use crate::products::ProductsPage;
@@ -91,8 +92,26 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/states") view=StatesPage />
                 <Route path=path!("/map") view=ValleyConsole />
                 <Route path=path!("/domains") view=DomainsBoard />
+                <Route path=path!("/plot/:id") view=PlotPage />
+                <Route path=path!("/plot/:id/lease") view=PlotPage />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />
+
+                // parked surfaces — out of the top bar, still one URL away
+                <Route path=path!("/menu") view=MenuPage />
+                <Route path=path!("/menu/world") view=WorldPage />
+                <Route path=path!("/menu/studio") view=StudioPage />
+                <Route path=path!("/menu/elements") view=ElementsPage />
+                <Route path=path!("/menu/products") view=ProductsPage />
+                <Route path=path!("/menu/genetics") view=GeneticsPage />
+                <Route path=path!("/menu/services") view=ServicesPage />
+                <Route path=path!("/menu/orgs") view=OrgsPage />
+                <Route path=path!("/menu/calendar") view=EventsPage />
+                <Route path=path!("/menu/robots") view=RobotsPage />
+                <Route path=path!("/menu/plots") view=PlotsPage />
+                <Route path=path!("/menu/places") view=PlacesPage />
+                <Route path=path!("/menu/domains") view=DomainsBoard />
+                <Route path=path!("/menu/states") view=StatesPage />
             </Routes>
         </Router>
     }

@@ -6,15 +6,19 @@
 //! - client-local queue only — no proprietary backend API
 //! - vocabulary: fleet (work), flat (hold/space), intent (write)
 
+use crate::deals::{flat_status, fmt_ts, load_dd, load_deals, load_jv, request_dd, request_jv, FlatStatus};
+use crate::terms::{
+    bare_name, district_sale, fmt_usd, land_use, price_line, size_line, terms, LandUse, AVALON_TRACKS,
+};
 use crate::land::FLAG_SVG;
 use crate::nav::CyberiaNav;
-use crate::robots::{load_owned, save_owned, OwnedRobot};
-use crate::wallet::{
-    debit_cx, load_intents, load_leases, save_intents, save_leases, IntentRec, Lease,
-};
+use crate::robots::load_owned;
+use crate::wallet::{load_intents, load_leases, push_intent};
 use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
 const MAP_JSON: &str = include_str!("cyberia_map.json");
@@ -150,6 +154,25 @@ fn apply_domain_positions(mut domains: Vec<DomainMark>) -> Vec<DomainMark> {
     domains
 }
 
+/// flat id → [lon, lat] of the worksite the plot's owner set on the ground.
+const WORK_AT_KEY: &str = "cyberia.work_at.v1";
+
+fn load_work_at() -> HashMap<String, [f64; 2]> {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|ls| ls.get_item(WORK_AT_KEY).ok().flatten())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_work_at(m: &HashMap<String, [f64; 2]>) {
+    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        if let Ok(s) = serde_json::to_string(m) {
+            let _ = ls.set_item(WORK_AT_KEY, &s);
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct Flat {
     id: String,
@@ -172,10 +195,9 @@ struct FleetUnit {
     phase: u32,
 }
 
-/// Existing Gesing hard-force workers (ops roster) — 15 people on site.
-/// Source: cve/ops/hard force.md crews (repair · cube · base · pruning · delivery).
+/// Gesing hard-force workers (ops roster) — six on the map.
+/// Source: cve/ops/hard force.md crews (repair · cube · base · pruning).
 const WORKERS: &[FleetUnit] = &[
-    // repair
     FleetUnit {
         id: "w-sutar",
         name: "SUTAR",
@@ -184,23 +206,6 @@ const WORKERS: &[FleetUnit] = &[
         status: "idle",
         phase: 0,
     },
-    FleetUnit {
-        id: "w-witaya",
-        name: "WITAYA",
-        kind: "worker",
-        role: "repair · electronics",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-lupus",
-        name: "LUPUS",
-        kind: "worker",
-        role: "repair · mechanical",
-        status: "idle",
-        phase: 0,
-    },
-    // cube
     FleetUnit {
         id: "w-sudi",
         name: "SUDI",
@@ -218,23 +223,6 @@ const WORKERS: &[FleetUnit] = &[
         phase: 0,
     },
     FleetUnit {
-        id: "w-tika",
-        name: "TIKA",
-        kind: "worker",
-        role: "cube · stove",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-sastra",
-        name: "SASTRA",
-        kind: "worker",
-        role: "cube · build",
-        status: "idle",
-        phase: 0,
-    },
-    // base
-    FleetUnit {
         id: "w-angga",
         name: "ANGGA",
         kind: "worker",
@@ -243,43 +231,10 @@ const WORKERS: &[FleetUnit] = &[
         phase: 0,
     },
     FleetUnit {
-        id: "w-darma",
-        name: "DARMA",
-        kind: "worker",
-        role: "base · mason",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-darsana",
-        name: "DARSANA",
-        kind: "worker",
-        role: "base · terrace",
-        status: "idle",
-        phase: 0,
-    },
-    // pruning
-    FleetUnit {
         id: "w-arima",
         name: "ARIMA",
         kind: "worker",
         role: "pruning lead · land",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-doplang",
-        name: "DOPLANG",
-        kind: "worker",
-        role: "pruning · firewood",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-surya",
-        name: "SURYA",
-        kind: "worker",
-        role: "pruning · fodder",
         status: "idle",
         phase: 0,
     },
@@ -291,55 +246,10 @@ const WORKERS: &[FleetUnit] = &[
         status: "idle",
         phase: 0,
     },
-    // delivery
-    FleetUnit {
-        id: "w-pande",
-        name: "PANDE",
-        kind: "worker",
-        role: "delivery lead · haul",
-        status: "idle",
-        phase: 0,
-    },
-];
-
-/// Phase-0 machines (hardware fleet).
-const MACHINES: &[FleetUnit] = &[
-    FleetUnit {
-        id: "f-eye",
-        name: "EYE-01",
-        kind: "machine",
-        role: "survey drone",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "f-haul",
-        name: "HAUL-01",
-        kind: "machine",
-        role: "ground rover",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "f-cut",
-        name: "CUT-01",
-        kind: "machine",
-        role: "clearing arm",
-        status: "offline",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "f-build",
-        name: "CUBE-01",
-        kind: "machine",
-        role: "build stack",
-        status: "offline",
-        phase: 1,
-    },
 ];
 
 fn all_stock_fleets() -> impl Iterator<Item = &'static FleetUnit> {
-    WORKERS.iter().chain(MACHINES.iter())
+    WORKERS.iter()
 }
 
 fn stock_fleet(id: &str) -> Option<&'static FleetUnit> {
@@ -351,14 +261,6 @@ fn open_ring(coords: &[[f64; 2]]) -> Vec<[f64; 2]> {
     let mut c = coords.to_vec();
     if c.len() > 1 && c.first() == c.last() {
         c.pop();
-    }
-    c
-}
-
-fn close_ring(mut c: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
-    if c.len() >= 2 && c.first() != c.last() {
-        let first = c[0];
-        c.push(first);
     }
     c
 }
@@ -413,138 +315,6 @@ fn fmt_area_m2(m2: f64) -> String {
     }
 }
 
-/// Bbox span along axis in meters (axis 0 = lon width, 1 = lat height).
-fn bbox_span_m(coords: &[[f64; 2]], axis: usize) -> f64 {
-    let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(coords);
-    const R: f64 = 6_378_137.0;
-    let mid_lat = (min_lat + max_lat) * 0.5;
-    if axis == 0 {
-        (max_lon - min_lon).to_radians() * R * mid_lat.to_radians().cos()
-    } else {
-        (max_lat - min_lat).to_radians() * R
-    }
-}
-
-/// Sutherland–Hodgman clip against half-plane on lon (axis=0) or lat (axis=1).
-/// `keep_le`: keep points with value ≤ t (west / south side).
-fn clip_half_plane(poly: &[[f64; 2]], axis: usize, t: f64, keep_le: bool) -> Vec<[f64; 2]> {
-    let ring = open_ring(poly);
-    if ring.is_empty() {
-        return vec![];
-    }
-    let inside = |p: [f64; 2]| -> bool {
-        let v = p[axis];
-        if keep_le {
-            v <= t + 1e-12
-        } else {
-            v >= t - 1e-12
-        }
-    };
-    let intersect = |a: [f64; 2], b: [f64; 2]| -> [f64; 2] {
-        let da = a[axis] - t;
-        let db = b[axis] - t;
-        let denom = da - db;
-        let u = if denom.abs() < 1e-15 { 0.5 } else { da / denom };
-        [a[0] + u * (b[0] - a[0]), a[1] + u * (b[1] - a[1])]
-    };
-    let mut out: Vec<[f64; 2]> = Vec::new();
-    let n = ring.len();
-    for i in 0..n {
-        let cur = ring[i];
-        let prev = ring[(i + n - 1) % n];
-        let cur_in = inside(cur);
-        let prev_in = inside(prev);
-        if cur_in {
-            if !prev_in {
-                out.push(intersect(prev, cur));
-            }
-            out.push(cur);
-        } else if prev_in {
-            out.push(intersect(prev, cur));
-        }
-    }
-    // dedupe consecutive near-equal points
-    let mut cleaned: Vec<[f64; 2]> = Vec::new();
-    for p in out {
-        if cleaned
-            .last()
-            .map(|q| (q[0] - p[0]).abs() > 1e-10 || (q[1] - p[1]).abs() > 1e-10)
-            .unwrap_or(true)
-        {
-            cleaned.push(p);
-        }
-    }
-    close_ring(cleaned)
-}
-
-/// User-controlled split: axis 0 = vertical cut (E/W), 1 = horizontal (N/S).
-/// `ratio` in (0,1) is cut position across the polygon bbox (0 = west/south).
-fn split_flat_at(flat: &Flat, axis: usize, ratio: f64) -> Option<(Flat, Flat, f64)> {
-    let r = ratio.clamp(0.05, 0.95);
-    let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(&flat.coords);
-    let t = if axis == 0 {
-        min_lon + r * (max_lon - min_lon)
-    } else {
-        min_lat + r * (max_lat - min_lat)
-    };
-    let a_coords = clip_half_plane(&flat.coords, axis, t, true);
-    let b_coords = clip_half_plane(&flat.coords, axis, t, false);
-    // closed ring needs ≥4 points (triangle + close)
-    if a_coords.len() < 4 || b_coords.len() < 4 {
-        return None;
-    }
-    if area_m2(&a_coords) < 1.0 || area_m2(&b_coords) < 1.0 {
-        return None;
-    }
-    let a = Flat {
-        id: format!("{}-a", flat.id),
-        name: format!("{}-a", flat.name),
-        kind: flat.kind.clone(),
-        phase: flat.phase,
-        geom: "polygon".into(),
-        coords: a_coords,
-        zone: flat.zone.clone(),
-    };
-    let b = Flat {
-        id: format!("{}-b", flat.id),
-        name: format!("{}-b", flat.name),
-        kind: flat.kind.clone(),
-        phase: flat.phase,
-        geom: "polygon".into(),
-        coords: b_coords,
-        zone: flat.zone.clone(),
-    };
-    Some((a, b, t))
-}
-
-fn merge_flats(a: &Flat, b: &Flat) -> Flat {
-    let mut coords = a.coords.clone();
-    if coords.len() > 1 && coords.first() == coords.last() {
-        coords.pop();
-    }
-    for c in &b.coords {
-        if coords.last() != Some(c) {
-            coords.push(*c);
-        }
-    }
-    if coords.len() >= 2 && coords.first() != coords.last() {
-        coords.push(coords[0]);
-    }
-    Flat {
-        id: format!("{}+{}", a.id, b.id),
-        name: format!("{}+{}", a.name, b.name),
-        kind: a.kind.clone(),
-        phase: a.phase.min(b.phase),
-        geom: "polygon".into(),
-        coords,
-        zone: if a.zone == b.zone {
-            a.zone.clone()
-        } else {
-            "mixed".into()
-        },
-    }
-}
-
 fn zone_key(flat: &Flat) -> &str {
     if !flat.zone.is_empty() {
         return flat.zone.as_str();
@@ -558,102 +328,44 @@ fn zone_key(flat: &Flat) -> &str {
     s
 }
 
-fn flat_fill(zone_or_id: &str, selected: bool) -> &'static str {
+/// District colour — it lives on the outline only.
+fn zone_color(zone_or_id: &str) -> &'static str {
     let z = zone_or_id.to_lowercase();
-    // Soft glass tiles — readable color, not neon slabs (edges carry definition)
-    let (hi, lo) = if z.contains("avalon") {
-        ("rgba(255,120,20,0.48)", "rgba(255,102,0,0.22)")
+    if z.contains("avalon") {
+        "#ff6600"
     } else if z.contains("sinwood") {
-        ("rgba(20,255,80,0.46)", "rgba(0,230,50,0.20)")
+        "#00ff41"
     } else if z.contains("bridge") {
-        ("rgba(40,235,255,0.44)", "rgba(0,210,240,0.18)")
+        "#00e5ff"
     } else if z.contains("core") {
-        ("rgba(255,220,40,0.46)", "rgba(255,210,0,0.20)")
+        "#ffd700"
     } else if z.contains("ether") {
-        ("rgba(180,100,255,0.46)", "rgba(150,70,255,0.20)")
+        "#9945ff"
     } else if z.contains("asgard") {
-        ("rgba(255,50,90,0.44)", "rgba(255,20,70,0.18)")
+        "#ff0040"
     } else if z.contains("edem") || z.contains("canyon") {
-        ("rgba(0,255,210,0.44)", "rgba(0,240,190,0.18)")
-    } else if z.contains("front") || z.contains("avatar") {
-        ("rgba(200,200,210,0.40)", "rgba(160,160,170,0.16)")
+        "#00ffd0"
     } else {
-        ("rgba(180,180,180,0.40)", "rgba(140,140,140,0.16)")
+        "#c8c8d2"
+    }
+}
+
+/// Land-use colour is the fill (prysm: acid, not pastel); how free the flat
+/// is sets the strength, hover / select lift it.
+fn land_fill(lu: LandUse, status: FlatStatus, selected: bool, hover: bool) -> String {
+    let hex = lu.color();
+    let r = u8::from_str_radix(&hex[1..3], 16).unwrap_or(255);
+    let g = u8::from_str_radix(&hex[3..5], 16).unwrap_or(255);
+    let b = u8::from_str_radix(&hex[5..7], 16).unwrap_or(255);
+    let lift = if selected {
+        0.32
+    } else if hover {
+        0.2
+    } else {
+        0.0
     };
-    if selected {
-        hi
-    } else {
-        lo
-    }
-}
-
-/// Idle borders stay dim so hover/select glow actually reads.
-/// Hot = hover or selected — zone neon / white.
-fn flat_stroke_col(zone_or_id: &str, selected: bool, hover: bool) -> &'static str {
-    let z = zone_or_id.to_lowercase();
-    if selected {
-        return "#ffffff";
-    }
-    if hover {
-        // bright edge — the only "glowing" state
-        return if z.contains("avalon") {
-            "#ffb070"
-        } else if z.contains("sinwood") {
-            "#7dff9a"
-        } else if z.contains("bridge") {
-            "#9af6ff"
-        } else if z.contains("core") {
-            "#ffe98a"
-        } else if z.contains("ether") {
-            "#e0a8ff"
-        } else if z.contains("asgard") {
-            "#ff8aa0"
-        } else if z.contains("edem") || z.contains("canyon") {
-            "#8affe8"
-        } else {
-            "#e8e8e8"
-        };
-    }
-    // idle: deep, low-contrast seams (tile grid, not neon wire)
-    if z.contains("avalon") {
-        "rgba(255,120,40,0.18)"
-    } else if z.contains("sinwood") {
-        "rgba(40,220,80,0.16)"
-    } else if z.contains("bridge") {
-        "rgba(40,210,230,0.16)"
-    } else if z.contains("core") {
-        "rgba(230,200,40,0.16)"
-    } else if z.contains("ether") {
-        "rgba(160,90,255,0.16)"
-    } else if z.contains("asgard") {
-        "rgba(255,50,90,0.16)"
-    } else if z.contains("edem") || z.contains("canyon") {
-        "rgba(0,230,190,0.16)"
-    } else {
-        "rgba(180,180,180,0.14)"
-    }
-}
-
-fn zone_hover_fill(zone_or_id: &str) -> &'static str {
-    // fill lift on hover — still secondary to the glowing stroke
-    let z = zone_or_id.to_lowercase();
-    if z.contains("avalon") {
-        "rgba(255,130,30,0.42)"
-    } else if z.contains("sinwood") {
-        "rgba(40,255,90,0.40)"
-    } else if z.contains("bridge") {
-        "rgba(50,240,255,0.38)"
-    } else if z.contains("core") {
-        "rgba(255,225,50,0.40)"
-    } else if z.contains("ether") {
-        "rgba(170,90,255,0.40)"
-    } else if z.contains("asgard") {
-        "rgba(255,40,80,0.38)"
-    } else if z.contains("edem") || z.contains("canyon") {
-        "rgba(20,255,200,0.38)"
-    } else {
-        "rgba(200,200,200,0.32)"
-    }
+    let a = (status.alpha() + lift).min(0.95);
+    format!("rgba({r},{g},{b},{a:.2})")
 }
 
 fn render_fleet_card(
@@ -702,59 +414,6 @@ fn render_fleet_card(
     }
 }
 
-const ACTIONS: &[(&str, &str)] = &[
-    ("survey", "map + sense the flat"),
-    ("clear", "remove undergrowth / debris"),
-    ("plant", "set regeneratives"),
-    ("haul", "move material on-site"),
-    ("watch", "hold a perimeter watch"),
-    ("build", "raise a cyberCube (phase 1+)"),
-];
-
-/// Robots available for purchase (catalog, not yet owned).
-const ROBOT_CATALOG: &[FleetUnit] = &[
-    FleetUnit {
-        id: "cat-eye",
-        name: "EYE",
-        kind: "machine",
-        role: "survey drone",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "cat-hand",
-        name: "HAND",
-        kind: "worker",
-        role: "field hand",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "cat-haul",
-        name: "HAUL",
-        kind: "machine",
-        role: "ground rover",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "cat-cut",
-        name: "CUT",
-        kind: "machine",
-        role: "clearing arm",
-        status: "idle",
-        phase: 0,
-    },
-];
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Sheet {
-    None,
-    BuyRobot,
-    LeaseLand,
-    SplitLand,
-    MergeLand,
-}
 
 fn load_map() -> MapData {
     serde_json::from_str(MAP_JSON).expect("cyberia_map.json")
@@ -866,7 +525,7 @@ fn format_zoom_hud(zoom: f64, view_m: f64) -> String {
 }
 
 /// Map client point (relative to wrap) → world/SVG coords under current camera.
-fn client_to_world(
+pub(crate) fn client_to_world(
     cx: f64,
     cy: f64,
     wrap_w: f64,
@@ -949,17 +608,30 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
             .or_else(|| map.phase0.first().map(|f| f.id.clone()))
             .or_else(|| Some("sinwood".into()))
     });
+    // the `?plot=` initializer above races leptos_router's own URL update on
+    // client-side nav (e.g. a `/plots` card linking to `/map?plot=X`) — the
+    // window.location read above can fire before the router commits the new
+    // query, silently falling back to the first plot. Re-sync reactively off
+    // the router's own query memo so every `plot=` change actually lands,
+    // not just the one present at first mount.
+    {
+        let map = map.clone();
+        Effect::new(move |_| {
+            let Some(pid) = use_query_map().get().get("plot") else {
+                return;
+            };
+            if !map.phase0.iter().any(|f| f.id == pid) {
+                return;
+            }
+            if selected_flat.get_untracked().as_deref() != Some(pid.as_str()) {
+                selected_flat.set(Some(pid));
+            }
+        });
+    }
     let selected_fleet = RwSignal::new(Some("w-sutar".to_string()));
-    let selected_action = RwSignal::new("survey".to_string());
     let intents = RwSignal::new(load_intents());
-    let next_id = RwSignal::new(
-        load_intents()
-            .iter()
-            .map(|i| i.id)
-            .max()
-            .unwrap_or(0)
-            .saturating_add(1),
-    );
+    let dd = RwSignal::new(load_dd());
+    let jv = RwSignal::new(load_jv());
     let owned = RwSignal::new(load_owned());
     let leased = RwSignal::new(
         load_leases()
@@ -968,25 +640,14 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
             .collect::<Vec<String>>(),
     );
     let flats = RwSignal::new(map.phase0.clone()); // live land geometry (split/merge)
-    let sheet = RwSignal::new(Sheet::None);
-    let buy_pick = RwSignal::new("cat-eye".to_string());
-    let robot_serial = RwSignal::new({
-        let max = load_owned()
-            .iter()
-            .filter_map(|r| {
-                r.name
-                    .rsplit('-')
-                    .next()
-                    .and_then(|s| s.parse::<u32>().ok())
-            })
-            .max()
-            .unwrap_or(0);
-        max + 1
-    });
-    let merge_pick = RwSignal::new(None::<String>); // second flat for merge
-                                                    // split controls: axis 0 = E/W (vertical line), 1 = N/S (horizontal line)
-    let split_axis = RwSignal::new(0usize);
-    let split_ratio = RwSignal::new(0.50_f64); // 0..1 across bbox
+    // per-flat worksite: where the assigned robot stands, set by the plot's
+    // owner (device GPS on site, or a manual tap in placing mode as fallback)
+    let work_at = RwSignal::new(load_work_at());
+    let placing_work = RwSignal::new(false);
+    let gps_status = RwSignal::new(String::new());
+    // (flat name, why it can't be leased) — the dock's LEASE press on a held flat
+    let taken_popup = RwSignal::new(None::<(String, String, String, FlatStatus)>);
+    let deals = RwSignal::new(load_deals());
 
     // left rail: fleets (ops) or domains (shill points)
     let left_board = RwSignal::new(if domains_board {
@@ -1073,6 +734,43 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
         map_center.set((MAP_W * 0.5, MAP_H * 0.5));
     };
 
+    // secondary path: an owner who happens to be standing on the plot taps
+    // "USE MY GPS" and device geolocation sets the exact worksite. Most
+    // owners manage land remotely, so tapping the rendered polygon (below)
+    // is the default way to place the point.
+    let request_gps = move || {
+        let Some(fid) = selected_flat.get_untracked() else {
+            return;
+        };
+        let Some(geo) = web_sys::window().and_then(|w| w.navigator().geolocation().ok()) else {
+            gps_status.set("geolocation unavailable".into());
+            return;
+        };
+        gps_status.set("locating…".into());
+        let opts = web_sys::PositionOptions::new();
+        opts.set_enable_high_accuracy(true);
+        opts.set_timeout(15_000);
+        let ok = Closure::once(move |pos: web_sys::Position| {
+            let c = pos.coords();
+            let (lon, lat) = (c.longitude(), c.latitude());
+            work_at.update(|m| {
+                m.insert(fid.clone(), [lon, lat]);
+                save_work_at(m);
+            });
+            gps_status.set(format!("set · {lat:.5}, {lon:.5} · ±{:.0}m", c.accuracy()));
+        });
+        let err = Closure::once(move |e: web_sys::PositionError| {
+            gps_status.set(format!("gps error: {}", e.message()));
+        });
+        let _ = geo.get_current_position_with_error_callback_and_options(
+            ok.as_ref().unchecked_ref(),
+            Some(err.as_ref().unchecked_ref()),
+            &opts,
+        );
+        ok.forget();
+        err.forget();
+    };
+
     Effect::new(move |_| {
         let title = if left_board.get() == LeftBoard::Domains {
             "Cyberia — domains · Gesing, Bali"
@@ -1120,8 +818,9 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
             </div>
             </div>
 
-            <div class="cyberia-stage">
-                // LEFT — FLEETS or DOMAINS
+            <div class=if domains_board { "cyberia-stage" } else { "cyberia-stage no-rail" }>
+                // LEFT — DOMAINS board only; the fleets rail left the main screen
+                {domains_board.then(|| view! {
                 <section class="cyberia-panel cyberia-fleets">
                     <div class="cyberia-panel-h">
                         <div class="board-tabs">
@@ -1148,7 +847,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         </div>
                         <span class="panel-sub">
                             {move || match left_board.get() {
-                                LeftBoard::Fleets => format!("{} workers · {} machines", WORKERS.len(), MACHINES.len()),
+                                LeftBoard::Fleets => format!("{} workers", WORKERS.len()),
                                 LeftBoard::Domains => {
                                     let n = domains.get().len();
                                     format!("{n} cybics · drag on map")
@@ -1290,8 +989,6 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         LeftBoard::Fleets => view! {
                         <div class="fleet-section">"WORKERS · HARD FORCE"</div>
                         {WORKERS.iter().map(|f| render_fleet_card(f, selected_fleet)).collect_view()}
-                        <div class="fleet-section">"MACHINES"</div>
-                        {MACHINES.iter().map(|f| render_fleet_card(f, selected_fleet)).collect_view()}
                         // robots you bought this session
                         {move || owned.get().into_iter().map(|r| {
                             let id = r.id.clone();
@@ -1330,10 +1027,11 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                     <div class="cyberia-hint">
                         {move || match left_board.get() {
                             LeftBoard::Domains => "Select a domain · drag its glow on the map · positions save in this browser",
-                            LeftBoard::Fleets => "Pick a fleet unit, a flat on the map, an action — then commit intent. Or buy a robot / lease land.",
+                            LeftBoard::Fleets => "Pick a fleet unit, a flat on the map, an action — then commit intent.",
                         }}
                     </div>
                 </section>
+                })}
 
                 // CENTER — FLATS MAP (game camera: static viewport, wheel/keys zoom, drag pan)
                 <section class="cyberia-panel cyberia-flats">
@@ -1406,9 +1104,11 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             map_dragging.set(true);
                             map_did_drag.set(false);
                             map_drag_last.set((ev.client_x() as f64, ev.client_y() as f64));
-                            if let Some(el) = map_wrap_ref.get_untracked() {
-                                let _ = el.set_pointer_capture(ev.pointer_id());
-                            }
+                            // pointer capture is deliberately NOT taken here: once a mouse
+                            // is captured, Chrome retargets the click that follows pointerup
+                            // to the capturing element (this wrapper) instead of the plot
+                            // actually tapped, so a bare tap could never select anything.
+                            // Capture only once a real drag is confirmed, below.
                         }
                         on:pointermove=move |ev| {
                             // —— domain drag (shill points) ——
@@ -1471,11 +1171,16 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                     return;
                                 }
                                 map_did_drag.set(true);
+                                // now it's a real drag, not a tap — capture so panning
+                                // stays smooth even if the cursor leaves the map
+                                if let Some(el) = map_wrap_ref.get_untracked() {
+                                    let _ = el.set_pointer_capture(ev.pointer_id());
+                                }
                             }
                             pan_by(dx, dy);
                             map_drag_last.set((cx, cy));
                         }
-                        on:pointerup=move |_| {
+                        on:pointerup=move |ev| {
                             if domain_drag.get_untracked().is_some() {
                                 if domain_did_drag.get_untracked() {
                                     save_domain_positions(&domains.get_untracked());
@@ -1484,6 +1189,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                 domain_did_drag.set(false);
                             }
                             map_dragging.set(false);
+                            // release now, before the browser synthesizes the click that
+                            // follows — otherwise the capturing wrapper (not the plot the
+                            // user actually tapped) stays the click's target and the plot
+                            // never sees it, so a tap can never select anything
+                            if let Some(el) = map_wrap_ref.get_untracked() {
+                                let _ = el.release_pointer_capture(ev.pointer_id());
+                            }
                         }
                         on:pointercancel=move |_| {
                             domain_drag.set(None);
@@ -1540,6 +1252,11 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                 >
                                     // full world backdrop (fixed world bounds)
                                     <rect x="0" y="0" width=W height=H fill="#070707" />
+                                    <defs>
+                                        <pattern id="hatch-owned" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                                            <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(255,255,255,0.75)" stroke-width="1.1" />
+                                        </pattern>
+                                    </defs>
                                     {(0..12).map(|i| {
                                         let x = PAD + i as f64 * (W - 2.0*PAD) / 11.0;
                                         let y2 = H - PAD;
@@ -1587,7 +1304,6 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                         list.into_iter().map(|flat| {
                                             let id_click = flat.id.clone();
                                             let id_fill = flat.id.clone();
-                                            let id_stroke = flat.id.clone();
                                             let id_sw = flat.id.clone();
                                             let id_sw2 = flat.id.clone();
                                             let id_cls = flat.id.clone();
@@ -1595,17 +1311,17 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                             let id_hov = flat.id.clone();
                                             let id_hov2 = flat.id.clone();
                                             let zkey = zone_key(&flat).to_string();
-                                            let z_fill = zkey.clone();
                                             let z_stroke = zkey.clone();
-                                            let z_hov = zkey.clone();
-                                            let label_hov = flat.name.to_uppercase();
+                                            let label_hov = bare_name(&flat.name);
                                             let area = area_m2(&flat.coords);
                                             let d = poly_path(&flat.coords, &m.bbox, W, H, PAD);
                                             let (clon, clat) = centroid(&flat.coords);
                                             let (lx, ly) = project(clon, clat, &m.bbox, W, H, PAD);
                                             // labels only on selected plot (click) — hover uses HUD tooltip
-                                            let base_label = flat.name.to_uppercase();
+                                            let base_label = bare_name(&flat.name);
                                             let d_under = d.clone();
+                                            let d_mark = d.clone();
+                                            let id_mark = flat.id.clone();
                                             view! {
                                                 <g class="flat-poly"
                                                     on:click=move |ev| {
@@ -1651,22 +1367,15 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                         fill=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_fill.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_fill.as_str());
-                                                            if hov && !sel {
-                                                                zone_hover_fill(&z_hov).to_string()
-                                                            } else {
-                                                                flat_fill(&z_fill, sel).to_string()
-                                                            }
+                                                            let st = flat_status(&id_fill, &deals.get());
+                                                            land_fill(land_use(&id_fill), st, sel, hov)
                                                         }
-                                                        stroke=move || {
-                                                            let sel = selected_flat.get().as_deref() == Some(id_stroke.as_str());
-                                                            let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_stroke.as_str());
-                                                            flat_stroke_col(&z_stroke, sel, hov).to_string()
-                                                        }
+                                                        stroke=zone_color(&z_stroke)
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw.as_str());
-                                                            // glow only when hot — idle is a hairline seam
-                                                            if sel { "2.2" } else if hov { "1.9" } else { "0.75" }
+                                                            // the district seam: thin idle, bold when hot
+                                                            if sel { "2.8" } else if hov { "2.2" } else { "1.2" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
@@ -1676,12 +1385,32 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                             let sel = selected_flat.get().as_deref() == Some(id_cls.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_cls.as_str());
                                                             format!(
-                                                                "flat-path{}{}",
+                                                                "flat-path{}{}{}",
                                                                 if sel { " is-sel" } else { "" },
                                                                 if hov { " is-hov" } else { "" },
+                                                                if land_use(&id_cls) == LandUse::Special { " is-special" } else { "" },
                                                             )
                                                         }
                                                     />
+                                                    // owned → hatch, in transfer → white dash; the hue stays the land use
+                                                    {move || match flat_status(&id_mark, &deals.get()) {
+                                                        FlatStatus::Owned => Some(view! {
+                                                            <path d=d_mark.clone() fill="url(#hatch-owned)" pointer-events="none" />
+                                                        }.into_any()),
+                                                        FlatStatus::Transfer => Some(view! {
+                                                            <path
+                                                                d=d_mark.clone()
+                                                                fill="none"
+                                                                stroke="#ffffff"
+                                                                stroke-width="1.6"
+                                                                stroke-dasharray="4 3"
+                                                                vector-effect="non-scaling-stroke"
+                                                                class="flat-transfer"
+                                                                pointer-events="none"
+                                                            />
+                                                        }.into_any()),
+                                                        _ => None,
+                                                    }}
                                                     {move || {
                                                         let sel = selected_flat.get().as_deref() == Some(id_lab.as_str());
                                                         if !sel {
@@ -1854,7 +1583,23 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             view! {
                                 <div class="map-tooltip">
                                     <div class="mt-name">{format!("{label}{leased_tag}")}</div>
-                                    <div class="mt-area">{fmt_area_m2(m2)}</div>
+                                    <div class="mt-area">{size_line(terms(&id), m2)}</div>
+                                    {
+                                        let st = flat_status(&id, &deals.get());
+                                        let lu = land_use(&id);
+                                        let line = match (st, lu) {
+                                            (FlatStatus::Available, _) => terms(&id).and_then(price_line).unwrap_or_default(),
+                                            (FlatStatus::OnRequest, LandUse::Hgb) => terms(&id)
+                                                .and_then(|t| t.are_price_usd)
+                                                .map(|a| format!("{} / are · whole district", fmt_usd(a)))
+                                                .unwrap_or_default(),
+                                            (s, _) => s.label().to_string(),
+                                        };
+                                        view! {
+                                            <div class="mt-use" style:color=lu.color()>{lu.label()}</div>
+                                            <div class="mt-price">{line}</div>
+                                        }
+                                    }
                                     <div class="mt-hint">{if sel { "SELECTED" } else { "click to select" }}</div>
                                 </div>
                             }
@@ -1869,12 +1614,20 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         </div>
                     </div>
                     <div class="flat-legend">
-                        <span class="leg sin">"SINWOOD"</span>
-                        <span class="leg avalon">"AVALON"</span>
-                        <span class="leg ether">"ROCKETS"</span>
-                        <span class="leg asgard">"ASGARD"</span>
-                        <span class="leg edem">"EDEM"</span>
-                        <span class="leg dim">"21 domains · drag to place · /domains board"</span>
+                        <span class="leg dim">"fill = land use"</span>
+                        {move || {
+                            let list = flats.get();
+                            LandUse::ALL
+                                .iter()
+                                .filter(|u| list.iter().any(|f| land_use(&f.id) == **u))
+                                .map(|u| view! {
+                                    <span class="leg swatch" title=u.label() style:--sw=u.color()>{u.short()}</span>
+                                })
+                                .collect_view()
+                        }}
+                        <span class="leg hatch">"OWNED"</span>
+                        <span class="leg dash">"IN TRANSFER"</span>
+                        <span class="leg dim">"· outline = district"</span>
                     </div>
                 </section>
 
@@ -1889,12 +1642,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             // —— flat ——
                             let fid = selected_flat.get().unwrap_or_else(|| "sinwood".into());
                             let list = flats.get();
-                            let flat = list.iter().find(|f| f.id == fid);
+                            let flat = list.iter().find(|f| f.id == fid).cloned();
                             let flat_name = flat
-                                .map(|f| f.name.to_uppercase())
+                                .as_ref()
+                                .map(|f| bare_name(&f.name))
                                 .unwrap_or_else(|| fid.to_uppercase());
-                            let flat_kind = flat.map(|f| f.kind.clone()).unwrap_or_default();
-                            let n = flat.map(|f| f.coords.len()).unwrap_or(0);
+                            let flat_kind = flat.as_ref().map(|f| f.kind.clone()).unwrap_or_default();
+                            let n = flat.as_ref().map(|f| f.coords.len()).unwrap_or(0);
                             let land_hue = if fid.contains("avalon") {
                                 "var(--cyber-orange)"
                             } else if fid.contains("sinwood") {
@@ -1907,6 +1661,57 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             } else {
                                 ""
                             };
+
+                            // real footprint of the selected plot, in its own
+                            // local frame (12% margin so the outline doesn't
+                            // touch the render edge)
+                            const RW: f64 = 120.0;
+                            const RH: f64 = 120.0;
+                            const RPAD: f64 = 14.0;
+                            let local_bbox = flat.as_ref().map(|f| {
+                                let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(&f.coords);
+                                let mlon = ((max_lon - min_lon) * 0.12).max(1e-7);
+                                let mlat = ((max_lat - min_lat) * 0.12).max(1e-7);
+                                BBox {
+                                    min_lon: min_lon - mlon,
+                                    max_lon: max_lon + mlon,
+                                    min_lat: min_lat - mlat,
+                                    max_lat: max_lat + mlat,
+                                }
+                            });
+                            let plot_path = flat
+                                .as_ref()
+                                .zip(local_bbox.as_ref())
+                                .map(|(f, bb)| poly_path(&f.coords, bb, RW, RH, RPAD))
+                                .unwrap_or_default();
+
+                            // worksite: the GPS spot the owner set on the ground,
+                            // or the plot's centroid until they set one
+                            let work_map = work_at.get();
+                            let has_explicit = flat
+                                .as_ref()
+                                .map(|f| work_map.contains_key(&f.id))
+                                .unwrap_or(false);
+                            let work_pt = flat.as_ref().map(|f| {
+                                work_map
+                                    .get(&f.id)
+                                    .copied()
+                                    .unwrap_or_else(|| {
+                                        let (clon, clat) = centroid(&f.coords);
+                                        [clon, clat]
+                                    })
+                            });
+                            let (dot_x, dot_y) = work_pt
+                                .zip(local_bbox.as_ref())
+                                .map(|(p, bb)| project(p[0], p[1], bb, RW, RH, RPAD))
+                                .unwrap_or((RW / 2.0, RH / 2.0));
+                            let dot_cls = if has_explicit {
+                                "plot-work-dot set"
+                            } else {
+                                "plot-work-dot default"
+                            };
+                            let fid_click = fid.clone();
+                            let local_bbox_click = local_bbox.clone();
 
                             // —— robot / worker ——
                             let rid = selected_fleet.get();
@@ -1947,41 +1752,73 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             };
 
                             view! {
-                                <div class="render-pair">
-                                    // LAND
-                                    <div class="prism-scene">
-                                        <div class="render-tag">"FLAT"</div>
-                                        <div class="prism" style:--prism-color=land_hue>
-                                            <div class="prism-face prism-top"></div>
-                                            <div class="prism-face prism-front"></div>
-                                            <div class="prism-face prism-side"></div>
-                                        </div>
-                                        <div class="prism-meta">
-                                            <div class="prism-name">{format!("{flat_name}{leased_tag}")}</div>
-                                            <div class="prism-sub">{format!("{flat_kind} · {n} verts")}</div>
-                                            <div class="prism-sub">"Gesing hold"</div>
-                                        </div>
+                                // one scene: the plot's real footprint fills the render window,
+                                // the assigned unit is marked where it actually works on it
+                                <div class="render-stage">
+                                    <div
+                                        class=move || if placing_work.get() { "plot-slab placing" } else { "plot-slab" }
+                                        style:--prism-color=land_hue
+                                    >
+                                        <svg
+                                            class="plot-slab-svg"
+                                            viewBox="0 0 120 120"
+                                            on:click=move |ev| {
+                                                if !placing_work.get_untracked() { return; }
+                                                let Some(bb) = local_bbox_click.clone() else { return; };
+                                                let Some(el) = ev.current_target().and_then(|t| t.dyn_into::<web_sys::Element>().ok()) else { return; };
+                                                let rect = el.get_bounding_client_rect();
+                                                let (wx, wy) = client_to_world(
+                                                    ev.client_x() as f64 - rect.left(),
+                                                    ev.client_y() as f64 - rect.top(),
+                                                    rect.width(),
+                                                    rect.height(),
+                                                    (RW / 2.0, RH / 2.0),
+                                                    1.0,
+                                                    RW,
+                                                    RH,
+                                                );
+                                                let (lon, lat) = unproject(wx, wy, &bb, RW, RH, RPAD);
+                                                work_at.update(|m| {
+                                                    m.insert(fid_click.clone(), [lon, lat]);
+                                                    save_work_at(m);
+                                                });
+                                                gps_status.set("set · tap".into());
+                                                placing_work.set(false);
+                                            }
+                                        >
+                                            <path d=plot_path class="plot-slab-path" />
+                                            <circle cx=dot_x cy=dot_y r="9" class="plot-work-pulse" style:--bot-color=bot_hue></circle>
+                                            <circle cx=dot_x cy=dot_y r="5" class=dot_cls style:--bot-color=bot_hue></circle>
+                                        </svg>
                                     </div>
-                                    // ROBOT
-                                    <div class="prism-scene bot-scene">
-                                        <div class="render-tag">"ROBOT"</div>
-                                        <div class=bot_cls style:--bot-color=bot_hue>
-                                            <div class="bot-head"></div>
-                                            <div class="bot-body">
-                                                <div class="bot-chest"></div>
-                                                <div class="bot-arm bot-arm-l"></div>
-                                                <div class="bot-arm bot-arm-r"></div>
-                                            </div>
-                                            <div class="bot-legs">
-                                                <div class="bot-leg"></div>
-                                                <div class="bot-leg"></div>
-                                            </div>
-                                            <div class="bot-glow"></div>
+                                    <div class="prism-meta">
+                                        <div class="prism-name">{format!("{flat_name}{leased_tag}")}</div>
+                                        <div class="prism-sub">{format!("{flat_kind} · {n} verts")}</div>
+                                        <div class="prism-sub">
+                                            {if has_explicit { "worksite · set by owner" } else { "worksite · centroid (default)" }}
                                         </div>
-                                        <div class="prism-meta">
-                                            <div class="prism-name" style:color=bot_hue>{bot_name}</div>
-                                            <div class="prism-sub">{bot_role}</div>
-                                            <div class="prism-sub">
+                                        <a class="prism-link" href=format!("/plot/{fid}")>"OPEN FLAT →"</a>
+                                    </div>
+                                    <div class="worksite-strip">
+                                        <div class="bot-mini">
+                                            <div class=bot_cls style:--bot-color=bot_hue>
+                                                <div class="bot-head"></div>
+                                                <div class="bot-body">
+                                                    <div class="bot-chest"></div>
+                                                    <div class="bot-arm bot-arm-l"></div>
+                                                    <div class="bot-arm bot-arm-r"></div>
+                                                </div>
+                                                <div class="bot-legs">
+                                                    <div class="bot-leg"></div>
+                                                    <div class="bot-leg"></div>
+                                                </div>
+                                                <div class="bot-glow"></div>
+                                            </div>
+                                        </div>
+                                        <div class="worksite-info">
+                                            <div class="wi-name" style:color=bot_hue>{bot_name}</div>
+                                            <div class="wi-role">{bot_role}</div>
+                                            <div class="wi-status">
                                                 {
                                                     let status_lbl = if bot_owned {
                                                         "OWNED".to_string()
@@ -1992,125 +1829,268 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                 }
                                             </div>
                                         </div>
+                                        <div class="gps-controls">
+                                            <button
+                                                type="button"
+                                                class="gps-btn primary"
+                                                on:click=move |_| placing_work.update(|p| *p = !*p)
+                                            >
+                                                {move || if placing_work.get() { "TAP THE PLOT" } else { "SET ON MAP" }}
+                                            </button>
+                                            <button type="button" class="gps-btn" on:click=move |_| request_gps()>
+                                                "USE MY GPS · on site"
+                                            </button>
+                                        </div>
                                     </div>
+                                    <div class="gps-status">{move || gps_status.get()}</div>
                                 </div>
                             }
                         }}
                     </div>
 
-                    <div class="cyberia-panel-h" style="margin-top: 12px;">
-                        <span class="panel-kicker">"INTENT"</span>
-                        <span class="panel-sub">"soft3 write"</span>
+                    <div class="cyberia-panel-h" style="margin-top: 24px;">
+                        <span class="panel-kicker">"FLAT"</span>
+                        <span class="panel-sub">"pick on the map · lease or ask for its papers"</span>
                     </div>
                     <div class="intent-form">
-                        <div class="intent-row">
-                            <span class="intent-k">"fleet"</span>
-                            <span class="intent-v">
-                                {move || selected_fleet.get()
-                                    .and_then(|id| {
-                                        stock_fleet(&id)
-                                            .map(|f| f.name.to_string())
-                                            .or_else(|| {
-                                                owned
-                                                    .get_untracked()
-                                                    .into_iter()
-                                                    .find(|r| r.id == id)
-                                                    .map(|r| r.name)
-                                            })
-                                    })
-                                    .unwrap_or_else(|| "—".into())}
-                            </span>
-                        </div>
-                        <div class="intent-row">
-                            <span class="intent-k">"flat"</span>
-                            <span class="intent-v">
-                                {move || selected_flat.get().unwrap_or_else(|| "—".into()).to_uppercase()}
-                            </span>
-                        </div>
-                        <div class="intent-actions">
-                            {ACTIONS.iter().map(|(a, _)| {
-                                let act = (*a).to_string();
-                                let act2 = act.clone();
-                                let locked = *a == "build";
-                                view! {
-                                    <button
-                                        class=move || {
-                                            let sel = selected_action.get() == act;
-                                            format!("act-pill{}{}", if sel { " sel" } else { "" }, if locked { " locked" } else { "" })
-                                        }
-                                        disabled=locked
-                                        on:click=move |_| {
-                                            if !locked {
-                                                selected_action.set(act2.clone());
+                        {move || {
+                            let fid = selected_flat.get().unwrap_or_default();
+                            let list = flats.get();
+                            let flat = list.iter().find(|f| f.id == fid).cloned();
+                            let Some(flat) = flat else {
+                                return view! { <div class="intent-empty">"tap a flat on the map"</div> }.into_any();
+                            };
+                            let all_deals = deals.get();
+                            let status = flat_status(&flat.id, &all_deals);
+                            let book = terms(&flat.id);
+                            let lu = land_use(&flat.id);
+                            let zone = zone_key(&flat).to_string();
+                            // a deal in this browser means the flat is yours (or on its way)
+                            let mine = all_deals.get(&flat.id).map(|d| !d.cancelled).unwrap_or(false);
+                            let holder_line = if mine {
+                                "you".to_string()
+                            } else {
+                                match book {
+                                    Some(t) if t.holder().is_some() => t.holder().unwrap_or_default().to_string(),
+                                    Some(t) if t.is_city_land() || lu == LandUse::Commons => "cyber valley".to_string(),
+                                    _ => "—".to_string(),
+                                }
+                            };
+                            let areas: Vec<(String, String, f64)> = list
+                                .iter()
+                                .map(|f| (f.id.clone(), zone_key(f).to_string(), area_m2(&f.coords)))
+                                .collect();
+                            let sale = (lu == LandUse::Hgb).then(|| district_sale(&zone, &areas)).flatten();
+                            let price = match lu {
+                                LandUse::Hgb => sale
+                                    .as_ref()
+                                    .map(|d| format!("{} / are · district {}", fmt_usd(d.are_price), fmt_usd(d.total())))
+                                    .unwrap_or_else(|| "—".into()),
+                                LandUse::Venture => "business / joint-venture terms".to_string(),
+                                _ if status == FlatStatus::Closed => "—".to_string(),
+                                _ => book.and_then(price_line).unwrap_or_else(|| "—".into()),
+                            };
+                            let req_key = if lu == LandUse::Hgb { format!("district:{zone}") } else { flat.id.clone() };
+                            let req_ts = jv.get().get(&req_key).copied();
+                            let req_intent = if lu == LandUse::Hgb { "hgb" } else { "jv" };
+                            let dd_ts = dd.get().get(&flat.id).copied();
+                            let size = size_line(book, area_m2(&flat.coords));
+                            let kind = book.map(|t| t.kind_line()).unwrap_or_else(|| "not in the plot sheet".into());
+                            let closed_line = match (lu, book) {
+                                (_, Some(t)) if t.in_reregistration() => "the title is being re-registered · off sale until it settles".to_string(),
+                                (LandUse::Commons | LandUse::Special | LandUse::Unclassified, _) => lu.line().to_string(),
+                                (LandUse::Lease | LandUse::Dual, Some(t)) if !t.is_city_land() && t.price().is_none() => {
+                                    "opens with the second wave".to_string()
+                                }
+                                (_, Some(t)) if t.is_city_land() => format!("{} — held by the valley for everyone", t.kind_line()),
+                                (_, Some(_)) => "the plot sheet has no price for it yet".to_string(),
+                                (_, None) => "this flat is not in the plot sheet yet".to_string(),
+                            };
+                            let page = format!("/plot/{}", flat.id);
+                            let lease_href = format!("/plot/{}/lease", flat.id);
+                            let fid_dd = flat.id.clone();
+                            let district = zone.to_uppercase();
+                            view! {
+                                <div class="intent-row">
+                                    <span class="intent-k">"flat"</span>
+                                    <span class="intent-v">{bare_name(&flat.name)}</span>
+                                </div>
+                                <div class="intent-row">
+                                    <span class="intent-k">"land use"</span>
+                                    <span class="intent-v" style:color=lu.color()>{lu.label()}</span>
+                                </div>
+                                <div class="intent-row">
+                                    <span class="intent-k">"district · size"</span>
+                                    <span class="intent-v dim">{format!("{district} · {size}")}</span>
+                                </div>
+                                <div class="intent-row">
+                                    <span class="intent-k">"sheet"</span>
+                                    <span class="intent-v dim">{kind}</span>
+                                </div>
+                                <div class="intent-row">
+                                    <span class="intent-k">"price"</span>
+                                    <span class=if status == FlatStatus::Available { "intent-v price" } else { "intent-v dim" }>{price}</span>
+                                </div>
+                                <div class="intent-row">
+                                    <span class="intent-k">"status"</span>
+                                    <span class="intent-v">{status.label()}</span>
+                                </div>
+                                <div class="intent-row">
+                                    <span class="intent-k">"holder"</span>
+                                    <span class="intent-v dim">{holder_line}</span>
+                                </div>
+                                {match (status, mine) {
+                                    (FlatStatus::Available, _) => view! {
+                                        <a class="intent-commit lease flat-cta" href=lease_href>
+                                            {if lu == LandUse::Dual { "LEASE THIS FLAT · business or home" } else { "LEASE THIS FLAT" }}
+                                        </a>
+                                    }.into_any(),
+                                    (_, true) => view! {
+                                        <a class="intent-commit flat-cta" href=page.clone()>"MANAGE · deal, land, papers"</a>
+                                    }.into_any(),
+                                    (FlatStatus::OnRequest, false) => view! {
+                                        <div class="use-card" style:--use=lu.color()>
+                                            {match lu {
+                                                LandUse::Hgb => view! {
+                                                    <span class="use-t">{format!("{district} · ONE HGB TITLE")}</span>
+                                                    <span class="use-s">
+                                                        {sale.as_ref().map(|d| format!(
+                                                            "{} flats · {:.1} ares · {} / are = {}",
+                                                            d.flats, d.ares, fmt_usd(d.are_price), fmt_usd(d.total())
+                                                        )).unwrap_or_default()}
+                                                    </span>
+                                                    <span class="use-s dim">"the district is sold whole — no single flats"</span>
+                                                    {book
+                                                        .filter(|t| !t.buyer_mark.is_empty())
+                                                        .map(|t| {
+                                                            let mark = LandUse::from_key(&t.buyer_mark);
+                                                            view! {
+                                                                <span class="use-s mark" style:color=mark.color()>
+                                                                    {format!("buyer's mark: {} — the purpose the map sets for this place", mark.label().to_lowercase())}
+                                                                </span>
+                                                            }
+                                                        })}
+                                                }.into_any(),
+                                                _ if book.map(|t| t.is_construction()).unwrap_or(false) => {
+                                                    let city_held = book.map(|t| t.is_city_land()).unwrap_or(false);
+                                                    view! {
+                                                        <span class="use-t">{if city_held { "THE CITY'S CONSTRUCTION BUSINESS" } else { "CONSTRUCTION BUSINESS" }}</span>
+                                                        <span class="use-s">
+                                                            {if city_held {
+                                                                "the valley builds here · open to a joint venture"
+                                                            } else {
+                                                                "for a building company · not private · on request"
+                                                            }}
+                                                        </span>
+                                                    }.into_any()
+                                                }
+                                                _ if zone == "avalon" => view! {
+                                                    <span class="use-t">"AVALON · SPECIAL PROJECT"</span>
+                                                    <span class="use-s">"on request, as a joint venture"</span>
+                                                    <ul class="use-tracks">
+                                                        {AVALON_TRACKS.iter().map(|t| view! { <li>{*t}</li> }).collect_view()}
+                                                    </ul>
+                                                }.into_any(),
+                                                _ => view! {
+                                                    <span class="use-t">"BUSINESS GROUND"</span>
+                                                    <span class="use-s">"opens to a business or a joint venture, on request"</span>
+                                                }.into_any(),
+                                            }}
+                                        </div>
+                                        {match req_ts {
+                                            Some(ts) => view! {
+                                                <div class="dd-done use" style:--use=lu.color()>
+                                                    <span class="dd-done-t">"REQUEST SENT"</span>
+                                                    <span class="dd-done-s">{format!("{} · the valley answers", fmt_ts(ts))}</span>
+                                                </div>
+                                            }.into_any(),
+                                            None => {
+                                                let key = req_key.clone();
+                                                let target = if lu == LandUse::Hgb { format!("{zone} · whole district") } else { flat.id.clone() };
+                                                view! {
+                                                    <button
+                                                        type="button"
+                                                        class="intent-commit flat-cta use"
+                                                        style:--use=lu.color()
+                                                        on:click=move |_| {
+                                                            jv.update(|m| request_jv(m, &key));
+                                                            push_intent("YOU", req_intent, &target);
+                                                            intents.set(load_intents());
+                                                        }
+                                                    >
+                                                        {if lu == LandUse::Hgb { "REQUEST THE DISTRICT TITLE" } else { "REQUEST A JOINT VENTURE" }}
+                                                    </button>
+                                                }.into_any()
                                             }
-                                        }
-                                    >{a.to_uppercase()}</button>
-                                }
-                            }).collect_view()}
-                        </div>
-                        <button
-                            class="intent-commit"
-                            on:click=move |_| {
-                                let Some(fleet) = selected_fleet.get() else { return };
-                                let Some(flat) = selected_flat.get() else { return };
-                                let action = selected_action.get();
-                                // soft3: offline stock fleets cannot take intent
-                                if stock_fleet(&fleet)
-                                    .is_some_and(|f| f.status == "offline" || f.phase > 0)
-                                {
-                                    return;
-                                }
-                                let fleet_name = stock_fleet(&fleet)
-                                    .map(|f| f.name.to_string())
-                                    .or_else(|| {
-                                        owned
-                                            .get_untracked()
-                                            .into_iter()
-                                            .find(|r| r.id == fleet)
-                                            .map(|r| r.name)
-                                    })
-                                    .unwrap_or(fleet);
-                                let id = next_id.get();
-                                next_id.set(id + 1);
-                                intents.update(|q| {
-                                    q.insert(
-                                        0,
-                                        IntentRec {
-                                            id,
-                                            fleet: fleet_name,
-                                            action,
-                                            flat,
-                                        },
-                                    );
-                                    save_intents(q);
-                                });
-                            }
-                        >
-                            "COMMIT INTENT"
-                        </button>
+                                        }}
+                                    }.into_any(),
+                                    (FlatStatus::Closed, false) if lu == LandUse::Special => view! {
+                                        <div class="dd-done use" style:--use=lu.color()>
+                                            <span class="dd-done-t">"HIGH-ENERGY GROUND"</span>
+                                            <span class="dd-done-s">"one of the valley's special places · open to everyone who comes to feel it"</span>
+                                        </div>
+                                    }.into_any(),
+                                    (FlatStatus::Closed, false) => view! {
+                                        <div class="dd-done reserved">
+                                            <span class="dd-done-t">
+                                                {if book.map(|t| t.in_reregistration()).unwrap_or(false) { "TITLE IN RE-REGISTRATION" } else { "NOT ON OFFER" }}
+                                            </span>
+                                            <span class="dd-done-s">{closed_line}</span>
+                                        </div>
+                                    }.into_any(),
+                                    (_, false) => match dd_ts {
+                                        Some(ts) => view! {
+                                            <div class="dd-done">
+                                                <span class="dd-done-t">"DOCUMENTS REQUESTED"</span>
+                                                <span class="dd-done-s">{format!("{} · awaiting the holder", fmt_ts(ts))}</span>
+                                            </div>
+                                        }.into_any(),
+                                        None => view! {
+                                            <button
+                                                type="button"
+                                                class="intent-commit flat-cta dd"
+                                                on:click=move |_| {
+                                                    dd.update(|m| request_dd(m, &fid_dd));
+                                                    push_intent("YOU", "docs", &fid_dd);
+                                                    intents.set(load_intents());
+                                                }
+                                            >"REQUEST DOCUMENTS · due diligence"</button>
+                                        }.into_any(),
+                                    },
+                                }}
+                                <a class="prism-link flat-open" href=page>"OPEN FLAT PAGE →"</a>
+                            }.into_any()
+                        }}
+                        <div class="fleet-section" style="margin-top: 10px;">"YOUR REQUESTS"</div>
                         <div class="intent-queue">
                             {move || {
                                 let q = intents.get();
                                 if q.is_empty() {
                                     return view! {
-                                        <div class="intent-empty">"no intents yet — buy, lease, or assign a fleet"</div>
+                                        <div class="intent-empty">"nothing asked yet — lease a flat or request its papers"</div>
                                     }.into_any();
                                 }
                                 view! {
                                     <div class="intent-list">
                                         {q.into_iter().take(10).map(|it| {
                                             let act_cls = match it.action.as_str() {
-                                                "buy" => "ii-act buy",
                                                 "lease" => "ii-act lease",
-                                                "split" => "ii-act split",
-                                                "merge" => "ii-act merge",
+                                                "docs" => "ii-act docs",
+                                                "jv" => "ii-act jv",
+                                                "hgb" => "ii-act hgb",
+                                                "build" => "ii-act build",
                                                 _ => "ii-act",
+                                            };
+                                            let label = match it.action.as_str() {
+                                                "docs" => "DUE DILIGENCE".to_string(),
+                                                "jv" => "JOINT VENTURE".to_string(),
+                                                "hgb" => "DISTRICT TITLE".to_string(),
+                                                a => a.to_uppercase(),
                                             };
                                             view! {
                                                 <div class="intent-item">
                                                     <span class="ii-id">{format!("#{:03}", it.id)}</span>
-                                                    <span class="ii-fleet">{it.fleet}</span>
-                                                    <span class=act_cls>{it.action.to_uppercase()}</span>
+                                                    <span class=act_cls>{label}</span>
                                                     <span class="ii-flat">{it.flat.to_uppercase()}</span>
                                                 </div>
                                             }
@@ -2123,529 +2103,81 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                 </section>
             </div>
 
-            // ── sheets: BUY ROBOT / LEASE LAND ──
-            {move || match sheet.get() {
-                Sheet::None => view! { <div></div> }.into_any(),
-                Sheet::BuyRobot => view! {
-                    <div class="cyberia-sheet-backdrop" on:click=move |_| sheet.set(Sheet::None)>
-                        <div class="cyberia-sheet" on:click=move |ev| ev.stop_propagation()>
+            // ── the flat is already someone's — say so with a pulse, not an error ──
+            {move || taken_popup.get().map(|(fid, name, zone, status)| {
+                let book = terms(&fid);
+                let lu = land_use(&fid);
+                let holder = book
+                    .and_then(|t| t.holder())
+                    .map(|h| format!(" by {h}"))
+                    .unwrap_or_default();
+                let (title, line) = match (status, lu) {
+                    (FlatStatus::Owned, _) => (
+                        "THIS FLAT HAS A PULSE",
+                        format!("{name} is already held{holder}. Land here changes hands once — pick a flat that still breathes free."),
+                    ),
+                    (FlatStatus::Transfer, _) => (
+                        "RIGHTS IN TRANSIT",
+                        format!("{name} is mid-handshake: a lease is moving through review right now. Watch the map — if the deal falls through, the flat opens again."),
+                    ),
+                    (FlatStatus::OnRequest, LandUse::Hgb) => (
+                        "SOLD AS ONE DISTRICT",
+                        format!("{name} is part of {} — the whole district goes as one HGB title at {} / are. Ask for the district title from the FLAT panel.", zone.to_uppercase(), book.and_then(|t| t.are_price_usd).map(fmt_usd).unwrap_or_default()),
+                    ),
+                    (FlatStatus::OnRequest, _) if book.map(|t| t.is_construction()).unwrap_or(false) => (
+                        "CONSTRUCTION BUSINESS",
+                        format!("{name} is set aside for the valley's building trade — a construction business, not a private home. Bring the company or a joint venture: ask from the FLAT panel."),
+                    ),
+                    (FlatStatus::OnRequest, _) if zone == "avalon" => (
+                        "AVALON IS A SPECIAL PROJECT",
+                        format!("{name} opens on request, as a joint venture: education from age 0 to maturity, a health resort, a cascade of reservoirs with aquatics. Bring a project that fits — the valley builds it with you. Ask from the FLAT panel."),
+                    ),
+                    (FlatStatus::OnRequest, _) => (
+                        "BUSINESS GROUND",
+                        format!("{name} is set aside for a business or a joint venture. Bring the business — ask from the FLAT panel and the valley answers."),
+                    ),
+                    (FlatStatus::Closed, _) if book.map(|t| t.in_reregistration()).unwrap_or(false) => (
+                        "PAPERS IN MOTION",
+                        format!("{name} is off sale while its title is re-registered. When the new papers settle, the map will say so — the bright green flats are open now."),
+                    ),
+                    (FlatStatus::Closed, LandUse::Special) => (
+                        "HIGH-ENERGY GROUND",
+                        format!("{name} is one of the valley's special places — where the energy runs strongest. It stays with the valley, open to everyone who comes to feel it."),
+                    ),
+                    (FlatStatus::Closed, LandUse::Lease | LandUse::Dual)
+                        if book.map(|t| !t.is_city_land() && t.price().is_none()).unwrap_or(false) => (
+                        "OPENS WITH THE SECOND WAVE",
+                        format!("{name} joins the lease book with the second wave. The bright green flats are open now — start there."),
+                    ),
+                    (FlatStatus::Closed, LandUse::Commons) => (
+                        "THIS GROUND BELONGS TO EVERYONE",
+                        format!("{name} is city commons — the valley keeps it open for all of us. The green flats are the ones waiting for a name."),
+                    ),
+                    (FlatStatus::Closed, _) if book.map(|t| t.is_city_land()).unwrap_or(false) => (
+                        "THIS GROUND BELONGS TO EVERYONE",
+                        format!("{name} is {} — the valley keeps it for all of us. The green flats are the ones waiting for a name.", book.map(|t| t.kind_line()).unwrap_or_default()),
+                    ),
+                    (FlatStatus::Closed, _) => (
+                        "NOT ON THE BOOK YET",
+                        format!("{name} has no price in the plot sheet yet. The green flats are priced and waiting — start there."),
+                    ),
+                    (FlatStatus::Available, _) => ("", String::new()),
+                };
+                view! {
+                    <div class="cyberia-sheet-backdrop" on:click=move |_| taken_popup.set(None)>
+                        <div class="cyberia-sheet taken-sheet" on:click=move |ev| ev.stop_propagation()>
                             <div class="sheet-h">
-                                <span class="panel-kicker">"BUY ROBOT"</span>
-                                <button class="sheet-x" on:click=move |_| sheet.set(Sheet::None)>"✕"</button>
+                                <span class="panel-kicker">{title}</span>
+                                <button class="sheet-x" on:click=move |_| taken_popup.set(None)>"✕"</button>
                             </div>
-                            <p class="sheet-note">
-                                "Phase 0 catalog — soft3 local intent. No payment rail yet; purchase queues an intent and adds the unit to your fleet."
-                            </p>
-                            <div class="sheet-catalog">
-                                {ROBOT_CATALOG.iter().map(|r| {
-                                    let id = r.id.to_string();
-                                    let id2 = id.clone();
-                                    let kind_worker = r.kind == "worker";
-                                    view! {
-                                        <button
-                                            class=move || {
-                                                let sel = buy_pick.get() == id;
-                                                format!(
-                                                    "fleet-card catalog{}{}",
-                                                    if sel { " sel" } else { "" },
-                                                    if kind_worker { " worker" } else { " machine" },
-                                                )
-                                            }
-                                            on:click=move |_| buy_pick.set(id2.clone())
-                                        >
-                                            <div class="fleet-top">
-                                                <span class="fleet-name">{r.name}</span>
-                                                <span class="fleet-status" style:color="var(--cyber-yellow)">"FOR SALE"</span>
-                                            </div>
-                                            <div class="fleet-role">{r.role}</div>
-                                            <div class="fleet-meta">
-                                                <span>{r.kind.to_uppercase()}</span>
-                                                <span>"P0"</span>
-                                            </div>
-                                        </button>
-                                    }
-                                }).collect_view()}
-                            </div>
-                            <button
-                                class="intent-commit"
-                                on:click=move |_| {
-                                    let pick = buy_pick.get();
-                                    let Some(cat) = ROBOT_CATALOG.iter().find(|r| r.id == pick) else { return };
-                                    let n = robot_serial.get();
-                                    robot_serial.set(n + 1);
-                                    let unit_id = format!("own-{}-{}", cat.name.to_lowercase(), n);
-                                    let unit_name = format!("{}-{:02}", cat.name, n);
-                                    owned.update(|v| {
-                                        v.push(OwnedRobot {
-                                            id: unit_id.clone(),
-                                            name: unit_name.clone(),
-                                            kind: cat.kind.to_string(),
-                                            role: cat.role.to_string(),
-                                        });
-                                        save_owned(v);
-                                    });
-                                    selected_fleet.set(Some(unit_id));
-                                    let id = next_id.get();
-                                    next_id.set(id + 1);
-                                    intents.update(|q| {
-                                        q.insert(
-                                            0,
-                                            IntentRec {
-                                                id,
-                                                fleet: unit_name,
-                                                action: "buy".into(),
-                                                flat: "market".into(),
-                                            },
-                                        );
-                                        save_intents(q);
-                                    });
-                                    debit_cx(15.0, "robots", "unit buy · map");
-                                    sheet.set(Sheet::None);
-                                }
-                            >
-                                "CONFIRM BUY"
+                            <p class="sheet-note taken-line">{line}</p>
+                            <button class="intent-commit" on:click=move |_| taken_popup.set(None)>
+                                "BACK TO THE MAP"
                             </button>
                         </div>
                     </div>
-                }.into_any(),
-                Sheet::LeaseLand => view! {
-                    <div class="cyberia-sheet-backdrop" on:click=move |_| sheet.set(Sheet::None)>
-                        <div class="cyberia-sheet" on:click=move |ev| ev.stop_propagation()>
-                            <div class="sheet-h">
-                                <span class="panel-kicker">"LEASE LAND"</span>
-                                <button class="sheet-x" on:click=move |_| sheet.set(Sheet::None)>"✕"</button>
-                            </div>
-                            <p class="sheet-note">
-                                "Phase 0 flats — century-index denominated later. Soft3 local intent only; no closed payment backend."
-                            </p>
-                            <div class="sheet-catalog">
-                                {move || flats.get().into_iter().map(|f| {
-                                    let id_cls = f.id.clone();
-                                    let id_dis = f.id.clone();
-                                    let id_click = f.id.clone();
-                                    let id_col = f.id.clone();
-                                    let id_lab = f.id.clone();
-                                    let name = f.name.to_uppercase();
-                                    let kind = f.kind.clone();
-                                    view! {
-                                        <button
-                                            class=move || {
-                                                let sel = selected_flat.get().as_deref() == Some(id_cls.as_str());
-                                                let taken = leased.get().iter().any(|x| x == &id_cls);
-                                                format!(
-                                                    "fleet-card catalog flat-pick{}{}",
-                                                    if sel { " sel" } else { "" },
-                                                    if taken { " offline" } else { "" },
-                                                )
-                                            }
-                                            disabled=move || leased.get().iter().any(|x| x == &id_dis)
-                                            on:click=move |_| selected_flat.set(Some(id_click.clone()))
-                                        >
-                                            <div class="fleet-top">
-                                                <span class="fleet-name">{name.clone()}</span>
-                                                <span class="fleet-status" style:color=move || {
-                                                    if leased.get().iter().any(|x| x == &id_col) {
-                                                        "var(--cyber-yellow)"
-                                                    } else {
-                                                        "var(--cyber-green)"
-                                                    }
-                                                }>
-                                                    {move || {
-                                                        if leased.get().iter().any(|x| x == &id_lab) {
-                                                            "LEASED"
-                                                        } else {
-                                                            "OPEN"
-                                                        }
-                                                    }}
-                                                </span>
-                                            </div>
-                                            <div class="fleet-role">{format!("{kind} · Gesing · phase 0")}</div>
-                                            <div class="fleet-meta">
-                                                <span>"FLAT"</span>
-                                                <span>"CX later"</span>
-                                            </div>
-                                        </button>
-                                    }
-                                }).collect_view()}
-                            </div>
-                            <button
-                                class="intent-commit lease"
-                                on:click=move |_| {
-                                    let Some(flat) = selected_flat.get() else { return };
-                                    if leased.get_untracked().iter().any(|x| x == &flat) {
-                                        return;
-                                    }
-                                    leased.update(|v| v.push(flat.clone()));
-                                    let (name, zone) = flats
-                                        .get_untracked()
-                                        .into_iter()
-                                        .find(|f| f.id == flat)
-                                        .map(|f| (f.name, f.zone))
-                                        .unwrap_or_else(|| (flat.clone(), String::new()));
-                                    let mut full = load_leases();
-                                    if !full.iter().any(|l| l.flat_id == flat) {
-                                        full.push(Lease {
-                                            flat_id: flat.clone(),
-                                            flat_name: name,
-                                            zone,
-                                        });
-                                        save_leases(&full);
-                                    }
-                                    let id = next_id.get();
-                                    next_id.set(id + 1);
-                                    intents.update(|q| {
-                                        q.insert(
-                                            0,
-                                            IntentRec {
-                                                id,
-                                                fleet: "YOU".into(),
-                                                action: "lease".into(),
-                                                flat: flat.clone(),
-                                            },
-                                        );
-                                        save_intents(q);
-                                    });
-                                    debit_cx(10.0, "land", "lease · map");
-                                    sheet.set(Sheet::None);
-                                }
-                            >
-                                "CONFIRM LEASE"
-                            </button>
-                        </div>
-                    </div>
-                }.into_any(),
-                Sheet::SplitLand => view! {
-                    <div class="cyberia-sheet-backdrop" on:click=move |_| sheet.set(Sheet::None)>
-                        <div class="cyberia-sheet sheet-wide" on:click=move |ev| ev.stop_propagation()>
-                            <div class="sheet-h">
-                                <span class="panel-kicker">"SPLIT LAND"</span>
-                                <button class="sheet-x" on:click=move |_| sheet.set(Sheet::None)>"✕"</button>
-                            </div>
-                            <p class="sheet-note">
-                                "Pick a flat, set cut direction and position. Areas are geodesic-approx m² (equirectangular). Soft3 local intent."
-                            </p>
-
-                            <div class="split-pick-label">"1 · SELECT FLAT"</div>
-                            <div class="sheet-catalog sheet-catalog-compact">
-                                {move || flats.get().into_iter().map(|f| {
-                                    let id = f.id.clone();
-                                    let id2 = id.clone();
-                                    let name = f.name.to_uppercase();
-                                    let a = area_m2(&f.coords);
-                                    view! {
-                                        <button
-                                            class=move || {
-                                                let sel = selected_flat.get().as_deref() == Some(id.as_str());
-                                                format!("fleet-card catalog flat-pick{}", if sel { " sel" } else { "" })
-                                            }
-                                            on:click=move |_| {
-                                                selected_flat.set(Some(id2.clone()));
-                                                split_ratio.set(0.50);
-                                            }
-                                        >
-                                            <div class="fleet-top">
-                                                <span class="fleet-name">{name}</span>
-                                                <span class="fleet-status" style:color="var(--cyber-cyan)">{fmt_area_m2(a)}</span>
-                                            </div>
-                                        </button>
-                                    }
-                                }).collect_view()}
-                            </div>
-
-                            <div class="split-pick-label">"2 · CUT DIRECTION"</div>
-                            <div class="split-dir-row">
-                                <button
-                                    class=move || if split_axis.get() == 0 { "act-pill sel" } else { "act-pill" }
-                                    on:click=move |_| split_axis.set(0)
-                                >"↕ E / W  ·  vertical cut"</button>
-                                <button
-                                    class=move || if split_axis.get() == 1 { "act-pill sel" } else { "act-pill" }
-                                    on:click=move |_| split_axis.set(1)
-                                >"↔ N / S  ·  horizontal cut"</button>
-                            </div>
-
-                            <div class="split-pick-label">
-                                {move || {
-                                    if split_axis.get() == 0 {
-                                        "3 · POSITION  (west ← → east)"
-                                    } else {
-                                        "3 · POSITION  (south ← → north)"
-                                    }
-                                }}
-                            </div>
-                            <div class="split-slider-row">
-                                <input
-                                    type="range"
-                                    min="5"
-                                    max="95"
-                                    step="1"
-                                    class="split-range"
-                                    prop:value=move || format!("{:.0}", split_ratio.get() * 100.0)
-                                    on:input=move |ev| {
-                                        if let Ok(v) = event_target_value(&ev).parse::<f64>() {
-                                            split_ratio.set((v / 100.0).clamp(0.05, 0.95));
-                                        }
-                                    }
-                                />
-                                <span class="split-ratio-lbl">
-                                    {move || format!("{:.0}%", split_ratio.get() * 100.0)}
-                                </span>
-                            </div>
-
-                            // live preview metrics + mini map
-                            {move || {
-                                let fid = selected_flat.get();
-                                let axis = split_axis.get();
-                                let ratio = split_ratio.get();
-                                let list = flats.get();
-                                let Some(src) = fid.as_ref().and_then(|id| list.iter().find(|f| &f.id == id).cloned()) else {
-                                    return view! {
-                                        <div class="split-metrics empty">"select a flat to preview the cut"</div>
-                                    }.into_any();
-                                };
-                                let total = area_m2(&src.coords);
-                                let span = bbox_span_m(&src.coords, axis);
-                                let offset = span * ratio;
-                                let preview = split_flat_at(&src, axis, ratio);
-                                let (ok, a_m2, b_m2, a_coords, b_coords) = match &preview {
-                                    Some((a, b, _)) => (
-                                        true,
-                                        area_m2(&a.coords),
-                                        area_m2(&b.coords),
-                                        a.coords.clone(),
-                                        b.coords.clone(),
-                                    ),
-                                    None => (false, 0.0, 0.0, vec![], vec![]),
-                                };
-                                let pct_a = if total > 0.0 { a_m2 / total * 100.0 } else { 0.0 };
-                                let pct_b = if total > 0.0 { b_m2 / total * 100.0 } else { 0.0 };
-                                let side_a = if axis == 0 { "WEST (A)" } else { "SOUTH (A)" };
-                                let side_b = if axis == 0 { "EAST (B)" } else { "NORTH (B)" };
-                                let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(&src.coords);
-                                // mini viewBox
-                                const MW: f64 = 320.0;
-                                const MH: f64 = 180.0;
-                                const MP: f64 = 12.0;
-                                let bbox = BBox { min_lon, max_lon, min_lat, max_lat };
-                                let path_src = poly_path(&src.coords, &bbox, MW, MH, MP);
-                                let path_a = poly_path(&a_coords, &bbox, MW, MH, MP);
-                                let path_b = poly_path(&b_coords, &bbox, MW, MH, MP);
-                                let (cut_x1, cut_y1, cut_x2, cut_y2) = if axis == 0 {
-                                    let t = min_lon + ratio * (max_lon - min_lon);
-                                    let (x, y1) = project(t, max_lat, &bbox, MW, MH, MP);
-                                    let (_, y2) = project(t, min_lat, &bbox, MW, MH, MP);
-                                    (x, y1, x, y2)
-                                } else {
-                                    let t = min_lat + ratio * (max_lat - min_lat);
-                                    let (x1, y) = project(min_lon, t, &bbox, MW, MH, MP);
-                                    let (x2, _) = project(max_lon, t, &bbox, MW, MH, MP);
-                                    (x1, y, x2, y)
-                                };
-                                view! {
-                                    <div class="split-preview">
-                                        <svg class="split-mini" viewBox=format!("0 0 {MW} {MH}")>
-                                            <path d=path_src fill="rgba(255,255,255,0.03)" stroke="#333" stroke-width="1" />
-                                            {ok.then(|| view! {
-                                                <path d=path_a fill="rgba(0,229,255,0.28)" stroke="var(--cyber-cyan)" stroke-width="1.5" />
-                                                <path d=path_b fill="rgba(255,0,255,0.22)" stroke="var(--cyber-magenta)" stroke-width="1.5" />
-                                                <line x1=cut_x1 y1=cut_y1 x2=cut_x2 y2=cut_y2
-                                                    stroke="var(--cyber-yellow)" stroke-width="2"
-                                                    stroke-dasharray="4 3" />
-                                            })}
-                                        </svg>
-                                        <div class="split-metrics">
-                                            <div class="sm-row total">
-                                                <span>"TOTAL"</span>
-                                                <span>{fmt_area_m2(total)}</span>
-                                            </div>
-                                            <div class="sm-row a">
-                                                <span>{side_a}</span>
-                                                <span>{if ok { format!("{} · {:.1}%", fmt_area_m2(a_m2), pct_a) } else { "—".into() }}</span>
-                                            </div>
-                                            <div class="sm-row b">
-                                                <span>{side_b}</span>
-                                                <span>{if ok { format!("{} · {:.1}%", fmt_area_m2(b_m2), pct_b) } else { "—".into() }}</span>
-                                            </div>
-                                            <div class="sm-row dim">
-                                                <span>"cut offset"</span>
-                                                <span>{format!("{:.1} m from {}", offset, if axis == 0 { "west" } else { "south" })}</span>
-                                            </div>
-                                            <div class="sm-row dim">
-                                                <span>"bbox span"</span>
-                                                <span>{format!("{:.1} m", span)}</span>
-                                            </div>
-                                            {(!ok).then(|| view! {
-                                                <div class="sm-row warn">"cut invalid — move slider (sliver or empty half)"</div>
-                                            })}
-                                        </div>
-                                    </div>
-                                }.into_any()
-                            }}
-
-                            <button
-                                class="intent-commit split"
-                                on:click=move |_| {
-                                    let Some(fid) = selected_flat.get() else { return };
-                                    let list = flats.get_untracked();
-                                    let Some(src) = list.iter().find(|f| f.id == fid).cloned() else { return };
-                                    let axis = split_axis.get_untracked();
-                                    let ratio = split_ratio.get_untracked();
-                                    let Some((a, b, _)) = split_flat_at(&src, axis, ratio) else { return };
-                                    let a_m2 = area_m2(&a.coords);
-                                    let b_m2 = area_m2(&b.coords);
-                                    let a_id = a.id.clone();
-                                    flats.update(|v| {
-                                        v.retain(|f| f.id != fid);
-                                        v.push(a);
-                                        v.push(b);
-                                    });
-                                    leased.update(|v| v.retain(|x| x != &fid));
-                                    {
-                                        let mut full = load_leases();
-                                        full.retain(|l| l.flat_id != fid);
-                                        save_leases(&full);
-                                    }
-                                    selected_flat.set(Some(a_id));
-                                    let id = next_id.get();
-                                    next_id.set(id + 1);
-                                    intents.update(|q| {
-                                        q.insert(
-                                            0,
-                                            IntentRec {
-                                                id,
-                                                fleet: "YOU".into(),
-                                                action: "split".into(),
-                                                flat: format!(
-                                                    "{fid} → {:.0}+{:.0} m²",
-                                                    a_m2, b_m2
-                                                ),
-                                            },
-                                        );
-                                        save_intents(q);
-                                    });
-                                    sheet.set(Sheet::None);
-                                }
-                            >
-                                "CONFIRM SPLIT"
-                            </button>
-                        </div>
-                    </div>
-                }.into_any(),
-                Sheet::MergeLand => view! {
-                    <div class="cyberia-sheet-backdrop" on:click=move |_| {
-                        merge_pick.set(None);
-                        sheet.set(Sheet::None);
-                    }>
-                        <div class="cyberia-sheet" on:click=move |ev| ev.stop_propagation()>
-                            <div class="sheet-h">
-                                <span class="panel-kicker">"MERGE LAND"</span>
-                                <button class="sheet-x" on:click=move |_| {
-                                    merge_pick.set(None);
-                                    sheet.set(Sheet::None);
-                                }>"✕"</button>
-                            </div>
-                            <p class="sheet-note">
-                                "Pick two flats: first is primary (A), second is B. Merge into one hold. Soft3 local intent."
-                            </p>
-                            <div class="intent-row" style="margin-bottom:8px;">
-                                <span class="intent-k">"A"</span>
-                                <span class="intent-v">
-                                    {move || selected_flat.get().unwrap_or_else(|| "—".into()).to_uppercase()}
-                                </span>
-                            </div>
-                            <div class="intent-row" style="margin-bottom:10px;">
-                                <span class="intent-k">"B"</span>
-                                <span class="intent-v">
-                                    {move || merge_pick.get().unwrap_or_else(|| "—".into()).to_uppercase()}
-                                </span>
-                            </div>
-                            <div class="sheet-catalog">
-                                {move || flats.get().into_iter().map(|f| {
-                                    let id = f.id.clone();
-                                    let id2 = id.clone();
-                                    let name = f.name.to_uppercase();
-                                    view! {
-                                        <button
-                                            class=move || {
-                                                let a = selected_flat.get().as_deref() == Some(id.as_str());
-                                                let b = merge_pick.get().as_deref() == Some(id.as_str());
-                                                format!(
-                                                    "fleet-card catalog flat-pick{}{}",
-                                                    if a { " sel" } else { "" },
-                                                    if b { " merge-b" } else { "" },
-                                                )
-                                            }
-                                            on:click=move |_| {
-                                                let cur_a = selected_flat.get_untracked();
-                                                if cur_a.as_deref() == Some(id2.as_str()) {
-                                                    return;
-                                                }
-                                                if cur_a.is_none() {
-                                                    selected_flat.set(Some(id2.clone()));
-                                                } else if merge_pick.get_untracked().as_deref() == Some(id2.as_str()) {
-                                                    merge_pick.set(None);
-                                                } else {
-                                                    merge_pick.set(Some(id2.clone()));
-                                                }
-                                            }
-                                        >
-                                            <div class="fleet-top">
-                                                <span class="fleet-name">{name}</span>
-                                                <span class="fleet-status" style:color="var(--cyber-magenta)">"MERGE"</span>
-                                            </div>
-                                            <div class="fleet-role">"1st click = A · 2nd = B"</div>
-                                        </button>
-                                    }
-                                }).collect_view()}
-                            </div>
-                            <button
-                                class="intent-commit merge"
-                                on:click=move |_| {
-                                    let Some(a_id) = selected_flat.get() else { return };
-                                    let Some(b_id) = merge_pick.get() else { return };
-                                    if a_id == b_id { return; }
-                                    let list = flats.get_untracked();
-                                    let Some(a) = list.iter().find(|f| f.id == a_id).cloned() else { return };
-                                    let Some(b) = list.iter().find(|f| f.id == b_id).cloned() else { return };
-                                    let merged = merge_flats(&a, &b);
-                                    let mid = merged.id.clone();
-                                    flats.update(|v| {
-                                        v.retain(|f| f.id != a_id && f.id != b_id);
-                                        v.push(merged);
-                                    });
-                                    leased.update(|v| {
-                                        v.retain(|x| x != &a_id && x != &b_id);
-                                    });
-                                    {
-                                        let mut full = load_leases();
-                                        full.retain(|l| l.flat_id != a_id && l.flat_id != b_id);
-                                        save_leases(&full);
-                                    }
-                                    selected_flat.set(Some(mid.clone()));
-                                    merge_pick.set(None);
-                                    let id = next_id.get();
-                                    next_id.set(id + 1);
-                                    intents.update(|q| {
-                                        q.insert(
-                                            0,
-                                            IntentRec {
-                                                id,
-                                                fleet: "YOU".into(),
-                                                action: "merge".into(),
-                                                flat: format!("{a_id}+{b_id}"),
-                                            },
-                                        );
-                                        save_intents(q);
-                                    });
-                                    sheet.set(Sheet::None);
-                                }
-                            >
-                                "CONFIRM MERGE"
-                            </button>
-                        </div>
-                    </div>
-                }.into_any(),
-            }}
+                }
+            })}
 
             <div class="search-dock cyberia-dock">
                 <span class="dock-count">
@@ -2655,45 +2187,44 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         let o = owned.get().len();
                         let l = leased.get().len();
                         format!(
-                            "{n} intents · {m} flats · {}w+{}m+{o} fleets · {l} leases",
+                            "{n} intents · {m} flats · {}w+{o} fleets · {l} leases",
                             WORKERS.len(),
-                            MACHINES.len(),
                         )
                     }}
                 </span>
                 <div class="cyberia-cta-bar dock-ctas">
-                    <button class="cta-btn cta-buy cta-lg" on:click=move |_| sheet.set(Sheet::BuyRobot)>
-                        <span class="cta-ico">"🤖"</span>
-                        <span class="cta-copy">
-                            <span class="cta-title">"BUY ROBOT"</span>
-                            <span class="cta-sub">"add a unit to your fleet"</span>
-                        </span>
-                    </button>
-                    <button class="cta-btn cta-lease cta-lg" on:click=move |_| sheet.set(Sheet::LeaseLand)>
+                    <button class="cta-btn cta-lease cta-lg" on:click=move |_| {
+                        let Some(fid) = selected_flat.get_untracked() else { return };
+                        let list = flats.get_untracked();
+                        let Some(flat) = list.iter().find(|f| f.id == fid) else { return };
+                        let status = flat_status(&flat.id, &deals.get_untracked());
+                        if status == FlatStatus::Available {
+                            if let Some(w) = web_sys::window() {
+                                let _ = w.location().set_href(&format!("/plot/{fid}/lease"));
+                            }
+                        } else {
+                            taken_popup.set(Some((flat.id.clone(), bare_name(&flat.name), zone_key(flat).to_string(), status)));
+                        }
+                    }>
                         <span class="cta-ico">"🗺"</span>
                         <span class="cta-copy">
                             <span class="cta-title">"LEASE LAND"</span>
-                            <span class="cta-sub">"hold a phase-0 flat"</span>
-                        </span>
-                    </button>
-                    <button class="cta-btn cta-split cta-lg cta-bold" on:click=move |_| {
-                        split_ratio.set(0.50);
-                        sheet.set(Sheet::SplitLand);
-                    }>
-                        <span class="cta-ico">"✂"</span>
-                        <span class="cta-copy">
-                            <span class="cta-title">"SPLIT LAND"</span>
-                            <span class="cta-sub">"precise cut · m² preview"</span>
-                        </span>
-                    </button>
-                    <button class="cta-btn cta-merge cta-lg cta-bold" on:click=move |_| {
-                        merge_pick.set(None);
-                        sheet.set(Sheet::MergeLand);
-                    }>
-                        <span class="cta-ico">"⧉"</span>
-                        <span class="cta-copy">
-                            <span class="cta-title">"MERGE LAND"</span>
-                            <span class="cta-sub">"join two flats"</span>
+                            <span class="cta-sub">{move || {
+                                selected_flat.get()
+                                    .map(|f| {
+                                        let name = flats.get().iter().find(|x| x.id == f).map(|x| bare_name(&x.name)).unwrap_or_else(|| f.to_uppercase());
+                                        match (flat_status(&f, &deals.get()), land_use(&f)) {
+                                            (FlatStatus::Available, _) => match terms(&f).and_then(|t| t.price()) {
+                                                Some(p) => format!("{name} · {}", fmt_usd(p)),
+                                                None => name.clone(),
+                                            },
+                                            (FlatStatus::OnRequest, LandUse::Hgb) => format!("{name} · whole-district HGB sale"),
+                                            (FlatStatus::OnRequest, _) => format!("{name} · joint venture on request"),
+                                            _ => format!("{name} · not on offer"),
+                                        }
+                                    })
+                                    .unwrap_or_else(|| "pick a flat on the map".into())
+                            }}</span>
                         </span>
                     </button>
                 </div>

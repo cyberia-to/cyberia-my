@@ -1,6 +1,7 @@
 mod app;
 mod cities;
 mod console;
+mod deals;
 mod economy;
 mod elements;
 mod erp;
@@ -10,6 +11,10 @@ mod land;
 mod me;
 mod nav;
 mod places;
+mod plot;
+mod plot_board;
+mod plot_docs;
+mod plot_land;
 mod portal;
 mod products;
 mod plots;
@@ -20,6 +25,7 @@ mod signal;
 mod signal_pages;
 mod states;
 mod studio;
+mod terms;
 mod wallet;
 mod world;
 

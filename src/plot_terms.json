@@ -1,0 +1,938 @@
+{
+ "core-0": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-0",
+  "kind": "community",
+  "ares": 27.7
+ },
+ "core-1": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-1",
+  "kind": "community",
+  "ares": 13.8
+ },
+ "core-2": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "core-2",
+  "kind": "private",
+  "ares": 40.1
+ },
+ "core-4": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "core-4",
+  "kind": "private",
+  "ares": 20.6
+ },
+ "core-3": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "core-3",
+  "kind": "private",
+  "ares": 44.0
+ },
+ "avatar": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-5 avatar",
+  "kind": "community",
+  "ares": 9.6
+ },
+ "core-6": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-6",
+  "kind": "community",
+  "ares": 7.2
+ },
+ "core-7": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-7",
+  "kind": "community",
+  "ares": 21.2
+ },
+ "core-8": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-8",
+  "kind": "community",
+  "ares": 4.4
+ },
+ "core-9": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-9",
+  "kind": "community",
+  "ares": 14.8
+ },
+ "core-10": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-10",
+  "kind": "community",
+  "ares": 14.3
+ },
+ "core-11": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "core-11",
+  "kind": "community",
+  "ares": 18.6
+ },
+ "road-zero": {
+  "fill": "#9c27b0",
+  "land_use": "commons"
+ },
+ "front-0": {
+  "fill": "#9c27b0",
+  "land_use": "commons"
+ },
+ "avalon-0": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-0",
+  "kind": "commons",
+  "ares": 2.2,
+  "plot_price_usd": 0.0
+ },
+ "avalon-1": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-1",
+  "kind": "commons",
+  "ares": 17.2,
+  "plot_price_usd": 0.0
+ },
+ "avalon-2": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-2",
+  "kind": "commons",
+  "ares": 13.0,
+  "plot_price_usd": 0.0
+ },
+ "avalon-3": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-3",
+  "kind": "commons",
+  "ares": 19.7,
+  "plot_price_usd": 0.0
+ },
+ "avalon-4": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-4",
+  "kind": "commons",
+  "ares": 13.5,
+  "plot_price_usd": 0.0
+ },
+ "avalon-5": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-5",
+  "kind": "commons",
+  "ares": 26.1,
+  "plot_price_usd": 0.0
+ },
+ "avalon-6": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "avalon-6",
+  "kind": "commons",
+  "ares": 10.4,
+  "plot_price_usd": 0.0
+ },
+ "avalon-7": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-7",
+  "kind": "private",
+  "ares": 4.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 20000.0
+ },
+ "avalon-8": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-8",
+  "kind": "private",
+  "ares": 4.7,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 23500.0
+ },
+ "avalon-9": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-9",
+  "kind": "private",
+  "ares": 5.8,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 29000.0
+ },
+ "avalon-10": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-10",
+  "kind": "private",
+  "ares": 5.2,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 26000.0
+ },
+ "avalon-11": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-11",
+  "kind": "private",
+  "ares": 6.8,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 34000.0
+ },
+ "avalon-12": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-12",
+  "kind": "private",
+  "ares": 6.8,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 34000.0
+ },
+ "avalon-13": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-13",
+  "kind": "private",
+  "ares": 4.4,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 22000.0
+ },
+ "avalon-14": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-14",
+  "kind": "private",
+  "ares": 13.7,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 68500.0
+ },
+ "avalon-15": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "avalon-15",
+  "kind": "private",
+  "ares": 5.4,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 27000.0
+ },
+ "sinwood-0-monastery": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "sinwood-0",
+  "kind": "commons",
+  "ares": 10.5,
+  "owner": "cyber valley",
+  "purpose": "monastery"
+ },
+ "sinwood-1-laba": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "sinwood-1",
+  "kind": "commons",
+  "ares": 11.3,
+  "owner": "cyber valley",
+  "purpose": "laba",
+  "note": "construction business"
+ },
+ "sinwood-2": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "sinwood-2",
+  "kind": "business",
+  "ares": 9.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 45000.0,
+  "note": "construction business"
+ },
+ "sinwood-3": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "sinwood-3",
+  "kind": "business",
+  "ares": 6.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 30000.0,
+  "note": "construction business"
+ },
+ "sinwood-4": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "sinwood-4",
+  "kind": "business",
+  "ares": 5.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 28000.0,
+  "note": "construction business"
+ },
+ "sinwood-5": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "sinwood-5",
+  "kind": "business",
+  "ares": 5.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 28000.0,
+  "note": "construction business"
+ },
+ "sinwood-6": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "sinwood-6",
+  "kind": "commons",
+  "ares": 4.8
+ },
+ "sinwood-7": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-7",
+  "kind": "private",
+  "ares": 5.2,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 26000.0
+ },
+ "sinwood-8": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-8",
+  "kind": "private",
+  "ares": 5.3,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 26500.0
+ },
+ "sinwood-9": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-9",
+  "kind": "private",
+  "ares": 5.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 28000.0
+ },
+ "sinwood-10": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-10",
+  "kind": "private",
+  "ares": 5.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 25000.0
+ },
+ "sinwood-11": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-11",
+  "kind": "private",
+  "ares": 5.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 28000.0
+ },
+ "sinwood-12": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-12",
+  "kind": "private",
+  "ares": 5.2,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 26000.0
+ },
+ "sinwood-13": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-13",
+  "kind": "private",
+  "ares": 5.4,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 27000.0
+ },
+ "sinwood-14": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-14",
+  "kind": "private",
+  "ares": 6.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 33000.0
+ },
+ "sinwood-15": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-15",
+  "kind": "private",
+  "ares": 7.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 35000.0
+ },
+ "sinwood-16": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-16",
+  "kind": "private",
+  "ares": 7.8,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 39000.0
+ },
+ "sinwood-17": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-17",
+  "kind": "private",
+  "ares": 5.1,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 25500.0
+ },
+ "sinwood-18": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-18",
+  "kind": "private",
+  "ares": 5.7,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 28500.0
+ },
+ "sinwood-19": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-19",
+  "kind": "private",
+  "ares": 4.9,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 24500.0
+ },
+ "sinwood-20": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-20",
+  "kind": "private",
+  "ares": 5.1,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 25500.0
+ },
+ "sinwood-21": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-21",
+  "kind": "private",
+  "ares": 5.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 25000.0
+ },
+ "sinwood-23": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-23",
+  "kind": "private",
+  "ares": 5.3,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 26500.0
+ },
+ "sinwood-22": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-22",
+  "kind": "private",
+  "ares": 5.1,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 25500.0
+ },
+ "sinwood-24": {
+  "fill": "#097138",
+  "land_use": "lease",
+  "address": "sinwood-24",
+  "kind": "private",
+  "ares": 4.8,
+  "owner": "dzin",
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 24000.0
+ },
+ "sinwood-25-alex-dzin": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-25",
+  "kind": "community",
+  "ares": 9.6,
+  "owner": "cyber valley",
+  "purpose": "spa",
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 48000.0,
+  "hold": "re-registration"
+ },
+ "sinwood-26-banya": {
+  "fill": "#ffea00",
+  "land_use": "commons",
+  "address": "sinwood-26",
+  "kind": "community",
+  "ares": 11.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 55000.0,
+  "map_use": "dual"
+ },
+ "sinwood-27": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "sinwood-27",
+  "kind": "private",
+  "ares": 7.0,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 35000.0
+ },
+ "sinwood-28": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "sinwood-28",
+  "kind": "private",
+  "ares": 6.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 33000.0
+ },
+ "sinwood-29": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "sinwood-29",
+  "kind": "private",
+  "ares": 6.6,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 33000.0
+ },
+ "sinwood-30": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "sinwood-30",
+  "kind": "private",
+  "ares": 6.9,
+  "owner": "dzin",
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 34500.0
+ },
+ "sinwood-31-alex-dzin": {
+  "fill": "#0f9d58",
+  "land_use": "commons",
+  "address": "sinwood-31",
+  "kind": "community",
+  "ares": 7.5,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 37500.0,
+  "map_use": "lease"
+ },
+ "sinwood-32": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "sinwood-32",
+  "kind": "community",
+  "ares": 6.1,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 30500.0,
+  "hold": "re-registration"
+ },
+ "sinwood-33": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "sinwood-33",
+  "kind": "private",
+  "ares": 10.3,
+  "are_price_usd": 4500.0,
+  "plot_price_usd": 46350.0
+ },
+ "sinwood-34": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-34",
+  "kind": "private",
+  "ares": 15.0,
+  "are_price_usd": 4500.0,
+  "plot_price_usd": 67500.0
+ },
+ "sinwood-35": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-35",
+  "kind": "private",
+  "ares": 12.3,
+  "are_price_usd": 4500.0,
+  "plot_price_usd": 55350.0
+ },
+ "sinwood-36": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-36",
+  "kind": "private",
+  "ares": 10.2,
+  "are_price_usd": 4500.0,
+  "plot_price_usd": 45900.0
+ },
+ "sinwood-37": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-37",
+  "kind": "private",
+  "ares": 13.4,
+  "are_price_usd": 4500.0,
+  "plot_price_usd": 60300.0
+ },
+ "sinwood-38": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-38",
+  "kind": "private",
+  "ares": 16.4,
+  "are_price_usd": 4500.0,
+  "plot_price_usd": 73800.0
+ },
+ "sinwood-39": {
+  "fill": "#0f9d58",
+  "land_use": "commons",
+  "address": "sinwood-39",
+  "kind": "commons",
+  "ares": 13.5,
+  "plot_price_usd": 0.0,
+  "map_use": "lease"
+ },
+ "sinwood-39-2": {
+  "fill": "#9c27b0",
+  "land_use": "commons"
+ },
+ "canyon-1": {
+  "fill": "#9c27b0",
+  "land_use": "commons"
+ },
+ "etherland-0": {
+  "fill": "#c2185b",
+  "land_use": "special",
+  "address": "etherland-0",
+  "kind": "commons",
+  "ares": 10.4
+ },
+ "etherland-1": {
+  "fill": "#c2185b",
+  "land_use": "special",
+  "address": "etherland-1",
+  "kind": "commons",
+  "ares": 20.9
+ },
+ "etherland-2": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "etherland-2",
+  "kind": "commons",
+  "ares": 8.8
+ },
+ "etherland-3": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-3",
+  "kind": "commerce",
+  "ares": 20.6
+ },
+ "etherland-4": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-4",
+  "kind": "private",
+  "ares": 10.4
+ },
+ "etherland-5": {
+  "fill": "#fbc02d",
+  "land_use": "dual",
+  "address": "etherland-5",
+  "kind": "private",
+  "ares": 15.3
+ },
+ "etherland-6": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "etherland-6",
+  "kind": "private",
+  "ares": 6.9
+ },
+ "etherland-7": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-7",
+  "kind": "private",
+  "ares": 13.4
+ },
+ "etherland-8": {
+  "fill": "#c2185b",
+  "land_use": "special",
+  "address": "etherland-8",
+  "kind": "commerce",
+  "ares": 17.2
+ },
+ "etherland-9": {
+  "fill": "#fbc02d",
+  "land_use": "dual",
+  "address": "etherland-9",
+  "kind": "private",
+  "ares": 8.2
+ },
+ "etherland-10": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-10",
+  "kind": "private",
+  "ares": 9.6
+ },
+ "etherland-11": {
+  "fill": "#fbc02d",
+  "land_use": "dual",
+  "address": "etherland-11",
+  "kind": "private",
+  "ares": 6.2
+ },
+ "etherland-12": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-12",
+  "kind": "commerce",
+  "ares": 12.8
+ },
+ "etherland-13": {
+  "fill": "#fbc02d",
+  "land_use": "dual",
+  "address": "etherland-13",
+  "kind": "private",
+  "ares": 10.8
+ },
+ "etherland-14": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "etherland-14",
+  "kind": "private",
+  "ares": 10.5
+ },
+ "etherland-15": {
+  "fill": "#fbc02d",
+  "land_use": "dual",
+  "address": "etherland-15",
+  "kind": "private",
+  "ares": 10.1
+ },
+ "bridge-0": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-1": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-2": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-3": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-4": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-5": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-6": {
+  "fill": "#9c27b0",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "commons"
+ },
+ "bridge-7": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-8": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-9": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-10": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-11": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-12": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-13": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-14": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-15": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-16": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-17": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-18": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-19": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-20": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-21": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-23": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-22": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "bridge-24": {
+  "fill": "#0f9d58",
+  "land_use": "hgb",
+  "are_price_usd": 3500.0,
+  "buyer_mark": "lease"
+ },
+ "asgard-0": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "asgard-0"
+ },
+ "canyon-0": {
+  "fill": "#9c27b0",
+  "land_use": "commons"
+ },
+ "asgard-1": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "asgard-1"
+ },
+ "asgard-2": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "asgard-2"
+ },
+ "asgard-3": {
+  "fill": "#e65100",
+  "land_use": "venture",
+  "address": "asgard-3"
+ },
+ "asgard-4": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "asgard-4",
+  "ares": 7.0
+ },
+ "asgard-5": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "asgard-5",
+  "ares": 7.0
+ },
+ "asgard-6": {
+  "fill": "#f57c00",
+  "land_use": "venture",
+  "address": "asgard-6",
+  "ares": 9.0
+ },
+ "asgard-7": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "asgard-7",
+  "ares": 27.0
+ },
+ "asgard-8": {
+  "fill": "#c2185b",
+  "land_use": "special",
+  "address": "asgard-8",
+  "ares": 7.0
+ },
+ "edem-1": {
+  "fill": "#e65100",
+  "land_use": "venture"
+ },
+ "edem-0": {
+  "fill": "#e65100",
+  "land_use": "venture"
+ },
+ "edem-2": {
+  "fill": "#e65100",
+  "land_use": "venture"
+ }
+}

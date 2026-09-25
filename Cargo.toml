@@ -39,6 +39,17 @@ web-sys = { version = "0.3", features = [
     "History",
     "PopStateEvent",
     "DomRect",
+    "Navigator",
+    "Geolocation",
+    "Position",
+    "Coordinates",
+    "PositionError",
+    "PositionOptions",
+    "File",
+    "FileList",
+    "FileReader",
+    "Blob",
+    "Event",
 ] }
 
 [[bin]]
