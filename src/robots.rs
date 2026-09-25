@@ -27,29 +27,13 @@ struct RosterUnit {
     crew: &'static str,
 }
 
-/// Gesing hard-force workers — same roster as console.
+/// Gesing hard-force workers — same six as the map console.
 const WORKERS: &[RosterUnit] = &[
     RosterUnit {
         id: "w-sutar",
         name: "SUTAR",
         kind: "worker",
         role: "repair lead · energy/water",
-        status: "idle",
-        crew: "repair",
-    },
-    RosterUnit {
-        id: "w-witaya",
-        name: "WITAYA",
-        kind: "worker",
-        role: "repair · electronics",
-        status: "idle",
-        crew: "repair",
-    },
-    RosterUnit {
-        id: "w-lupus",
-        name: "LUPUS",
-        kind: "worker",
-        role: "repair · mechanical",
         status: "idle",
         crew: "repair",
     },
@@ -70,42 +54,10 @@ const WORKERS: &[RosterUnit] = &[
         crew: "cube",
     },
     RosterUnit {
-        id: "w-tika",
-        name: "TIKA",
-        kind: "worker",
-        role: "cube · stove",
-        status: "idle",
-        crew: "cube",
-    },
-    RosterUnit {
-        id: "w-sastra",
-        name: "SASTRA",
-        kind: "worker",
-        role: "cube · build",
-        status: "idle",
-        crew: "cube",
-    },
-    RosterUnit {
         id: "w-angga",
         name: "ANGGA",
         kind: "worker",
         role: "base lead · road/trail",
-        status: "idle",
-        crew: "base",
-    },
-    RosterUnit {
-        id: "w-darma",
-        name: "DARMA",
-        kind: "worker",
-        role: "base · mason",
-        status: "idle",
-        crew: "base",
-    },
-    RosterUnit {
-        id: "w-darsana",
-        name: "DARSANA",
-        kind: "worker",
-        role: "base · terrace",
         status: "idle",
         crew: "base",
     },
@@ -118,71 +70,12 @@ const WORKERS: &[RosterUnit] = &[
         crew: "pruning",
     },
     RosterUnit {
-        id: "w-doplang",
-        name: "DOPLANG",
-        kind: "worker",
-        role: "pruning · firewood",
-        status: "idle",
-        crew: "pruning",
-    },
-    RosterUnit {
-        id: "w-surya",
-        name: "SURYA",
-        kind: "worker",
-        role: "pruning · fodder",
-        status: "idle",
-        crew: "pruning",
-    },
-    RosterUnit {
         id: "w-suardita",
         name: "SUARDITA",
         kind: "worker",
         role: "pruning · compost",
         status: "idle",
         crew: "pruning",
-    },
-    RosterUnit {
-        id: "w-pande",
-        name: "PANDE",
-        kind: "worker",
-        role: "delivery lead · haul",
-        status: "idle",
-        crew: "delivery",
-    },
-];
-
-const MACHINES: &[RosterUnit] = &[
-    RosterUnit {
-        id: "f-eye",
-        name: "EYE-01",
-        kind: "machine",
-        role: "survey drone",
-        status: "idle",
-        crew: "survey",
-    },
-    RosterUnit {
-        id: "f-haul",
-        name: "HAUL-01",
-        kind: "machine",
-        role: "ground rover",
-        status: "idle",
-        crew: "haul",
-    },
-    RosterUnit {
-        id: "f-cut",
-        name: "CUT-01",
-        kind: "machine",
-        role: "clearing arm",
-        status: "offline",
-        crew: "clear",
-    },
-    RosterUnit {
-        id: "f-build",
-        name: "CUBE-01",
-        kind: "machine",
-        role: "build stack",
-        status: "offline",
-        crew: "build",
     },
 ];
 
@@ -274,7 +167,7 @@ pub fn RobotsPage() -> impl IntoView {
         document().set_title("Cyberia — robots");
     });
 
-    let total = move || WORKERS.len() + MACHINES.len() + owned.get().len();
+    let total = move || WORKERS.len() + owned.get().len();
 
     view! {
         <div class="page-shell cities-shell">
@@ -383,46 +276,6 @@ pub fn RobotsPage() -> impl IntoView {
                                     <div class="city-meta">
                                         <span>"WORKER"</span>
                                         <span>{w.crew.to_uppercase()}</span>
-                                        <span class="city-open">"MAP →"</span>
-                                    </div>
-                                </a>
-                            }
-                        }).collect_view()}
-                    </div>
-                </div>
-
-                // ── MACHINES ──
-                <div class="robots-section">
-                    <div class="robots-section-h">
-                        <span class="fleet-section">"MACHINES"</span>
-                        <span class="robots-section-n">{format!("{} units", MACHINES.len())}</span>
-                    </div>
-                    <div class="cities-grid robots-grid">
-                        {MACHINES.iter().enumerate().map(|(i, m)| {
-                            let rank = i + 1;
-                            let st = m.status.to_uppercase();
-                            let offline = m.status == "offline";
-                            view! {
-                                <a
-                                    class=if offline { "city-card founding robot-card" } else { "city-card live robot-card" }
-                                    href="/map"
-                                >
-                                    <div class="city-card-top">
-                                        <span class="city-rank">{format!("#{rank:02}")}</span>
-                                        <span class=status_cls(m.status)>{st}</span>
-                                    </div>
-                                    <div class="city-name robot-name machine">{m.name}</div>
-                                    <div class="city-region">{m.role}</div>
-                                    <p class="city-blurb">
-                                        {if offline {
-                                            "Offline — phase gate or maintenance."
-                                        } else {
-                                            "Phase-0 hardware fleet on site."
-                                        }}
-                                    </p>
-                                    <div class="city-meta">
-                                        <span>"MACHINE"</span>
-                                        <span>{m.crew.to_uppercase()}</span>
                                         <span class="city-open">"MAP →"</span>
                                     </div>
                                 </a>
@@ -556,9 +409,8 @@ pub fn RobotsPage() -> impl IntoView {
             <div class="search-dock cyberia-dock cities-dock">
                 <span class="dock-count">
                     {move || format!(
-                        "{} workers · {} machines · {} yours",
+                        "{} workers · {} yours",
                         WORKERS.len(),
-                        MACHINES.len(),
                         owned.get().len()
                     )}
                 </span>
