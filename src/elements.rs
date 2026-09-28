@@ -163,18 +163,19 @@ pub const ELEMENTS: &[ElementDef] = &[
 ];
 
 pub fn cat_color(cat: &str) -> &'static str {
+    // prysm emotion palette — ten families on seven hues plus white and gray:
+    // actinides wear violet (radiation), noble gases gray (inert)
     match cat {
-        "alkali" => "var(--cyber-red)",
-        "alkaline" => "var(--cyber-orange)",
-        "transition" => "var(--cyber-yellow)",
-        "post" => "#9fb2c8",
-        "metalloid" => "var(--cyber-cyan)",
-        "nonmetal" => "var(--cyber-green)",
-        "halogen" => "#7ee08a",
-        "noble" => "#c98fff",
-        "lanthanide" => "#ff8fc2",
-        "actinide" => "#e0637a",
-        _ => "#666",
+        "alkali" => "#ff0000",
+        "alkaline" => "#ff5b00",
+        "transition" => "#fcf000",
+        "post" => "#ffffff",
+        "metalloid" => "#00acff",
+        "nonmetal" | "halogen" => "#00fe00",
+        "noble" => "#4b4b4d",
+        "lanthanide" => "#304ffe",
+        "actinide" => "#d500f9",
+        _ => "#777777",
     }
 }
 

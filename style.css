@@ -1,18 +1,18 @@
 :root {
     --cyber-black: #000000;
     --cyber-dark: #0a0a0a;
-    --cyber-green: #00ff41;
-    --cyber-cyan: #00e5ff;
-    --cyber-magenta: #ff00ff;
-    --cyber-yellow: #ffd700;
-    --cyber-orange: #ff6600;
-    --cyber-red: #ff0040;
-    --cyber-blue: #4169e1;
-    --cyber-purple: #9945ff;
-    --cyber-pink: #ff69b4;
+    --cyber-green: #00fe00;
+    --cyber-cyan: #00acff;
+    --cyber-magenta: #d500f9;
+    --cyber-yellow: #fcf000;
+    --cyber-orange: #ff5b00;
+    --cyber-red: #ff0000;
+    --cyber-blue: #304ffe;
+    --cyber-purple: #d500f9;
+    --cyber-pink: #d500f9;
     --cyber-dim: #1a1a1a;
     --cyber-muted: #333333;
-    --cyber-text: #e0e0e0;
+    --cyber-text: #d7d7d7;
     --chrome-h: 56px;
 }
 * {
@@ -101,7 +101,7 @@ body {
     align-items: center;
 }
 .nav-btn {
-    color: #888;
+    color: #777777;
     text-decoration: none;
     font-size: 11px;
     letter-spacing: 1px;
@@ -110,19 +110,19 @@ body {
     border-radius: 2px;
 }
 .nav-btn:hover {
-    color: #ccc;
+    color: #d7d7d7;
 }
 .nav-here {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.3);
+    border-color: rgba(0, 254, 0, 0.3);
 }
 .nav-you {
     color: var(--cyber-cyan);
 }
 .nav-you.nav-here {
     color: var(--cyber-cyan);
-    border-color: rgba(0, 229, 255, 0.45);
-    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 172, 255, 0.45);
+    background: rgba(0, 172, 255, 0.08);
 }
 /* super dashboard /me */
 .me-stage {
@@ -140,15 +140,15 @@ body {
     gap: 12px;
     padding: 12px 14px;
     background: #080808;
-    border: 1px solid rgba(0, 229, 255, 0.25);
+    border: 1px solid rgba(0, 172, 255, 0.25);
     border-radius: 4px;
 }
 .me-avatar {
     width: 44px;
     height: 44px;
     border-radius: 4px;
-    background: rgba(0, 229, 255, 0.12);
-    border: 1px solid rgba(0, 229, 255, 0.35);
+    background: rgba(0, 172, 255, 0.12);
+    border: 1px solid rgba(0, 172, 255, 0.35);
     color: var(--cyber-cyan);
     font-weight: 700;
     font-size: 20px;
@@ -164,11 +164,11 @@ body {
 .me-handle {
     font-size: 16px;
     font-weight: 700;
-    color: #e8e8e8;
+    color: #d7d7d7;
 }
 .me-since {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     margin-top: 2px;
 }
 .me-bal-card {
@@ -227,7 +227,7 @@ a.me-kpi:hover {
     background: #080808;
     border: 1px dashed #222;
     border-radius: 4px;
-    color: #666;
+    color: #777777;
     font-size: 13px;
 }
 .me-empty a {
@@ -257,7 +257,7 @@ a.me-kpi:hover {
     font-weight: 700;
     font-size: 14px;
     letter-spacing: 0.4px;
-    color: #ddd;
+    color: #d7d7d7;
 }
 .me-chip-name.worker {
     color: var(--cyber-cyan);
@@ -276,7 +276,7 @@ a.me-kpi:hover {
 }
 .me-chip-meta {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     letter-spacing: 0.3px;
 }
 .me-intent-list {
@@ -299,11 +299,11 @@ a.me-kpi:hover {
     font-size: 12px;
 }
 .me-intent .ii-id {
-    color: #555;
+    color: #4b4b4d;
     font-variant-numeric: tabular-nums;
 }
 .me-intent .ii-fleet {
-    color: #ccc;
+    color: #d7d7d7;
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -316,7 +316,7 @@ a.me-kpi:hover {
     font-size: 10px;
 }
 .me-intent .ii-flat {
-    color: #666;
+    color: #777777;
     text-align: right;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -346,13 +346,13 @@ a.me-kpi:hover {
 }
 .eco-msg.ok {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.35);
-    background: rgba(0, 255, 65, 0.06);
+    border-color: rgba(0, 254, 0, 0.35);
+    background: rgba(0, 254, 0, 0.06);
 }
 .eco-msg.err {
     color: var(--cyber-red);
-    border-color: rgba(255, 0, 64, 0.35);
-    background: rgba(255, 0, 64, 0.06);
+    border-color: rgba(255, 0, 0, 0.35);
+    background: rgba(255, 0, 0, 0.06);
 }
 .bom-list {
     display: flex;
@@ -366,7 +366,7 @@ a.me-kpi:hover {
     border-radius: 4px;
 }
 .bom-card.ready {
-    border-color: rgba(0, 255, 65, 0.28);
+    border-color: rgba(0, 254, 0, 0.28);
 }
 .bom-card-top {
     display: flex;
@@ -379,11 +379,11 @@ a.me-kpi:hover {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: 0.8px;
-    color: #e0e0e0;
+    color: #d7d7d7;
 }
 .bom-blurb {
     font-size: 12px;
-    color: #666;
+    color: #777777;
     margin-top: 4px;
 }
 .bom-io {
@@ -396,7 +396,7 @@ a.me-kpi:hover {
     font-size: 10px;
     letter-spacing: 1.2px;
     font-weight: 700;
-    color: #555;
+    color: #4b4b4d;
     margin-bottom: 6px;
 }
 .bom-line {
@@ -404,7 +404,7 @@ a.me-kpi:hover {
     grid-template-columns: 1fr auto auto;
     gap: 8px;
     font-size: 12px;
-    color: #aaa;
+    color: #d7d7d7;
     padding: 3px 0;
 }
 .bom-line.short {
@@ -414,18 +414,18 @@ a.me-kpi:hover {
     color: var(--cyber-green);
 }
 .bom-have {
-    color: #444;
+    color: #4b4b4d;
     font-size: 11px;
 }
 .bom-arrow {
-    color: #444;
+    color: #4b4b4d;
     font-size: 18px;
     padding-top: 18px;
 }
 .bom-note {
     margin-top: 8px;
     font-size: 11px;
-    color: #444;
+    color: #4b4b4d;
     letter-spacing: 0.4px;
 }
 .eco-table-h,
@@ -460,7 +460,7 @@ a.me-kpi:hover {
 }
 .market-have {
     font-size: 12px;
-    color: #666;
+    color: #777777;
 }
 .market-acts {
     display: flex;
@@ -538,7 +538,7 @@ a.me-kpi:hover {
     font-weight: 700;
     letter-spacing: 1px;
     color: var(--cyber-cyan);
-    border: 1px solid rgba(0, 229, 255, 0.35);
+    border: 1px solid rgba(0, 172, 255, 0.35);
     padding: 4px 8px;
     border-radius: 2px;
     flex-shrink: 0;
@@ -546,12 +546,12 @@ a.me-kpi:hover {
 .studio-title {
     font-size: 15px;
     font-weight: 700;
-    color: #e4e4e4;
+    color: #d7d7d7;
     letter-spacing: 0.3px;
 }
 .studio-meta {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     margin-top: 3px;
     word-break: break-all;
 }
@@ -572,8 +572,8 @@ button.studio-kpi {
     background: #080808;
 }
 .studio-row.hi {
-    border-color: rgba(0, 255, 65, 0.45);
-    box-shadow: 0 0 16px rgba(0, 255, 65, 0.08);
+    border-color: rgba(0, 254, 0, 0.45);
+    box-shadow: 0 0 16px rgba(0, 254, 0, 0.08);
 }
 .sys-tag {
     font-size: 10px;
@@ -610,11 +610,11 @@ button.studio-kpi {
     letter-spacing: 1px;
     color: var(--cyber-green);
     padding: 4px 8px;
-    border: 1px solid rgba(0, 255, 65, 0.25);
+    border: 1px solid rgba(0, 254, 0, 0.25);
     border-radius: 2px;
 }
 .chain-arr {
-    color: #444;
+    color: #4b4b4d;
     font-size: 12px;
 }
 .sheet-wide {
@@ -623,7 +623,7 @@ button.studio-kpi {
 /* full-page studio forms (no overlays) */
 .studio-breadcrumb {
     font-size: 12px;
-    color: #555;
+    color: #4b4b4d;
     margin-bottom: 12px;
     letter-spacing: 0.4px;
 }
@@ -653,7 +653,7 @@ button.studio-kpi {
     font-weight: 700;
     letter-spacing: 1.2px;
     color: var(--cyber-cyan);
-    border: 1px solid rgba(0, 229, 255, 0.35);
+    border: 1px solid rgba(0, 172, 255, 0.35);
     padding: 4px 10px;
     border-radius: 2px;
     margin-bottom: 10px;
@@ -661,7 +661,7 @@ button.studio-kpi {
 .studio-title-lg {
     font-size: 22px;
     font-weight: 700;
-    color: #e8e8e8;
+    color: #d7d7d7;
     margin: 0 0 10px;
     word-break: break-word;
 }
@@ -670,11 +670,11 @@ button.studio-kpi {
     color: inherit;
 }
 .studio-row-link:hover {
-    border-color: rgba(0, 255, 65, 0.35);
+    border-color: rgba(0, 254, 0, 0.35);
 }
 .draft-kind {
     color: var(--cyber-yellow) !important;
-    border-color: rgba(255, 215, 0, 0.4) !important;
+    border-color: rgba(252, 240, 0, 0.4) !important;
 }
 a.kpi.me-kpi {
     text-decoration: none;
@@ -712,7 +712,7 @@ a.kpi.me-kpi {
     text-align: left;
     font-size: 10px;
     letter-spacing: 1.2px;
-    color: #666;
+    color: #777777;
     padding: 10px 12px;
     border-bottom: 1px solid #1c1c1c;
     white-space: nowrap;
@@ -720,7 +720,7 @@ a.kpi.me-kpi {
 .view-table td {
     padding: 10px 12px;
     border-bottom: 1px solid #121212;
-    color: #ccc;
+    color: #d7d7d7;
     word-break: break-word;
 }
 .view-table tr:hover td {
@@ -764,7 +764,7 @@ a.kpi.me-kpi {
 }
 .kanban-card-link:hover .kanban-card,
 a.kanban-card-link:hover {
-    border-color: rgba(0, 255, 65, 0.4);
+    border-color: rgba(0, 254, 0, 0.4);
 }
 a.kanban-card-link {
     border: 1px solid #222;
@@ -792,7 +792,7 @@ a.kanban-card-link .kanban-card {
     align-items: baseline;
 }
 .kernel-layer.accent {
-    border-color: rgba(0, 255, 65, 0.3);
+    border-color: rgba(0, 254, 0, 0.3);
 }
 .kernel-name {
     font-size: 11px;
@@ -802,7 +802,7 @@ a.kanban-card-link .kanban-card {
 }
 .kernel-body {
     font-size: 13px;
-    color: #888;
+    color: #777777;
     line-height: 1.4;
 }
 @media (max-width: 560px) {
@@ -820,13 +820,13 @@ a.kanban-card-link .kanban-card {
 }
 .dock-count {
     font-size: 11px;
-    color: #666;
+    color: #777777;
     letter-spacing: 0.4px;
     white-space: nowrap;
 }
 .dock-credit {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     text-decoration: none;
     white-space: nowrap;
 }
@@ -838,13 +838,13 @@ a.kanban-card-link .kanban-card {
     border-radius: 2px;
     border: 1px solid #222;
     background: #0a0a0a;
-    color: #888;
+    color: #777777;
     cursor: pointer;
 }
 .act-pill.sel {
     border-color: var(--cyber-cyan);
     color: var(--cyber-cyan);
-    background: rgba(0, 229, 255, 0.08);
+    background: rgba(0, 172, 255, 0.08);
 }
 .act-pill.locked {
     opacity: 0.35;
@@ -879,7 +879,7 @@ a.kanban-card-link .kanban-card {
     font-size: 11px;
     letter-spacing: 1.2px;
     color: var(--cyber-green);
-    border: 1px solid rgba(0, 255, 65, 0.35);
+    border: 1px solid rgba(0, 254, 0, 0.35);
     padding: 4px 12px;
     border-radius: 2px;
     margin: 0 12px;
@@ -919,7 +919,7 @@ a.kanban-card-link .kanban-card {
 .cities-kicker {
     font-size: 11px;
     letter-spacing: 2px;
-    color: #555;
+    color: #4b4b4d;
     font-weight: 700;
     margin-bottom: 8px;
 }
@@ -927,7 +927,7 @@ a.kanban-card-link .kanban-card {
     font-size: clamp(28px, 4vw, 40px);
     font-weight: 700;
     letter-spacing: 1px;
-    color: #e0e0e0;
+    color: #d7d7d7;
     margin: 0 0 8px;
 }
 .cities-lead {
@@ -967,12 +967,12 @@ button.city-card:hover {
     background: #0c0c0c;
 }
 .city-card.live {
-    border-color: rgba(0, 255, 65, 0.28);
-    box-shadow: 0 0 24px rgba(0, 255, 65, 0.06);
+    border-color: rgba(0, 254, 0, 0.28);
+    box-shadow: 0 0 24px rgba(0, 254, 0, 0.06);
 }
 .city-card.live:hover {
-    border-color: rgba(0, 255, 65, 0.55);
-    box-shadow: 0 0 28px rgba(0, 255, 65, 0.12);
+    border-color: rgba(0, 254, 0, 0.55);
+    box-shadow: 0 0 28px rgba(0, 254, 0, 0.12);
 }
 .city-card.ghost {
     border-style: dashed;
@@ -987,7 +987,7 @@ button.city-card:hover {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #555;
+    color: #4b4b4d;
 }
 .city-status {
     font-size: 10px;
@@ -999,28 +999,28 @@ button.city-card:hover {
 }
 .city-status.live {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.4);
-    background: rgba(0, 255, 65, 0.08);
+    border-color: rgba(0, 254, 0, 0.4);
+    background: rgba(0, 254, 0, 0.08);
 }
 .city-status.founding {
     color: var(--cyber-yellow);
-    border-color: rgba(255, 215, 0, 0.35);
-    background: rgba(255, 215, 0, 0.06);
+    border-color: rgba(252, 240, 0, 0.35);
+    background: rgba(252, 240, 0, 0.06);
 }
 .city-name {
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.5px;
-    color: #e8e8e8;
+    color: #d7d7d7;
 }
 .city-region {
     font-size: 12px;
-    color: #666;
+    color: #777777;
     letter-spacing: 0.3px;
 }
 .city-blurb {
     font-size: 13px;
-    color: #888;
+    color: #777777;
     line-height: 1.4;
     flex: 1;
     margin: 4px 0 0;
@@ -1033,7 +1033,7 @@ button.city-card:hover {
     padding-top: 10px;
     border-top: 1px solid #151515;
     font-size: 11px;
-    color: #666;
+    color: #777777;
     letter-spacing: 0.4px;
 }
 .city-open {
@@ -1047,14 +1047,14 @@ button.city-card:hover {
 }
 .cta-found {
     color: var(--cyber-yellow);
-    border-color: rgba(255, 215, 0, 0.65);
-    background: rgba(255, 215, 0, 0.1);
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.1);
+    border-color: rgba(252, 240, 0, 0.65);
+    background: rgba(252, 240, 0, 0.1);
+    box-shadow: 0 0 18px rgba(252, 240, 0, 0.1);
     font-weight: 800;
 }
 .cta-found:hover {
-    background: rgba(255, 215, 0, 0.18);
-    box-shadow: 0 0 24px rgba(255, 215, 0, 0.18);
+    background: rgba(252, 240, 0, 0.18);
+    box-shadow: 0 0 24px rgba(252, 240, 0, 0.18);
 }
 .cities-dock {
     flex-shrink: 0;
@@ -1073,7 +1073,7 @@ button.city-card:hover {
     display: block;
     font-size: 10px;
     letter-spacing: 1.4px;
-    color: #666;
+    color: #777777;
     font-weight: 700;
     margin: 10px 0 4px;
 }
@@ -1085,11 +1085,11 @@ button.city-card:hover {
     background: #0a0a0a;
     border: 1px solid #222;
     border-radius: 2px;
-    color: #e0e0e0;
+    color: #d7d7d7;
     outline: none;
 }
 .found-input:focus {
-    border-color: rgba(255, 215, 0, 0.5);
+    border-color: rgba(252, 240, 0, 0.5);
 }
 .found-err {
     margin-top: 8px;
@@ -1100,29 +1100,29 @@ button.city-card:hover {
     margin-top: 14px;
     border-color: var(--cyber-yellow);
     color: var(--cyber-yellow);
-    background: rgba(255, 215, 0, 0.1);
+    background: rgba(252, 240, 0, 0.1);
 }
 .intent-commit.event {
     margin-top: 14px;
     border-color: var(--cyber-magenta);
     color: var(--cyber-magenta);
-    background: rgba(255, 0, 255, 0.1);
+    background: rgba(213, 0, 249, 0.1);
 }
 .cta-event {
     color: var(--cyber-magenta);
-    border-color: rgba(255, 0, 255, 0.65);
-    background: rgba(255, 0, 255, 0.1);
-    box-shadow: 0 0 18px rgba(255, 0, 255, 0.1);
+    border-color: rgba(213, 0, 249, 0.65);
+    background: rgba(213, 0, 249, 0.1);
+    box-shadow: 0 0 18px rgba(213, 0, 249, 0.1);
     font-weight: 800;
 }
 .cta-event:hover {
-    background: rgba(255, 0, 255, 0.18);
-    box-shadow: 0 0 24px rgba(255, 0, 255, 0.18);
+    background: rgba(213, 0, 249, 0.18);
+    box-shadow: 0 0 24px rgba(213, 0, 249, 0.18);
 }
 .city-status.upcoming {
     color: var(--cyber-cyan);
-    border-color: rgba(0, 229, 255, 0.4);
-    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 172, 255, 0.4);
+    background: rgba(0, 172, 255, 0.08);
 }
 .event-card .city-name {
     font-size: 18px;
@@ -1151,7 +1151,7 @@ button.city-card:hover {
 .list-sort-label {
     font-size: 10px;
     letter-spacing: 1.4px;
-    color: #555;
+    color: #4b4b4d;
     font-weight: 700;
     margin-right: 4px;
 }
@@ -1172,13 +1172,13 @@ button.city-card:hover {
         background 0.1s;
 }
 .chip:hover {
-    border-color: #444;
-    color: #bbb;
+    border-color: #4b4b4d;
+    color: #d7d7d7;
 }
 .chip-on {
-    border-color: rgba(0, 255, 65, 0.45);
+    border-color: rgba(0, 254, 0, 0.45);
     color: var(--cyber-green);
-    background: rgba(0, 255, 65, 0.08);
+    background: rgba(0, 254, 0, 0.08);
 }
 .rating-badge {
     font-size: 10px;
@@ -1190,26 +1190,26 @@ button.city-card:hover {
 }
 .rating-badge.tier-a {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.45);
-    background: rgba(0, 255, 65, 0.1);
+    border-color: rgba(0, 254, 0, 0.45);
+    background: rgba(0, 254, 0, 0.1);
 }
 .rating-badge.tier-b {
     color: var(--cyber-cyan);
-    border-color: rgba(0, 229, 255, 0.4);
-    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 172, 255, 0.4);
+    background: rgba(0, 172, 255, 0.08);
 }
 .rating-badge.tier-c {
     color: var(--cyber-yellow);
-    border-color: rgba(255, 215, 0, 0.35);
-    background: rgba(255, 215, 0, 0.06);
+    border-color: rgba(252, 240, 0, 0.35);
+    background: rgba(252, 240, 0, 0.06);
 }
 .rating-badge.tier-d {
     color: var(--cyber-orange);
-    border-color: rgba(255, 102, 0, 0.4);
-    background: rgba(255, 102, 0, 0.08);
+    border-color: rgba(255, 91, 0, 0.4);
+    background: rgba(255, 91, 0, 0.08);
 }
 .rating-badge.tier-e {
-    color: #888;
+    color: #777777;
     border-color: #333;
 }
 .rating-bars {
@@ -1225,7 +1225,7 @@ button.city-card:hover {
     align-items: center;
     font-size: 9px;
     letter-spacing: 0.8px;
-    color: #555;
+    color: #4b4b4d;
     font-weight: 700;
 }
 .rating-track {
@@ -1249,7 +1249,7 @@ button.city-card:hover {
 }
 .rating-n {
     text-align: right;
-    color: #666;
+    color: #777777;
     font-variant-numeric: tabular-nums;
 }
 .place-kind {
@@ -1266,7 +1266,7 @@ button.city-card:hover {
     color: var(--cyber-cyan);
 }
 .place-kind.nature {
-    color: #6f6;
+    color: #00fe00;
 }
 .place-kind.trail {
     color: var(--cyber-orange);
@@ -1291,7 +1291,7 @@ button.city-card:hover {
     font-size: 10px;
     letter-spacing: 1.2px;
     color: var(--cyber-yellow);
-    border: 1px solid rgba(255, 215, 0, 0.35);
+    border: 1px solid rgba(252, 240, 0, 0.35);
     padding: 4px 10px;
     border-radius: 2px;
     font-weight: 700;
@@ -1307,7 +1307,7 @@ button.city-card:hover {
     padding: 12px 14px;
     margin-bottom: 14px;
     background: #080808;
-    border: 1px solid rgba(0, 255, 65, 0.2);
+    border: 1px solid rgba(0, 254, 0, 0.2);
     border-radius: 4px;
 }
 .bank-inv-k {
@@ -1319,12 +1319,12 @@ button.city-card:hover {
 .bank-inv-eq {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 13px;
-    color: #ddd;
+    color: #d7d7d7;
     background: transparent;
 }
 .bank-inv-sub {
     font-size: 11px;
-    color: #666;
+    color: #777777;
     letter-spacing: 0.3px;
 }
 .bank-kpi-grid {
@@ -1343,26 +1343,26 @@ button.city-card:hover {
     border-radius: 4px;
 }
 .kpi.ok {
-    border-color: rgba(0, 255, 65, 0.35);
-    box-shadow: 0 0 18px rgba(0, 255, 65, 0.06);
+    border-color: rgba(0, 254, 0, 0.35);
+    box-shadow: 0 0 18px rgba(0, 254, 0, 0.06);
 }
 .kpi.warn {
-    border-color: rgba(255, 215, 0, 0.4);
+    border-color: rgba(252, 240, 0, 0.4);
 }
 .kpi.bad {
-    border-color: rgba(255, 0, 64, 0.45);
+    border-color: rgba(255, 0, 0, 0.45);
 }
 .kpi-lab {
     font-size: 10px;
     letter-spacing: 1.2px;
     font-weight: 700;
-    color: #555;
+    color: #4b4b4d;
     margin-bottom: 6px;
 }
 .kpi-val {
     font-size: 22px;
     font-weight: 700;
-    color: #e8e8e8;
+    color: #d7d7d7;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.3px;
 }
@@ -1381,7 +1381,7 @@ button.city-card:hover {
 .kpi-sub {
     margin-top: 4px;
     font-size: 10px;
-    color: #555;
+    color: #4b4b4d;
     letter-spacing: 0.3px;
 }
 .bank-util {
@@ -1397,7 +1397,7 @@ button.city-card:hover {
     font-size: 10px;
     letter-spacing: 1px;
     font-weight: 700;
-    color: #666;
+    color: #777777;
     margin-bottom: 8px;
 }
 .bank-util-track {
@@ -1443,13 +1443,13 @@ button.city-card:hover {
     font-size: 10px;
     letter-spacing: 1.1px;
     font-weight: 700;
-    color: #666;
+    color: #777777;
     margin-bottom: 6px;
 }
 .hon-val {
     font-size: 18px;
     font-weight: 700;
-    color: #e0e0e0;
+    color: #d7d7d7;
     font-variant-numeric: tabular-nums;
 }
 .hon-val.pos {
@@ -1458,18 +1458,18 @@ button.city-card:hover {
 .hon-why {
     margin-top: 6px;
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     line-height: 1.35;
 }
 .bank-footnote {
     margin-top: 14px;
     font-size: 12px;
-    color: #555;
+    color: #4b4b4d;
     line-height: 1.45;
     max-width: 720px;
 }
 .bank-footnote em {
-    color: #888;
+    color: #777777;
     font-style: normal;
     font-weight: 600;
 }
@@ -1483,18 +1483,18 @@ button.city-card:hover {
 }
 .regime.taker {
     color: var(--cyber-cyan);
-    border-color: rgba(0, 229, 255, 0.35);
+    border-color: rgba(0, 172, 255, 0.35);
 }
 .regime.maker {
     color: var(--cyber-orange);
-    border-color: rgba(255, 102, 0, 0.4);
+    border-color: rgba(255, 91, 0, 0.4);
 }
 .regime.transition {
     color: var(--cyber-yellow);
-    border-color: rgba(255, 215, 0, 0.35);
+    border-color: rgba(252, 240, 0, 0.35);
 }
 .hub-mark {
-    color: #555;
+    color: #4b4b4d;
     font-size: 9px;
     letter-spacing: 0.6px;
 }
@@ -1527,7 +1527,7 @@ button.city-card:hover {
     font-size: 10px;
     letter-spacing: 1.2px;
     font-weight: 700;
-    color: #555;
+    color: #4b4b4d;
     border-bottom: 1px solid #151515;
     background: #0a0a0a;
     position: sticky;
@@ -1559,13 +1559,13 @@ button.city-card:hover {
     background: #0e0e0e;
 }
 .states-row.podium-1 {
-    background: rgba(255, 215, 0, 0.04);
+    background: rgba(252, 240, 0, 0.04);
 }
 .states-row.podium-2 {
-    background: rgba(192, 196, 204, 0.03);
+    background: rgba(255, 255, 255, 0.03);
 }
 .states-row.podium-3 {
-    background: rgba(205, 127, 50, 0.04);
+    background: rgba(255, 91, 0, 0.04);
 }
 .st-rank {
     text-align: right;
@@ -1584,14 +1584,14 @@ button.city-card:hover {
     flex-shrink: 0;
 }
 .st-name-text {
-    color: #ddd;
+    color: #d7d7d7;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .st-code {
-    color: #444;
+    color: #4b4b4d;
     font-size: 10px;
     letter-spacing: 0.6px;
     flex-shrink: 0;
@@ -1606,10 +1606,10 @@ button.city-card:hover {
     text-align: right;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: #e8e8e8;
+    color: #d7d7d7;
 }
 .st-cap.soon {
-    color: #555;
+    color: #4b4b4d;
     font-weight: 500;
     font-style: italic;
 }
@@ -1617,11 +1617,11 @@ button.city-card:hover {
 .st-pop {
     text-align: right;
     font-variant-numeric: tabular-nums;
-    color: #888;
+    color: #777777;
     font-size: 12px;
 }
 .st-region {
-    color: #666;
+    color: #777777;
     font-size: 11px;
     letter-spacing: 0.3px;
     white-space: nowrap;
@@ -1675,7 +1675,7 @@ button.city-card:hover {
 }
 .robots-section-n {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     letter-spacing: 0.6px;
 }
 .robots-grid {
@@ -1694,7 +1694,7 @@ button.city-card:hover {
     margin-top: 14px;
     border-color: var(--cyber-orange);
     color: var(--cyber-orange);
-    background: rgba(255, 102, 0, 0.1);
+    background: rgba(255, 91, 0, 0.1);
 }
 @media (max-width: 720px) {
     /* keep viewport lock — scrolling happens inside .cities-stage */
@@ -1818,23 +1818,23 @@ button.city-card:hover {
 }
 .cta-buy {
     color: var(--cyber-orange);
-    border-color: rgba(255, 102, 0, 0.7);
-    background: rgba(255, 102, 0, 0.12);
-    box-shadow: 0 0 18px rgba(255, 102, 0, 0.12);
+    border-color: rgba(255, 91, 0, 0.7);
+    background: rgba(255, 91, 0, 0.12);
+    box-shadow: 0 0 18px rgba(255, 91, 0, 0.12);
 }
 .cta-buy:hover {
-    background: rgba(255, 102, 0, 0.22);
-    box-shadow: 0 0 24px rgba(255, 102, 0, 0.22);
+    background: rgba(255, 91, 0, 0.22);
+    box-shadow: 0 0 24px rgba(255, 91, 0, 0.22);
 }
 .cta-lease {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.65);
-    background: rgba(0, 255, 65, 0.1);
-    box-shadow: 0 0 18px rgba(0, 255, 65, 0.1);
+    border-color: rgba(0, 254, 0, 0.65);
+    background: rgba(0, 254, 0, 0.1);
+    box-shadow: 0 0 18px rgba(0, 254, 0, 0.1);
 }
 .cta-lease:hover {
-    background: rgba(0, 255, 65, 0.18);
-    box-shadow: 0 0 24px rgba(0, 255, 65, 0.18);
+    background: rgba(0, 254, 0, 0.18);
+    box-shadow: 0 0 24px rgba(0, 254, 0, 0.18);
 }
 .cta-btn.cta-bold .cta-title {
     font-weight: 900;
@@ -1843,35 +1843,35 @@ button.city-card:hover {
 }
 .cta-split {
     color: var(--cyber-cyan);
-    border-color: rgba(0, 229, 255, 0.75);
-    background: rgba(0, 229, 255, 0.12);
-    box-shadow: 0 0 18px rgba(0, 229, 255, 0.14);
+    border-color: rgba(0, 172, 255, 0.75);
+    background: rgba(0, 172, 255, 0.12);
+    box-shadow: 0 0 18px rgba(0, 172, 255, 0.14);
     font-weight: 800;
 }
 .cta-split:hover {
-    background: rgba(0, 229, 255, 0.22);
-    box-shadow: 0 0 28px rgba(0, 229, 255, 0.25);
+    background: rgba(0, 172, 255, 0.22);
+    box-shadow: 0 0 28px rgba(0, 172, 255, 0.25);
 }
 .cta-merge {
     color: var(--cyber-magenta);
-    border-color: rgba(255, 0, 255, 0.7);
-    background: rgba(255, 0, 255, 0.1);
-    box-shadow: 0 0 18px rgba(255, 0, 255, 0.12);
+    border-color: rgba(213, 0, 249, 0.7);
+    background: rgba(213, 0, 249, 0.1);
+    box-shadow: 0 0 18px rgba(213, 0, 249, 0.12);
     font-weight: 800;
 }
 .cta-merge:hover {
-    background: rgba(255, 0, 255, 0.2);
-    box-shadow: 0 0 28px rgba(255, 0, 255, 0.22);
+    background: rgba(213, 0, 249, 0.2);
+    box-shadow: 0 0 28px rgba(213, 0, 249, 0.22);
 }
 .intent-commit.split {
     border-color: var(--cyber-cyan);
     color: var(--cyber-cyan);
-    background: rgba(0, 229, 255, 0.1);
+    background: rgba(0, 172, 255, 0.1);
 }
 .intent-commit.merge {
     border-color: var(--cyber-magenta);
     color: var(--cyber-magenta);
-    background: rgba(255, 0, 255, 0.1);
+    background: rgba(213, 0, 249, 0.1);
 }
 .ii-act.split {
     color: var(--cyber-cyan);
@@ -1893,12 +1893,12 @@ button.city-card:hover {
     border-radius: 2px;
     cursor: pointer;
     color: var(--cyber-orange);
-    border: 1px solid rgba(255, 102, 0, 0.4);
+    border: 1px solid rgba(255, 91, 0, 0.4);
     background: transparent;
 }
 .panel-cta.lease {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.4);
+    border-color: rgba(0, 254, 0, 0.4);
 }
 .panel-cta:hover {
     background: rgba(255, 255, 255, 0.04);
@@ -1935,7 +1935,7 @@ button.city-card:hover {
     border: 1px solid #222;
     border-radius: 4px;
     padding: 14px 16px 16px;
-    box-shadow: 0 0 40px rgba(0, 255, 65, 0.08);
+    box-shadow: 0 0 40px rgba(0, 254, 0, 0.08);
 }
 .sheet-h {
     display: flex;
@@ -1947,7 +1947,7 @@ button.city-card:hover {
     font-family: inherit;
     background: transparent;
     border: 1px solid #333;
-    color: #888;
+    color: #777777;
     width: 28px;
     height: 28px;
     border-radius: 2px;
@@ -1955,11 +1955,11 @@ button.city-card:hover {
 }
 .sheet-x:hover {
     color: #fff;
-    border-color: #555;
+    border-color: #4b4b4d;
 }
 .sheet-note {
     font-size: 12px;
-    color: #666;
+    color: #777777;
     line-height: 1.45;
     margin: 0 0 12px;
 }
@@ -1979,7 +1979,7 @@ button.city-card:hover {
 .split-pick-label {
     font-size: 10px;
     letter-spacing: 1.4px;
-    color: #666;
+    color: #777777;
     font-weight: 700;
     margin: 10px 0 6px;
 }
@@ -2031,7 +2031,7 @@ button.city-card:hover {
     padding: 6px 0;
 }
 .split-metrics.empty {
-    color: #555;
+    color: #4b4b4d;
     padding: 12px 0;
 }
 .sm-row {
@@ -2041,7 +2041,7 @@ button.city-card:hover {
     letter-spacing: 0.3px;
 }
 .sm-row.total {
-    color: #e0e0e0;
+    color: #d7d7d7;
     font-weight: 700;
     border-bottom: 1px solid #1a1a1a;
     padding-bottom: 6px;
@@ -2056,7 +2056,7 @@ button.city-card:hover {
     font-weight: 700;
 }
 .sm-row.dim {
-    color: #555;
+    color: #4b4b4d;
     font-size: 11px;
 }
 .sm-row.warn {
@@ -2101,7 +2101,7 @@ button.city-card:hover {
 .cyberia-flats {
     min-width: 0;
     border-color: #1f1f1f;
-    box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.06);
+    box-shadow: 0 0 0 1px rgba(0, 254, 0, 0.06);
 }
 .cyberia-fleets,
 .cyberia-right {
@@ -2123,7 +2123,7 @@ button.city-card:hover {
 }
 .panel-sub {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     letter-spacing: 0.5px;
 }
 /* only the fleet list scrolls — not the page, not the map */
@@ -2150,7 +2150,7 @@ button.city-card:hover {
 .fleet-section {
     font-size: 9px;
     letter-spacing: 1.5px;
-    color: #555;
+    color: #4b4b4d;
     padding: 6px 2px 2px;
     border-bottom: 1px solid #151515;
     margin-top: 2px;
@@ -2170,7 +2170,7 @@ button.city-card:hover {
     border: 1px solid #1a1a1a;
     border-radius: 3px;
     padding: 5px 8px;
-    color: #ccc;
+    color: #d7d7d7;
     cursor: pointer;
     font-family: inherit;
     flex-shrink: 0;
@@ -2184,7 +2184,7 @@ button.city-card:hover {
 }
 .fleet-card.sel {
     border-color: var(--cyber-green);
-    background: rgba(0, 255, 65, 0.06);
+    background: rgba(0, 254, 0, 0.06);
     box-shadow: inset 3px 0 0 var(--cyber-green);
 }
 .fleet-card.offline {
@@ -2214,7 +2214,7 @@ button.city-card:hover {
 }
 .fleet-role {
     font-size: 10px;
-    color: #666;
+    color: #777777;
     margin-top: 1px;
     white-space: nowrap;
     overflow: hidden;
@@ -2244,7 +2244,7 @@ button.city-card:hover {
     cursor: grabbing;
 }
 .flat-map-wrap:focus-visible {
-    box-shadow: inset 0 0 0 1px rgba(0, 255, 65, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(0, 254, 0, 0.35);
 }
 /* map-world fills wrap; zoom is SVG viewBox (vectors stay sharp) */
 .map-world {
@@ -2292,7 +2292,7 @@ button.city-card:hover {
     font-size: 14px;
     font-weight: 700;
     line-height: 1;
-    color: #ccc;
+    color: #d7d7d7;
     background: #0c0c0c;
     border: 1px solid #2a2a2a;
     border-radius: 3px;
@@ -2301,8 +2301,8 @@ button.city-card:hover {
 }
 .map-cam-btn:hover {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.45);
-    background: rgba(0, 255, 65, 0.08);
+    border-color: rgba(0, 254, 0, 0.45);
+    background: rgba(0, 254, 0, 0.08);
 }
 .map-cam-sep {
     height: 1px;
@@ -2326,16 +2326,16 @@ button.city-card:hover {
     min-width: 140px;
     padding: 10px 12px;
     background: rgba(0, 0, 0, 0.88);
-    border: 1px solid rgba(0, 255, 65, 0.35);
+    border: 1px solid rgba(0, 254, 0, 0.35);
     border-radius: 3px;
     pointer-events: none;
-    box-shadow: 0 0 20px rgba(0, 255, 65, 0.12);
+    box-shadow: 0 0 20px rgba(0, 254, 0, 0.12);
 }
 .mt-name {
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 1.2px;
-    color: #e0e0e0;
+    color: #d7d7d7;
 }
 .mt-area {
     margin-top: 4px;
@@ -2348,7 +2348,7 @@ button.city-card:hover {
     margin-top: 4px;
     font-size: 10px;
     letter-spacing: 0.8px;
-    color: #666;
+    color: #777777;
 }
 .map-hud-hint {
     position: absolute;
@@ -2358,7 +2358,7 @@ button.city-card:hover {
     z-index: 4;
     font-size: 10px;
     letter-spacing: 0.6px;
-    color: #444;
+    color: #4b4b4d;
     background: rgba(0, 0, 0, 0.55);
     padding: 3px 10px;
     border-radius: 2px;
@@ -2384,7 +2384,7 @@ button.city-card:hover {
 .flat-path.is-sel {
 }
 .flat-label {
-    fill: #e0e0e0;
+    fill: #d7d7d7;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 1.5px;
@@ -2392,7 +2392,7 @@ button.city-card:hover {
     font-family: "Play", sans-serif;
 }
 .place-label {
-    fill: #555;
+    fill: #4b4b4d;
     font-size: 8px;
     letter-spacing: 0.5px;
     pointer-events: none;
@@ -2428,10 +2428,10 @@ button.city-card:hover {
     color: var(--cyber-purple);
 }
 .flat-legend .leg.asgard {
-    color: #00b4ff;
+    color: #00acff;
 }
 .flat-legend .leg.edem {
-    color: #00ff01;
+    color: #00fe00;
 }
 .flat-legend .leg.swatch {
     --sw: #fff;
@@ -2448,11 +2448,6 @@ button.city-card:hover {
     box-shadow: 0 0 6px var(--sw);
     vertical-align: -1px;
 }
-.taken-sheet .taken-line {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #d7d7d7;
-}
 .prism-link {
     display: inline-block;
     margin-top: 6px;
@@ -2465,7 +2460,7 @@ button.city-card:hover {
     text-decoration: underline;
 }
 .flat-legend .leg.dim {
-    color: #444;
+    color: #4b4b4d;
 }
 .domain-dot {
     pointer-events: auto;
@@ -2503,7 +2498,7 @@ button.city-card:hover {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #666;
+    color: #777777;
     text-decoration: none;
     padding: 3px 8px;
     border: 1px solid #222;
@@ -2511,13 +2506,13 @@ button.city-card:hover {
     background: #0a0a0a;
 }
 .board-tab:hover {
-    color: #ccc;
+    color: #d7d7d7;
     border-color: #333;
 }
 .board-tab.on {
     color: var(--cyber-green);
-    border-color: rgba(0, 255, 65, 0.45);
-    background: rgba(0, 255, 65, 0.08);
+    border-color: rgba(0, 254, 0, 0.45);
+    background: rgba(0, 254, 0, 0.08);
 }
 .domain-board-actions {
     display: flex;
@@ -2550,7 +2545,7 @@ button.city-card:hover {
 }
 .domain-triad-q {
     font-size: 10px;
-    color: #666;
+    color: #777777;
     font-style: italic;
     letter-spacing: 0.3px;
     flex: 1 1 auto;
@@ -2573,7 +2568,7 @@ button.city-card:hover {
     padding: 2px 6px 4px;
 }
 .domain-card {
-    border-left: 2px solid var(--dom-color, #444);
+    border-left: 2px solid var(--dom-color, #4b4b4d);
 }
 .domain-card-compact {
     padding: 7px 10px;
@@ -2583,13 +2578,13 @@ button.city-card:hover {
     margin-bottom: 0;
 }
 .domain-card-compact .fleet-status {
-    color: #555;
+    color: #4b4b4d;
     font-size: 9px;
     letter-spacing: 0.6px;
 }
 .domain-card.sel {
     border-color: var(--dom-color, var(--cyber-green));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dom-color, #0f0) 35%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dom-color, #00fe00) 35%, transparent);
 }
 .district-label {
     fill: rgba(255, 255, 255, 0.22);
@@ -2601,7 +2596,7 @@ button.city-card:hover {
     /* size is screen-stable via SVG inverse-scale under map zoom */
 }
 .flat-label {
-    fill: #f0f0f0;
+    fill: #ffffff;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.8px;
@@ -2615,14 +2610,14 @@ button.city-card:hover {
     pointer-events: none;
 }
 .place-label {
-    fill: #888;
+    fill: #777777;
     font-size: 9px;
     letter-spacing: 0.4px;
     pointer-events: none;
     font-family: "Play", sans-serif;
 }
 .map-caption {
-    fill: #555;
+    fill: #4b4b4d;
     font-size: 9px;
     letter-spacing: 0.3px;
     font-family: "Play", sans-serif;
@@ -2643,7 +2638,7 @@ button.city-card:hover {
     border-bottom: 1px solid #111;
     overflow: hidden;
 }
-/* one scene: the plot dominates the window, the assigned unit rides below it */
+/* one scene: the selected flat fills the render window */
 .render-stage {
     perspective: 1400px;
     display: flex;
@@ -2655,202 +2650,8 @@ button.city-card:hover {
     min-width: 0;
     min-height: 0;
 }
-.worksite-strip {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid #111;
-}
-.worksite-info {
-    flex: 1 1 auto;
-    min-width: 0;
-    text-align: left;
-}
-.wi-name {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    color: #e0e0e0;
-}
-.wi-role {
-    font-size: 10px;
-    color: #777;
-    margin-top: 2px;
-}
-.wi-status {
-    font-size: 10px;
-    color: #555;
-    margin-top: 1px;
-}
-/* the strip's unit figure — same biped/machine markup as before, just
-   scaled down (via `scale`, not `transform`, so bot-bob/bot-spin keep
-   animating the figure inside undisturbed) to fit next to the identity text */
-.bot-mini {
-    width: 36px;
-    height: 48px;
-    flex-shrink: 0;
-    overflow: hidden;
-    position: relative;
-}
-.bot-mini .bot-figure {
-    scale: 0.5;
-    transform-origin: top left;
-}
-.bot-figure {
-    --bot-color: var(--cyber-cyan);
-    position: relative;
-    width: 72px;
-    height: 96px;
-    transform-style: preserve-3d;
-    animation: bot-bob 2.8s ease-in-out infinite;
-}
-.bot-figure.machine {
-    animation: bot-spin 10s linear infinite;
-}
-.bot-figure.empty {
-    opacity: 0.35;
-    animation: none;
-}
-@keyframes bot-bob {
-    0%,
-    100% {
-        transform: translateY(0) rotateY(-12deg);
-    }
-    50% {
-        transform: translateY(-6px) rotateY(12deg);
-    }
-}
-@keyframes bot-spin {
-    from {
-        transform: rotateY(0deg) translateY(0);
-    }
-    to {
-        transform: rotateY(360deg) translateY(0);
-    }
-}
-.bot-head {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    width: 28px;
-    height: 24px;
-    margin-left: -14px;
-    border-radius: 4px 4px 2px 2px;
-    background: color-mix(in srgb, var(--bot-color) 55%, #000);
-    border: 1px solid var(--bot-color);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--bot-color) 40%, transparent);
-}
-.bot-figure.machine .bot-head {
-    width: 36px;
-    height: 20px;
-    margin-left: -18px;
-    border-radius: 2px;
-}
-.bot-head::after {
-    content: "";
-    position: absolute;
-    left: 6px;
-    top: 8px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--bot-color);
-    box-shadow:
-        12px 0 0 var(--bot-color),
-        0 0 8px var(--bot-color);
-}
-.bot-figure.machine .bot-head::after {
-    left: 8px;
-    width: 8px;
-    height: 4px;
-    border-radius: 1px;
-    box-shadow: 12px 0 0 var(--bot-color);
-}
-.bot-body {
-    position: absolute;
-    left: 50%;
-    top: 28px;
-    width: 40px;
-    height: 36px;
-    margin-left: -20px;
-}
-.bot-chest {
-    width: 100%;
-    height: 100%;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--bot-color) 28%, #0a0a0a);
-    border: 1px solid color-mix(in srgb, var(--bot-color) 70%, #333);
-    box-shadow: inset 0 0 12px
-        color-mix(in srgb, var(--bot-color) 15%, transparent);
-}
-.bot-figure.machine .bot-chest {
-    border-radius: 2px;
-    height: 42px;
-}
-.bot-arm {
-    position: absolute;
-    top: 4px;
-    width: 10px;
-    height: 28px;
-    border-radius: 2px;
-    background: color-mix(in srgb, var(--bot-color) 40%, #111);
-    border: 1px solid color-mix(in srgb, var(--bot-color) 50%, #222);
-}
-.bot-arm-l {
-    left: -12px;
-    transform: rotate(12deg);
-}
-.bot-arm-r {
-    right: -12px;
-    transform: rotate(-12deg);
-}
-.bot-figure.machine .bot-arm {
-    width: 14px;
-    height: 12px;
-    top: 12px;
-}
-.bot-legs {
-    position: absolute;
-    left: 50%;
-    top: 66px;
-    width: 36px;
-    margin-left: -18px;
-    display: flex;
-    justify-content: space-between;
-}
-.bot-leg {
-    width: 12px;
-    height: 26px;
-    border-radius: 2px;
-    background: color-mix(in srgb, var(--bot-color) 35%, #000);
-    border: 1px solid color-mix(in srgb, var(--bot-color) 45%, #222);
-}
-.bot-figure.machine .bot-leg {
-    width: 16px;
-    height: 14px;
-    border-radius: 1px;
-}
-.bot-glow {
-    position: absolute;
-    left: 50%;
-    bottom: -4px;
-    width: 48px;
-    height: 8px;
-    margin-left: -24px;
-    border-radius: 50%;
-    background: radial-gradient(
-        ellipse,
-        color-mix(in srgb, var(--bot-color) 45%, transparent),
-        transparent 70%
-    );
-    filter: blur(2px);
-}
-/* the selected plot's real footprint, tilted and spinning like the old
-   abstract prism did — but the outline is the actual land polygon, and it
-   carries the worksite dot where the assigned robot stands */
+
+/* the selected flat's real footprint, tilted and spinning, tinted by its land use */
 .plot-slab {
     --prism-color: var(--cyber-green);
     width: min(80%, 380px);
@@ -2860,10 +2661,7 @@ button.city-card:hover {
     transform: rotateX(32deg) rotateZ(-28deg);
     animation: prism-spin 14s linear infinite;
 }
-.plot-slab.placing {
-    animation: none;
-    transform: rotateX(0deg) rotateZ(0deg);
-}
+
 @keyframes prism-spin {
     from {
         transform: rotateX(32deg) rotateZ(-28deg);
@@ -2878,56 +2676,14 @@ button.city-card:hover {
     overflow: visible;
     filter: drop-shadow(0 0 14px color-mix(in srgb, var(--prism-color) 30%, transparent));
 }
-.plot-slab.placing .plot-slab-svg {
-    cursor: crosshair;
-}
+
 .plot-slab-path {
     fill: color-mix(in srgb, var(--prism-color) 20%, transparent);
     stroke: color-mix(in srgb, var(--prism-color) 75%, #fff 0%);
     stroke-width: 2.5;
     vector-effect: non-scaling-stroke;
 }
-.plot-work-dot {
-    --bot-color: var(--cyber-cyan);
-    stroke: #000;
-    stroke-width: 1.5;
-    vector-effect: non-scaling-stroke;
-}
-.plot-work-dot.default {
-    fill: color-mix(in srgb, var(--bot-color) 55%, #000 20%);
-    opacity: 0.8;
-}
-.plot-work-dot.set {
-    fill: var(--bot-color);
-    filter: drop-shadow(0 0 5px var(--bot-color));
-}
-.plot-work-pulse {
-    --bot-color: var(--cyber-cyan);
-    fill: none;
-    stroke: var(--bot-color);
-    stroke-width: 1.5;
-    opacity: 0.5;
-    vector-effect: non-scaling-stroke;
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: work-pulse 2.2s ease-out infinite;
-}
-@keyframes work-pulse {
-    0% {
-        transform: scale(0.6);
-        opacity: 0.6;
-    }
-    100% {
-        transform: scale(2.2);
-        opacity: 0;
-    }
-}
-.gps-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex-shrink: 0;
-}
+
 .gps-btn {
     font-size: 9px;
     letter-spacing: 1px;
@@ -2935,27 +2691,12 @@ button.city-card:hover {
     border-radius: 4px;
     border: 1px solid #333;
     background: #0a0a0a;
-    color: #aaa;
+    color: #d7d7d7;
     cursor: pointer;
 }
 .gps-btn:hover {
     border-color: var(--cyber-cyan);
     color: var(--cyber-cyan);
-}
-/* default action — most owners set the worksite remotely, not standing on
-   the plot, so map-tap outranks device GPS */
-.gps-btn.primary {
-    border-color: var(--cyber-cyan);
-    color: var(--cyber-cyan);
-    background: color-mix(in srgb, var(--cyber-cyan) 10%, #0a0a0a);
-}
-.gps-btn.primary:hover {
-    background: color-mix(in srgb, var(--cyber-cyan) 18%, #0a0a0a);
-}
-.gps-status {
-    font-size: 9px;
-    color: #555;
-    min-height: 11px;
 }
 .prism-meta {
     text-align: center;
@@ -2964,11 +2705,11 @@ button.city-card:hover {
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 2px;
-    color: #e0e0e0;
+    color: #d7d7d7;
 }
 .prism-sub {
     font-size: 11px;
-    color: #555;
+    color: #4b4b4d;
     margin-top: 2px;
     letter-spacing: 0.5px;
 }
@@ -2990,7 +2731,7 @@ button.city-card:hover {
     font-size: 12px;
 }
 .intent-k {
-    color: #555;
+    color: #4b4b4d;
     letter-spacing: 1px;
     text-transform: uppercase;
     font-size: 10px;
@@ -3013,13 +2754,13 @@ button.city-card:hover {
     border-radius: 2px;
     border: 1px solid #222;
     background: #0a0a0a;
-    color: #888;
+    color: #777777;
     cursor: pointer;
 }
 .act-pill.sel {
     border-color: var(--cyber-cyan);
     color: var(--cyber-cyan);
-    background: rgba(0, 229, 255, 0.08);
+    background: rgba(0, 172, 255, 0.08);
 }
 .act-pill.locked {
     opacity: 0.35;
@@ -3032,13 +2773,13 @@ button.city-card:hover {
     font-size: 12px;
     padding: 10px;
     border: 1px solid var(--cyber-green);
-    background: rgba(0, 255, 65, 0.08);
+    background: rgba(0, 254, 0, 0.08);
     color: var(--cyber-green);
     border-radius: 2px;
     cursor: pointer;
 }
 .intent-commit:hover {
-    background: rgba(0, 255, 65, 0.16);
+    background: rgba(0, 254, 0, 0.16);
 }
 .intent-queue {
     margin-top: 4px;
@@ -3047,7 +2788,7 @@ button.city-card:hover {
 }
 .intent-empty {
     font-size: 11px;
-    color: #444;
+    color: #4b4b4d;
     letter-spacing: 0.3px;
 }
 .intent-list {
@@ -3066,7 +2807,7 @@ button.city-card:hover {
     border-radius: 2px;
 }
 .ii-id {
-    color: #444;
+    color: #4b4b4d;
 }
 .ii-fleet {
     color: var(--cyber-orange);
@@ -3083,7 +2824,7 @@ button.city-card:hover {
     gap: 16px;
 }
 .cyberia-soft3-dock {
-    color: #444 !important;
+    color: #4b4b4d !important;
     font-size: 11px;
     flex: 1;
 }
@@ -3214,7 +2955,7 @@ button.city-card:hover {
     top: 2px;
     left: 4px;
     font-size: 8px;
-    color: #556;
+    color: #4b4b4d;
 }
 .ptable-sym {
     font-size: 16px;
@@ -3224,7 +2965,7 @@ button.city-card:hover {
 }
 .ptable-px {
     font-size: 9px;
-    color: #888;
+    color: #777777;
     line-height: 1;
 }
 
@@ -3275,21 +3016,21 @@ button.city-card:hover {
     margin-bottom: 20px;
 }
 .bot-card {
-    border: 1px solid color-mix(in srgb, var(--bot-c, #444) 40%, transparent);
+    border: 1px solid color-mix(in srgb, var(--bot-c, #4b4b4d) 40%, transparent);
     border-radius: 6px;
     padding: 18px 16px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--bot-c, #444) 6%, transparent), transparent 60%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bot-c, #4b4b4d) 6%, transparent), transparent 60%);
     transition: border-color 0.12s;
 }
-.bot-card:hover { border-color: var(--bot-c, #666); }
+.bot-card:hover { border-color: var(--bot-c, #777777); }
 .bot-emoji { font-size: 42px; line-height: 1; }
-.bot-name { font-size: 15px; font-weight: 700; color: var(--bot-c, #ccc); letter-spacing: 1px; }
+.bot-name { font-size: 15px; font-weight: 700; color: var(--bot-c, #d7d7d7); letter-spacing: 1px; }
 .bot-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .bot-tags .chip { font-size: 9px; }
-.bot-blurb { font-size: 12px; color: #778; line-height: 1.5; flex: 1; }
+.bot-blurb { font-size: 12px; color: #777777; line-height: 1.5; flex: 1; }
 .bot-buy { align-self: flex-start; }
 
 /* P&L + cashflow tables on /me */
@@ -3304,7 +3045,7 @@ button.city-card:hover {
     align-items: baseline;
 }
 .pnl-row:last-child { border-bottom: none; }
-.pnl-row.pnl-head { color: #556; font-size: 10px; letter-spacing: 2px; background: rgba(255,255,255,0.02); }
+.pnl-row.pnl-head { color: #4b4b4d; font-size: 10px; letter-spacing: 2px; background: rgba(255,255,255,0.02); }
 .pnl-row.pnl-total { background: rgba(255,255,255,0.02); font-weight: 700; }
 .pnl-row.cash-row { grid-template-columns: 1fr 90px 90px; }
 .pnl-num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -3380,7 +3121,7 @@ button.city-card:hover {
     border-radius: 3px;
     border: 1px solid #333;
     background: #0a0a0a;
-    color: #aaa;
+    color: #d7d7d7;
     cursor: pointer;
 }
 .land-tool:hover {
@@ -3391,7 +3132,7 @@ button.city-card:hover {
     border-color: var(--cyber-cyan);
     color: #000;
     background: var(--cyber-cyan);
-    box-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+    box-shadow: 0 0 12px rgba(0, 172, 255, 0.45);
 }
 /* place-only figures: grey, and they stay grey even when picked */
 .land-tool.ghost {
@@ -3401,7 +3142,7 @@ button.city-card:hover {
 }
 .land-tool.ghost:hover {
     color: #777;
-    border-color: #444;
+    border-color: #4b4b4d;
 }
 .land-tool.ghost.on {
     background: #2a2a2c;
@@ -3446,9 +3187,9 @@ button.city-card:hover {
     pointer-events: none;
 }
 .land-fig.live rect {
-    fill: rgba(0, 229, 255, 0.55);
+    fill: rgba(0, 172, 255, 0.55);
     stroke: var(--cyber-cyan);
-    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+    filter: drop-shadow(0 0 6px rgba(0, 172, 255, 0.6));
 }
 .land-fig.live text {
     fill: #000;
@@ -3497,7 +3238,7 @@ button.city-card:hover {
     color: var(--cyber-cyan);
 }
 .land-stats {
-    color: #555;
+    color: #4b4b4d;
     white-space: nowrap;
 }
 
@@ -3862,7 +3603,7 @@ button.city-card:hover {
         filter: drop-shadow(0 0 0 rgba(255, 0, 0, 0));
     }
     50% {
-        filter: drop-shadow(0 0 7px #ff0000) brightness(1.35);
+        filter: drop-shadow(0 0 7px #ff0000);
     }
 }
 .use-s.mark {
@@ -3876,4 +3617,76 @@ button.city-card:hover {
 .flat-legend {
     flex-wrap: wrap;
     row-gap: 4px;
+}
+.flat-legend .leg.ring {
+    --sw: #fff;
+    color: var(--sw);
+}
+.flat-legend .leg.ring::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
+    border-radius: 2px;
+    border: 1.5px solid var(--sw);
+    vertical-align: -1px;
+}
+.flat-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+.flat-legend .leg-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    row-gap: 4px;
+}
+.flat-legend .leg.line {
+    --sw: #777777;
+    color: #d7d7d7;
+}
+.flat-legend .leg.line::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 0;
+    margin-right: 5px;
+    border-top: 3px solid var(--sw);
+    vertical-align: 3px;
+}
+.flat-legend .leg.line.thin::before {
+    border-top-width: 2px;
+}
+.flat-legend .leg.line.dashed::before {
+    border-top-style: dashed;
+}
+
+/* friends' sales — the sale blue, solid, like every title for sale */
+.friend-sale {
+    cursor: pointer;
+}
+.friend-sale:hover .friend-path {
+    stroke: #fcf000;
+    stroke-width: 2.4;
+}
+.friend-fields {
+    display: flex;
+    flex-direction: column;
+    margin: 6px 0 4px;
+}
+.friend-desc {
+    white-space: pre-wrap;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #d7d7d7;
+    margin: 8px 0 12px;
+}
+.flat-legend .leg.ring.dashed::before {
+    border-style: dashed;
+}
+.plot-card .friend-fields,
+.plot-card .friend-desc {
+    padding: 0 12px;
 }

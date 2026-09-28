@@ -251,7 +251,7 @@
   "fill": "#e65100",
   "land_use": "venture",
   "address": "sinwood-2",
-  "kind": "business",
+  "kind": "private",
   "ares": 9.0,
   "are_price_usd": 5000.0,
   "plot_price_usd": 45000.0,
@@ -261,7 +261,7 @@
   "fill": "#e65100",
   "land_use": "venture",
   "address": "sinwood-3",
-  "kind": "business",
+  "kind": "private",
   "ares": 6.0,
   "are_price_usd": 5000.0,
   "plot_price_usd": 30000.0,
@@ -271,7 +271,7 @@
   "fill": "#e65100",
   "land_use": "venture",
   "address": "sinwood-4",
-  "kind": "business",
+  "kind": "private",
   "ares": 5.6,
   "are_price_usd": 5000.0,
   "plot_price_usd": 28000.0,
@@ -281,7 +281,7 @@
   "fill": "#e65100",
   "land_use": "venture",
   "address": "sinwood-5",
-  "kind": "business",
+  "kind": "private",
   "ares": 5.6,
   "are_price_usd": 5000.0,
   "plot_price_usd": 28000.0,
@@ -430,7 +430,7 @@
   "plot_price_usd": 25000.0
  },
  "sinwood-23": {
-  "fill": "#097138",
+  "fill": "#0f9d58",
   "land_use": "lease",
   "address": "sinwood-23",
   "kind": "private",
@@ -439,7 +439,7 @@
   "plot_price_usd": 26500.0
  },
  "sinwood-22": {
-  "fill": "#0f9d58",
+  "fill": "#097138",
   "land_use": "lease",
   "address": "sinwood-22",
   "kind": "private",
@@ -453,7 +453,6 @@
   "address": "sinwood-24",
   "kind": "private",
   "ares": 4.8,
-  "owner": "dzin",
   "are_price_usd": 5000.0,
   "plot_price_usd": 24000.0
  },
@@ -461,86 +460,88 @@
   "fill": "#0f9d58",
   "land_use": "lease",
   "address": "sinwood-25",
-  "kind": "community",
+  "kind": "private",
   "ares": 9.6,
-  "owner": "cyber valley",
-  "purpose": "spa",
+  "owner": "alex",
   "are_price_usd": 5000.0,
-  "plot_price_usd": 48000.0,
+  "plot_price_usd": 56912.0,
+  "measured_m2": 1138.24,
+  "measured_on": "2026-09-28",
+  "sheet_price_usd": 48000.0,
   "hold": "re-registration"
  },
  "sinwood-26-banya": {
-  "fill": "#ffea00",
-  "land_use": "commons",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-26",
   "kind": "community",
   "ares": 11.0,
   "are_price_usd": 5000.0,
   "plot_price_usd": 55000.0,
-  "map_use": "dual"
+  "niche": "spa"
  },
  "sinwood-27": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-27",
-  "kind": "private",
+  "kind": "community",
   "ares": 7.0,
   "are_price_usd": 5000.0,
-  "plot_price_usd": 35000.0
+  "plot_price_usd": 35000.0,
+  "niche": "chill"
  },
  "sinwood-28": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-28",
-  "kind": "private",
+  "kind": "community",
   "ares": 6.6,
   "are_price_usd": 5000.0,
-  "plot_price_usd": 33000.0
+  "plot_price_usd": 33000.0,
+  "niche": "chill"
  },
  "sinwood-29": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-29",
-  "kind": "private",
+  "kind": "community",
   "ares": 6.6,
   "are_price_usd": 5000.0,
   "plot_price_usd": 33000.0
  },
  "sinwood-30": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-30",
-  "kind": "private",
+  "kind": "community",
   "ares": 6.9,
-  "owner": "dzin",
   "are_price_usd": 5000.0,
   "plot_price_usd": 34500.0
  },
  "sinwood-31-alex-dzin": {
   "fill": "#0f9d58",
-  "land_use": "commons",
+  "land_use": "lease",
   "address": "sinwood-31",
-  "kind": "community",
+  "kind": "private",
   "ares": 7.5,
+  "owner": "alex",
   "are_price_usd": 5000.0,
-  "plot_price_usd": 37500.0,
-  "map_use": "lease"
+  "plot_price_usd": 37500.0
  },
  "sinwood-32": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-32",
   "kind": "community",
   "ares": 6.1,
   "are_price_usd": 5000.0,
-  "plot_price_usd": 30500.0,
-  "hold": "re-registration"
+  "plot_price_usd": 30500.0
  },
  "sinwood-33": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#e65100",
+  "land_use": "venture",
   "address": "sinwood-33",
-  "kind": "private",
+  "kind": "community",
   "ares": 10.3,
   "are_price_usd": 4500.0,
   "plot_price_usd": 46350.0
@@ -592,12 +593,12 @@
  },
  "sinwood-39": {
   "fill": "#0f9d58",
-  "land_use": "commons",
+  "land_use": "lease",
   "address": "sinwood-39",
-  "kind": "commons",
+  "kind": "private",
   "ares": 13.5,
-  "plot_price_usd": 0.0,
-  "map_use": "lease"
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 67500.0
  },
  "sinwood-39-2": {
   "fill": "#9c27b0",

@@ -213,9 +213,9 @@ fn category_color(cat: &str) -> &'static str {
         "crop" => "var(--cyber-yellow)",
         "herb" => "var(--cyber-cyan)",
         "animal" => "var(--cyber-orange)",
-        "bird" => "var(--cyber-magenta, #d36ee0)",
+        "bird" => "var(--cyber-magenta)",
         "insect" => "var(--cyber-red)",
-        _ => "#9a86e0",
+        _ => "#304ffe",
     }
 }
 
@@ -391,11 +391,11 @@ pub fn GeneticsPage() -> impl IntoView {
                                             <div>
                                                 <div class="studio-title">
                                                     <span style="font-style: italic;">{def.latin}</span>
-                                                    <span style="color:#667; margin-left:8px; font-style:normal;">{def.common}</span>
+                                                    <span style="color:#777777; margin-left:8px; font-style:normal;">{def.common}</span>
                                                 </div>
                                                 <div class="studio-meta">{def.blurb}</div>
                                                 <div class="list-filters" style="margin-top:6px;">
-                                                    <span style="color:#556; font-size:10px; letter-spacing:1px;">"PRODUCES"</span>
+                                                    <span style="color:#4b4b4d; font-size:10px; letter-spacing:1px;">"PRODUCES"</span>
                                                     {def.products.iter().map(|p| view! {
                                                         <span class="chip" style="pointer-events:none;">{*p}</span>
                                                     }).collect_view()}

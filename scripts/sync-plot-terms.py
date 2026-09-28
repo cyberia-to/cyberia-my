@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Build src/plot_terms.json — the lease book, one entry per map plot.
+"""Build src/plot_terms.json — the lease book, one entry per map plot — and
+src/cyberia_trails.json — the roads, paths and canyons between the plots — and
+src/friend_sales.json — land our friends sell beside the valley.
 
 Two sources, both owned by the valley:
 - the land-use map (Google My Maps, plot fill colour = land use)
@@ -8,17 +10,21 @@ Two sources, both owned by the valley:
     python3 scripts/sync-plot-terms.py
     # then rebuild / deploy
 
-Land-use legend (the map's colours):
-    green  → lease           orange → joint venture / business
-    violet → city commons    yellow → dual use (business + housing)
-    crimson → special place  blue   → HGB sale of a whole district
-                                      (bridge, $3,500 / are)
-Valley rulings layered on top (2026-09-25):
-- the sheet's community / commons wins over a lease or dual-use colour
+Land-use legend (the map's colours, aligned with the sheet 2026-09-28):
+    green  → residence (sheet: private)     orange → business (sheet: community)
+    violet → city land (sheet: commons)     yellow → dual use (business + housing)
+    crimson → special place                 blue   → HGB sale of a whole district
+                                                      (bridge, $3,500 / are)
+Valley rulings layered on top:
 - flats whose title is being re-registered are off sale, keep their colour
-- orange ground in sinwood is the construction business — not private
+- sinwood-1…5 are the construction business — sinwood-1 the city's own
 - inside a district sold whole, the map colour stays as the buyer's mark
   of a special-purpose place
+- a business niche the sheet writes in the owner column (spa, chill) is a
+  niche for the flat, not a holder
+- an are price set by the valley where the sheet has none prices the flat
+- a surveyed area outranks the sheet's ares and the drawn polygon, and
+  reprices the flat at its are price (the sheet's figure kept as sheet_price_usd)
 Rows the sheet has but the map lacks, and map plots the sheet lacks, are
 reported, not dropped.
 """
@@ -39,6 +45,8 @@ KML_URL = f"https://www.google.com/maps/d/u/0/kml?forcekml=1&mid={MY_MAPS}"
 ROOT = Path(__file__).resolve().parent.parent
 MAP = ROOT / "src" / "cyberia_map.json"
 OUT = ROOT / "src" / "plot_terms.json"
+TRAILS_OUT = ROOT / "src" / "cyberia_trails.json"
+FRIENDS_OUT = ROOT / "src" / "friend_sales.json"
 NS = "{http://www.opengis.net/kml/2.2}"
 
 # the sheet's spelling → one word each
@@ -63,11 +71,20 @@ LAND_USE = {
     "#c2185b": "special",
 }
 
-# orange ground in these districts is the valley's construction business
-CONSTRUCTION_DISTRICTS = {"sinwood"}
+# are prices the valley set where the sheet is blank: flat id → $ / are
+ARE_PRICE = {"sinwood-39": 5000.0}
+
+# surveyed on the ground: flat id → (m², date)
+MEASURED = {"sinwood-25-alex-dzin": (1138.24, "2026-09-28")}
+
+# owner-column words that name a business niche, not a holder
+NICHES = {"spa", "chill"}
+
+# the valley's construction business
+CONSTRUCTION = {"sinwood-1-laba", "sinwood-2", "sinwood-3", "sinwood-4", "sinwood-5"}
 
 # titles in re-registration — off sale until the papers settle
-REREGISTRATION = {"sinwood-25-alex-dzin", "sinwood-32"}
+REREGISTRATION = {"sinwood-25-alex-dzin"}
 
 # whole districts sold as one HGB title
 DISTRICT_SALE = {"bridge": {"land_use": "hgb", "are_price_usd": 3500.0}}
@@ -109,12 +126,101 @@ def kml_fills(kml: str):
     return out
 
 
+def kml_trails(kml: str):
+    """The map's `trails` folder → roads, paths and canyons with a width in metres.
+
+    concrete / gravel roads and anything named road · street → road (5 m,
+    3.5 m for small vehicles); the canyon colours (teal) → canyon; the rest are
+    walking paths (2 m)."""
+    root = ET.fromstring(kml)
+    styles = {}
+    for st in root.iter(NS + "Style"):
+        ls = st.find(NS + "LineStyle")
+        c = ls.find(NS + "color").text if ls is not None and ls.find(NS + "color") is not None else None
+        styles[st.get("id")] = f"#{c[6:8]}{c[4:6]}{c[2:4]}".lower() if c else None
+    normal = {}
+    for sm in root.iter(NS + "StyleMap"):
+        for pair in sm.findall(NS + "Pair"):
+            if pair.find(NS + "key").text == "normal":
+                normal[sm.get("id")] = pair.find(NS + "styleUrl").text.lstrip("#")
+    folder = next(f for f in root.iter(NS + "Folder") if f.find(NS + "name").text == "trails")
+    out = []
+    for pm in folder.findall(NS + "Placemark"):
+        line = pm.find(".//" + NS + "LineString/" + NS + "coordinates")
+        if line is None:
+            continue
+        coords = [[round(float(v), 7) for v in t.split(",")[:2]] for t in line.text.split()]
+        if len(coords) < 2:
+            continue
+        name = pm.find(NS + "name").text.strip()
+        d = pm.find(NS + "description")
+        desc = re.sub(r"<br>.*", "", (d.text or "") if d is not None else "", flags=re.S).strip()
+        sid = pm.find(NS + "styleUrl").text.lstrip("#")
+        colour = styles.get(normal.get(sid, sid))
+        low = f"{name} {desc}".lower()
+        if colour in ("#0097a7", "#006064"):
+            kind, width = "canyon", 3.0
+        elif colour in ("#bdbdbd", "#757575") or re.search(r"\broad\b|street|\bstr\b|\bst\b|concrete|gravel", low):
+            kind = "road"
+            width = 3.5 if "small vehicles" in low else 5.0
+        else:
+            kind, width = "path", 2.0
+        out.append({"name": name, "kind": kind, "width_m": width, "note": desc, "coords": coords})
+    return out
+
+
+def kml_friend_sales(kml: str):
+    """The map's `friend sales` folder — land our friends sell beside the valley.
+
+    Fields stay as the friend wrote them, in order (the listing has two `price`
+    rows); empty ones drop, `9460.0` reads `9460`."""
+    root = ET.fromstring(kml)
+    folder = next((f for f in root.iter(NS + "Folder") if f.find(NS + "name").text == "friend sales"), None)
+    out = []
+    for pm in folder.findall(NS + "Placemark") if folder is not None else []:
+        ring = pm.find(".//" + NS + "Polygon//" + NS + "coordinates")
+        if ring is None:
+            continue
+        coords = [[round(float(v), 7) for v in t.split(",")[:2]] for t in ring.text.split()]
+        description, fields = "", []
+        ext = pm.find(NS + "ExtendedData")
+        for d in ext.findall(NS + "Data") if ext is not None else []:
+            v = d.find(NS + "value")
+            value = (v.text or "").strip() if v is not None else ""
+            if not value:
+                continue
+            key = d.get("name")
+            if key == "description":
+                description = value
+                continue
+            if re.fullmatch(r"\d+\.0", value):
+                value = value[:-2]
+            fields.append([key, value])
+        out.append({
+            "name": pm.find(NS + "name").text.strip(),
+            "description": description,
+            "fields": fields,
+            "coords": coords,
+        })
+    return out
+
+
 def main() -> int:
     plots = json.load(open(MAP))["phase0"]
     ids = [p["id"] for p in plots]
 
     # ── land use from the map ──
-    fills = kml_fills(fetch(KML_URL))
+    kml = fetch(KML_URL)
+    fills = kml_fills(kml)
+    trails = kml_trails(kml)
+    friends = kml_friend_sales(kml)
+    FRIENDS_OUT.write_text(json.dumps(friends, ensure_ascii=False, indent=1) + "\n")
+    print(f"{len(friends)} friend sales → {FRIENDS_OUT.relative_to(ROOT)}: " + ", ".join(f["name"] for f in friends))
+    TRAILS_OUT.write_text(json.dumps(trails, ensure_ascii=False, separators=(",", ":")) + "\n")
+    kinds = defaultdict(int)
+    for t in trails:
+        kinds[t["kind"]] += 1
+    print(f"{len(trails)} trails → {TRAILS_OUT.relative_to(ROOT)} · " + ", ".join(f"{k} {v}" for k, v in sorted(kinds.items())))
     terms = {}
     unknown_fill = []
     for p in plots:
@@ -173,18 +279,23 @@ def main() -> int:
 
     # ── rulings ──
     for pid, t in terms.items():
+        if pid in ARE_PRICE and t.get("ares"):
+            t["are_price_usd"] = ARE_PRICE[pid]
+            t["plot_price_usd"] = round(t["ares"] * ARE_PRICE[pid], 2)
+        if pid in MEASURED:
+            t["measured_m2"], t["measured_on"] = MEASURED[pid]
+            if t.get("are_price_usd"):
+                t["sheet_price_usd"] = t.get("plot_price_usd")
+                t["plot_price_usd"] = round(t["measured_m2"] / 100 * t["are_price_usd"], 2)
         if pid in REREGISTRATION:
             t["hold"] = "re-registration"
             continue
-        city = t.get("kind") in ("community", "commons")
-        if city and t["land_use"] in ("lease", "dual"):
-            t["map_use"] = t["land_use"]
-            t["land_use"] = "commons"
-        zone = next(p.get("zone", "") for p in plots if p["id"] == pid)
-        if t["land_use"] == "venture" and zone in CONSTRUCTION_DISTRICTS:
+        owner = t.get("owner", "").strip()
+        if owner.lower() in NICHES:
+            t["niche"] = owner.lower()
+            del t["owner"]
+        if pid in CONSTRUCTION:
             t["note"] = "construction business"
-            if t.get("kind") == "private":
-                t["kind"] = "business"
 
     OUT.write_text(json.dumps(terms, indent=1, ensure_ascii=False) + "\n")
     uses = defaultdict(int)

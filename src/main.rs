@@ -6,6 +6,7 @@ mod economy;
 mod elements;
 mod erp;
 mod events;
+mod friends;
 mod genetics;
 mod land;
 mod me;

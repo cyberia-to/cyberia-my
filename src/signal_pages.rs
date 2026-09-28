@@ -640,7 +640,7 @@ pub fn SignalViewPage() -> impl IntoView {
                     }}
 
                     <div class="studio-section-h" style="margin-top:16px;"><span>"CANONICAL BODY"</span></div>
-                    <pre style="font-size:10px; color:#667; overflow-x:auto; background:rgba(255,255,255,0.02); padding:10px; border-radius:4px;">{body_preview}</pre>
+                    <pre style="font-size:10px; color:#777777; overflow-x:auto; background:rgba(255,255,255,0.02); padding:10px; border-radius:4px;">{body_preview}</pre>
                 </StudioShell>
             }.into_any()
         }}

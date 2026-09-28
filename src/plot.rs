@@ -6,7 +6,7 @@ use crate::deals::{
     advance_deal, cancel_deal, flat_status, fmt_ts, holder, load_deals, open_deal, FlatStatus,
     STEPS,
 };
-use crate::terms::{bare_name, fmt_usd, land_use, price_line, size_line, terms, LandUse, AVALON_TRACKS};
+use crate::terms::{bare_name, fmt_usd, land_use, price_line, size_detail, terms, LandUse, AVALON_TRACKS};
 use crate::land::{area_m2, load_map, LandFlat, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::plot_board::LandBoard;
@@ -20,21 +20,21 @@ use std::sync::Arc;
 fn district_color(zone: &str) -> &'static str {
     let z = zone.to_lowercase();
     if z.contains("avalon") {
-        "#ff6600"
+        "#ff5b00"
     } else if z.contains("sinwood") {
-        "#00ff41"
+        "#00fe00"
     } else if z.contains("bridge") {
-        "#00e5ff"
+        "#00acff"
     } else if z.contains("core") {
-        "#ffd700"
+        "#fcf000"
     } else if z.contains("ether") {
-        "#9945ff"
+        "#d500f9"
     } else if z.contains("asgard") {
-        "#ff0040"
+        "#ff0000"
     } else if z.contains("edem") || z.contains("canyon") {
-        "#00ffd0"
+        "#304ffe"
     } else {
-        "#c8c8d2"
+        "#ffffff"
     }
 }
 
@@ -89,10 +89,11 @@ pub fn PlotPage() -> impl IntoView {
     let flat = map.phase0.iter().find(|f| f.id == id).cloned();
 
     let Some(flat) = flat else {
+        document().set_title("Cyberia — no such flat");
         return view! {
             <div class="page-shell" style="padding:40px;">
                 <h1 style="color: var(--cyber-red);">"404"</h1>
-                <p style="color:#888; margin-top:12px;">{format!("no flat called {id} on the Gesing map")}</p>
+                <p style="color:#777777; margin-top:12px;">{format!("no flat called {id} on the Gesing map")}</p>
                 <a href="/map" style="color: var(--cyber-green);">"← back to the map"</a>
             </div>
         }
@@ -112,11 +113,8 @@ pub fn PlotPage() -> impl IntoView {
     let fid = flat.id.clone();
     let fname = flat.name.clone();
 
-    // arrived from the map's LEASE press: open the request right away
-    if lease_mode && flat_status(&fid, &deals.get_untracked()) == FlatStatus::Available {
-        deals.update(|d| open_deal(d, &fid, &fname));
-        push_intent("YOU", "lease", &fid);
-    }
+    // arrived from the map's LEASE press: the deal panel leads, the request
+    // opens only when you press REQUEST LEASE
 
     let status = Memo::new({
         let fid = fid.clone();
@@ -166,15 +164,12 @@ pub fn PlotPage() -> impl IntoView {
                             "Avalon special project — on request, as a joint venture: {}",
                             AVALON_TRACKS.join(" · ")
                         ),
-                        FlatStatus::OnRequest => "business ground — a business or a joint venture, on request".to_string(),
+                        FlatStatus::OnRequest => "business ground — no price in the book yet, on request".to_string(),
                         FlatStatus::Closed => match (lu, terms(&fid)) {
                             (_, Some(t)) if t.in_reregistration() => {
                                 "the title is being re-registered · off sale until it settles".to_string()
                             }
                             (LandUse::Commons | LandUse::Special | LandUse::Unclassified, _) => lu.line().to_string(),
-                            (LandUse::Lease | LandUse::Dual, Some(t)) if !t.is_city_land() && t.price().is_none() => {
-                                "opens with the second wave".to_string()
-                            }
                             (_, Some(t)) if t.is_city_land() => format!("{} — the valley keeps it open for everyone", t.kind_line()),
                             (_, Some(_)) => "the plot sheet has no price for it yet".to_string(),
                             (_, None) => "this flat is not in the plot sheet yet".to_string(),
@@ -185,11 +180,15 @@ pub fn PlotPage() -> impl IntoView {
                 ),
             };
             let price = match lu {
-                LandUse::Venture => Some("business / joint-venture terms".to_string()),
+                LandUse::Venture if fid.starts_with("avalon") => Some("joint-venture terms".to_string()),
+                LandUse::Venture if st == FlatStatus::OnRequest => Some("on request".to_string()),
                 LandUse::Hgb => terms(&fid)
                     .and_then(|t| t.are_price_usd)
                     .map(|a| format!("{} / are · whole district", fmt_usd(a))),
                 _ if st == FlatStatus::Closed => None,
+                _ if st == FlatStatus::Available => {
+                    Some(terms(&fid).and_then(price_line).unwrap_or_else(|| "price on request".into()))
+                }
                 _ => terms(&fid).and_then(price_line),
             };
             let since = deal
@@ -295,7 +294,7 @@ pub fn PlotPage() -> impl IntoView {
                             {format!(
                                 "{} · {} · sheet: {} · {:.0} m perimeter · {} verts{owner_line}",
                                 lu_page.label(),
-                                size_line(book, area),
+                                size_detail(book, area),
                                 book.map(|t| t.kind_line()).unwrap_or_else(|| "not in the plot sheet".into()),
                                 perimeter,
                                 flat.coords.len(),

@@ -208,7 +208,7 @@ pub fn ServicesPage() -> impl IntoView {
 
                 <div class="list-toolbar bank-toolbar" style="margin-bottom:12px;">
                     <div class="list-filters" style="align-items:center; gap:8px;">
-                        <span style="color:#556; font-size:10px; letter-spacing:1px;">"QTY"</span>
+                        <span style="color:#4b4b4d; font-size:10px; letter-spacing:1px;">"QTY"</span>
                         <input class="found-input el-qty" type="text" prop:value=move || qty.get()
                             on:input=move |ev| qty.set(event_target_value(&ev)) />
                         <span class="studio-meta">"hours / jobs per order"</span>

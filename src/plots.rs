@@ -215,7 +215,7 @@ pub fn PlotsPage() -> impl IntoView {
                         let zone_r = r.rating.zone;
                         let depth_r = r.rating.depth;
                         let area = fmt_area_m2(r.m2);
-                        let name = r.name.to_uppercase();
+                        let name = crate::terms::bare_name(&r.name);
                         let zone = r.zone.to_uppercase();
                         let href = format!("/map?plot={}", r.id);
                         let live = score >= 65.0 || r.named;

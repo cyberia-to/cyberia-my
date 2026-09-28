@@ -11,14 +11,13 @@ use crate::terms::{
     bare_name, district_sale, fmt_usd, land_use, price_line, size_line, terms, LandUse, AVALON_TRACKS,
 };
 use crate::land::FLAG_SVG;
+use crate::friends::friend_sales;
 use crate::nav::CyberiaNav;
-use crate::robots::load_owned;
 use crate::wallet::{load_intents, load_leases, push_intent};
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
 const MAP_JSON: &str = include_str!("cyberia_map.json");
@@ -60,24 +59,18 @@ struct DomainMark {
     coords: Vec<[f64; 2]>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum LeftBoard {
-    Fleets,
-    Domains,
-}
-
 const DOMAIN_POS_KEY: &str = "cyberia.domain_positions.v1";
 
 fn triad_color(triad: &str) -> &'static str {
     match triad {
-        "form" => "#00b4ff",  // cyan — rules
-        "mass" => "#ff6501",  // orange — matter
-        "space" => "#1700fe", // blue — where
-        "life" => "#00ff01",  // green — alive
-        "word" => "#6b00fe",  // violet — meaning
-        "work" => "#ffc501",  // yellow — making
-        "play" => "#fe0000",  // red — coordinate
-        _ => "#00ff01",
+        "form" => "#00acff",  // cyan — rules
+        "mass" => "#ff5b00",  // orange — matter
+        "space" => "#304ffe", // blue — where
+        "life" => "#00fe00",  // green — alive
+        "word" => "#d500f9",  // violet — meaning
+        "work" => "#fcf000",  // yellow — making
+        "play" => "#ff0000",  // red — coordinate
+        _ => "#00fe00",
     }
 }
 
@@ -154,25 +147,6 @@ fn apply_domain_positions(mut domains: Vec<DomainMark>) -> Vec<DomainMark> {
     domains
 }
 
-/// flat id → [lon, lat] of the worksite the plot's owner set on the ground.
-const WORK_AT_KEY: &str = "cyberia.work_at.v1";
-
-fn load_work_at() -> HashMap<String, [f64; 2]> {
-    web_sys::window()
-        .and_then(|w| w.local_storage().ok().flatten())
-        .and_then(|ls| ls.get_item(WORK_AT_KEY).ok().flatten())
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
-}
-
-fn save_work_at(m: &HashMap<String, [f64; 2]>) {
-    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
-        if let Ok(s) = serde_json::to_string(m) {
-            let _ = ls.set_item(WORK_AT_KEY, &s);
-        }
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct Flat {
     id: String,
@@ -183,77 +157,6 @@ struct Flat {
     coords: Vec<[f64; 2]>,
     #[serde(default)]
     zone: String,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct FleetUnit {
-    id: &'static str,
-    name: &'static str,
-    kind: &'static str, // worker | machine
-    role: &'static str,
-    status: &'static str, // idle | busy | offline
-    phase: u32,
-}
-
-/// Gesing hard-force workers (ops roster) — six on the map.
-/// Source: cve/ops/hard force.md crews (repair · cube · base · pruning).
-const WORKERS: &[FleetUnit] = &[
-    FleetUnit {
-        id: "w-sutar",
-        name: "SUTAR",
-        kind: "worker",
-        role: "repair lead · energy/water",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-sudi",
-        name: "SUDI",
-        kind: "worker",
-        role: "cube lead · build",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-budi",
-        name: "BUDI",
-        kind: "worker",
-        role: "cube · build",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-angga",
-        name: "ANGGA",
-        kind: "worker",
-        role: "base lead · road/trail",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-arima",
-        name: "ARIMA",
-        kind: "worker",
-        role: "pruning lead · land",
-        status: "idle",
-        phase: 0,
-    },
-    FleetUnit {
-        id: "w-suardita",
-        name: "SUARDITA",
-        kind: "worker",
-        role: "pruning · compost",
-        status: "idle",
-        phase: 0,
-    },
-];
-
-fn all_stock_fleets() -> impl Iterator<Item = &'static FleetUnit> {
-    WORKERS.iter()
-}
-
-fn stock_fleet(id: &str) -> Option<&'static FleetUnit> {
-    all_stock_fleets().find(|f| f.id == id)
 }
 
 /// Open ring (no duplicate close point).
@@ -305,16 +208,6 @@ fn area_m2(coords: &[[f64; 2]]) -> f64 {
     (a.abs()) * 0.5
 }
 
-fn fmt_area_m2(m2: f64) -> String {
-    if m2 >= 10_000.0 {
-        format!("{:.2} ha ({:.0} m²)", m2 / 10_000.0, m2)
-    } else if m2 >= 100.0 {
-        format!("{:.0} m²", m2)
-    } else {
-        format!("{:.1} m²", m2)
-    }
-}
-
 fn zone_key(flat: &Flat) -> &str {
     if !flat.zone.is_empty() {
         return flat.zone.as_str();
@@ -332,88 +225,23 @@ fn zone_key(flat: &Flat) -> &str {
 fn zone_color(zone_or_id: &str) -> &'static str {
     let z = zone_or_id.to_lowercase();
     if z.contains("avalon") {
-        "#ff6600"
+        "#ff5b00"
     } else if z.contains("sinwood") {
-        "#00ff41"
+        "#00fe00"
     } else if z.contains("bridge") {
-        "#00e5ff"
+        "#00acff"
     } else if z.contains("core") {
-        "#ffd700"
+        "#fcf000"
     } else if z.contains("ether") {
-        "#9945ff"
+        "#d500f9"
     } else if z.contains("asgard") {
-        "#ff0040"
+        "#ff0000"
     } else if z.contains("edem") || z.contains("canyon") {
-        "#00ffd0"
+        "#304ffe"
     } else {
-        "#c8c8d2"
+        "#ffffff"
     }
 }
-
-/// Land-use colour is the fill (prysm: acid, not pastel); how free the flat
-/// is sets the strength, hover / select lift it.
-fn land_fill(lu: LandUse, status: FlatStatus, selected: bool, hover: bool) -> String {
-    let hex = lu.color();
-    let r = u8::from_str_radix(&hex[1..3], 16).unwrap_or(255);
-    let g = u8::from_str_radix(&hex[3..5], 16).unwrap_or(255);
-    let b = u8::from_str_radix(&hex[5..7], 16).unwrap_or(255);
-    let lift = if selected {
-        0.32
-    } else if hover {
-        0.2
-    } else {
-        0.0
-    };
-    let a = (status.alpha() + lift).min(0.95);
-    format!("rgba({r},{g},{b},{a:.2})")
-}
-
-fn render_fleet_card(
-    f: &'static FleetUnit,
-    selected_fleet: RwSignal<Option<String>>,
-) -> impl IntoView {
-    let id = f.id.to_string();
-    let id2 = id.clone();
-    let offline = f.status == "offline" || f.phase > 0;
-    let kind_worker = f.kind == "worker";
-    let name = f.name;
-    let role = f.role;
-    let kind = f.kind;
-    let status = f.status;
-    let phase = f.phase;
-    view! {
-        <button
-            class=move || {
-                let sel = selected_fleet.get().as_deref() == Some(id.as_str());
-                format!(
-                    "fleet-card{}{}{}",
-                    if sel { " sel" } else { "" },
-                    if offline { " offline" } else { "" },
-                    if kind_worker { " worker" } else { " machine" },
-                )
-            }
-            disabled=offline
-            on:click=move |_| {
-                if !offline {
-                    selected_fleet.set(Some(id2.clone()));
-                }
-            }
-        >
-            <div class="fleet-top">
-                <span class="fleet-name">{name}</span>
-                <span class="fleet-status" style:color=status_color(status)>
-                    {status.to_uppercase()}
-                </span>
-            </div>
-            <div class="fleet-role">{role}</div>
-            <div class="fleet-meta">
-                <span>{kind.to_uppercase()}</span>
-                <span>{format!("P{phase}")}</span>
-            </div>
-        </button>
-    }
-}
-
 
 fn load_map() -> MapData {
     serde_json::from_str(MAP_JSON).expect("cyberia_map.json")
@@ -455,6 +283,30 @@ fn poly_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> Stri
     }
     s.push('Z');
     s
+}
+
+fn line_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> String {
+    let mut s = String::new();
+    for (i, c) in coords.iter().enumerate() {
+        let (x, y) = project(c[0], c[1], bbox, w, h, pad);
+        s.push_str(if i == 0 { "M" } else { " L" });
+        s.push_str(&format!("{x:.2},{y:.2}"));
+    }
+    s
+}
+
+/// Roads, paths and canyons between the plots — synced from the valley map
+/// by `scripts/sync-plot-terms.py`.
+#[derive(Clone, Debug, Deserialize)]
+struct Trail {
+    kind: String,
+    width_m: f64,
+    coords: Vec<[f64; 2]>,
+}
+
+fn trails() -> &'static [Trail] {
+    static TRAILS: std::sync::OnceLock<Vec<Trail>> = std::sync::OnceLock::new();
+    TRAILS.get_or_init(|| serde_json::from_str(include_str!("cyberia_trails.json")).unwrap_or_default())
 }
 
 /// Game camera zoom range.
@@ -559,14 +411,6 @@ fn centroid(coords: &[[f64; 2]]) -> (f64, f64) {
     (lon, lat)
 }
 
-fn status_color(s: &str) -> &'static str {
-    match s {
-        "idle" => "var(--cyber-green)",
-        "busy" => "var(--cyber-yellow)",
-        _ => "#555",
-    }
-}
-
 /// Ops map — fleets rail + flats.
 #[component]
 pub fn ValleyConsole() -> impl IntoView {
@@ -628,11 +472,11 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
             }
         });
     }
-    let selected_fleet = RwSignal::new(Some("w-sutar".to_string()));
+    // deals first: loading them drops legacy auto-opened requests from the journal
+    let deals = RwSignal::new(load_deals());
     let intents = RwSignal::new(load_intents());
     let dd = RwSignal::new(load_dd());
     let jv = RwSignal::new(load_jv());
-    let owned = RwSignal::new(load_owned());
     let leased = RwSignal::new(
         load_leases()
             .into_iter()
@@ -640,21 +484,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
             .collect::<Vec<String>>(),
     );
     let flats = RwSignal::new(map.phase0.clone()); // live land geometry (split/merge)
-    // per-flat worksite: where the assigned robot stands, set by the plot's
-    // owner (device GPS on site, or a manual tap in placing mode as fallback)
-    let work_at = RwSignal::new(load_work_at());
-    let placing_work = RwSignal::new(false);
-    let gps_status = RwSignal::new(String::new());
-    // (flat name, why it can't be leased) — the dock's LEASE press on a held flat
-    let taken_popup = RwSignal::new(None::<(String, String, String, FlatStatus)>);
-    let deals = RwSignal::new(load_deals());
 
-    // left rail: fleets (ops) or domains (shill points)
-    let left_board = RwSignal::new(if domains_board {
-        LeftBoard::Domains
-    } else {
-        LeftBoard::Fleets
-    });
     let domains = RwSignal::new(apply_domain_positions(base_domains.clone()));
     let selected_domain = RwSignal::new(
         domains
@@ -734,45 +564,8 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
         map_center.set((MAP_W * 0.5, MAP_H * 0.5));
     };
 
-    // secondary path: an owner who happens to be standing on the plot taps
-    // "USE MY GPS" and device geolocation sets the exact worksite. Most
-    // owners manage land remotely, so tapping the rendered polygon (below)
-    // is the default way to place the point.
-    let request_gps = move || {
-        let Some(fid) = selected_flat.get_untracked() else {
-            return;
-        };
-        let Some(geo) = web_sys::window().and_then(|w| w.navigator().geolocation().ok()) else {
-            gps_status.set("geolocation unavailable".into());
-            return;
-        };
-        gps_status.set("locating…".into());
-        let opts = web_sys::PositionOptions::new();
-        opts.set_enable_high_accuracy(true);
-        opts.set_timeout(15_000);
-        let ok = Closure::once(move |pos: web_sys::Position| {
-            let c = pos.coords();
-            let (lon, lat) = (c.longitude(), c.latitude());
-            work_at.update(|m| {
-                m.insert(fid.clone(), [lon, lat]);
-                save_work_at(m);
-            });
-            gps_status.set(format!("set · {lat:.5}, {lon:.5} · ±{:.0}m", c.accuracy()));
-        });
-        let err = Closure::once(move |e: web_sys::PositionError| {
-            gps_status.set(format!("gps error: {}", e.message()));
-        });
-        let _ = geo.get_current_position_with_error_callback_and_options(
-            ok.as_ref().unchecked_ref(),
-            Some(err.as_ref().unchecked_ref()),
-            &opts,
-        );
-        ok.forget();
-        err.forget();
-    };
-
     Effect::new(move |_| {
-        let title = if left_board.get() == LeftBoard::Domains {
+        let title = if domains_board {
             "Cyberia — domains · Gesing, Bali"
         } else {
             "Cyberia — map · Gesing, Bali"
@@ -804,7 +597,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                 <div class="cyberia-phase-pill">
                     <span class="phase-dot"></span>
                     {move || {
-                        if left_board.get() == LeftBoard::Domains {
+                        if domains_board {
                             let n = domains.get().len();
                             format!("21 CYBICS · {n} DOMAINS · DRAG")
                         } else {
@@ -823,41 +616,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                 {domains_board.then(|| view! {
                 <section class="cyberia-panel cyberia-fleets">
                     <div class="cyberia-panel-h">
-                        <div class="board-tabs">
-                            <a
-                                class=move || if left_board.get() == LeftBoard::Fleets { "board-tab on" } else { "board-tab" }
-                                href="/map"
-                                on:click=move |ev| {
-                                    if !domains_board {
-                                        ev.prevent_default();
-                                        left_board.set(LeftBoard::Fleets);
-                                    }
-                                }
-                            >"FLEETS"</a>
-                            <a
-                                class=move || if left_board.get() == LeftBoard::Domains { "board-tab on" } else { "board-tab" }
-                                href="/domains"
-                                on:click=move |ev| {
-                                    if domains_board {
-                                        ev.prevent_default();
-                                        left_board.set(LeftBoard::Domains);
-                                    }
-                                }
-                            >"DOMAINS"</a>
-                        </div>
+                        <span class="panel-kicker">"DOMAINS"</span>
                         <span class="panel-sub">
-                            {move || match left_board.get() {
-                                LeftBoard::Fleets => format!("{} workers", WORKERS.len()),
-                                LeftBoard::Domains => {
-                                    let n = domains.get().len();
-                                    format!("{n} cybics · drag on map")
-                                }
-                            }}
+                            {move || format!("{} cybics · drag on map", domains.get().len())}
                         </span>
                     </div>
                     <div class="fleet-list">
-                    {move || match left_board.get() {
-                        LeftBoard::Domains => {
+                    {move || {
                             let list = domains.get();
                             let baked_reset = base_domains_rail.clone();
                             let bbox_list = map_bbox_rail.clone();
@@ -985,50 +750,10 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                     }
                                 }).collect_view()}
                             }.into_any()
-                        }
-                        LeftBoard::Fleets => view! {
-                        <div class="fleet-section">"WORKERS · HARD FORCE"</div>
-                        {WORKERS.iter().map(|f| render_fleet_card(f, selected_fleet)).collect_view()}
-                        // robots you bought this session
-                        {move || owned.get().into_iter().map(|r| {
-                            let id = r.id.clone();
-                            let id2 = id.clone();
-                            let kind_worker = r.kind == "worker";
-                            let name = r.name.clone();
-                            let role = r.role.clone();
-                            let kind = r.kind.clone();
-                            view! {
-                                <button
-                                    class=move || {
-                                        let sel = selected_fleet.get().as_deref() == Some(id.as_str());
-                                        format!(
-                                            "fleet-card owned{}{}",
-                                            if sel { " sel" } else { "" },
-                                            if kind_worker { " worker" } else { " machine" },
-                                        )
-                                    }
-                                    on:click=move |_| selected_fleet.set(Some(id2.clone()))
-                                >
-                                    <div class="fleet-top">
-                                        <span class="fleet-name">{name}</span>
-                                        <span class="fleet-status" style:color=status_color("idle")>"OWNED"</span>
-                                    </div>
-                                    <div class="fleet-role">{role}</div>
-                                    <div class="fleet-meta">
-                                        <span>{kind.to_uppercase()}</span>
-                                        <span>"BOUGHT"</span>
-                                    </div>
-                                </button>
-                            }
-                        }).collect_view()}
-                        }.into_any()
                     }}
                     </div>
                     <div class="cyberia-hint">
-                        {move || match left_board.get() {
-                            LeftBoard::Domains => "Select a domain · drag its glow on the map · positions save in this browser",
-                            LeftBoard::Fleets => "Pick a fleet unit, a flat on the map, an action — then commit intent.",
-                        }}
+                        "Select a domain · drag its glow on the map · positions save in this browser"
                     </div>
                 </section>
                 })}
@@ -1240,6 +965,8 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             let m_places = map_for_svg.clone();
                             let m_cap = map_for_svg.clone();
                             let m_districts = map_for_svg.clone();
+                            let m_trails = map_for_svg.clone();
+                            let m_friends = map_for_svg.clone();
                             const W: f64 = 960.0;
                             const H: f64 = 720.0;
                             const PAD: f64 = 20.0;
@@ -1364,22 +1091,21 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                     />
                                                     <path
                                                         d=d
-                                                        fill=move || {
+                                                        // one colour per land use, exactly the prysm hex — status
+                                                        // rides on top as texture, never on the fill
+                                                        fill=land_use(&flat.id).color()
+                                                        stroke=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_fill.as_str());
-                                                            let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_fill.as_str());
-                                                            let st = flat_status(&id_fill, &deals.get());
-                                                            land_fill(land_use(&id_fill), st, sel, hov)
+                                                            if sel { "#ffffff" } else { zone_color(&z_stroke) }
                                                         }
-                                                        stroke=zone_color(&z_stroke)
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw.as_str());
                                                             // the district seam: thin idle, bold when hot
-                                                            if sel { "2.8" } else if hov { "2.2" } else { "1.2" }
+                                                            if sel { "3.0" } else if hov { "2.4" } else { "1.2" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
-                                                        paint-order="stroke fill"
                                                         vector-effect="non-scaling-stroke"
                                                         class=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_cls.as_str());
@@ -1434,6 +1160,68 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                             }
                                         }).collect_view()
                                     }}
+
+                                    // friends' sales — a title sale, the sale code's blue, solid;
+                                    // a click opens the listing's own page
+                                    {friend_sales().iter().map(|f| {
+                                        let d = poly_path(&f.coords, &m_friends.bbox, W, H, PAD);
+                                        let href = format!("/friend/{}", f.slug());
+                                        view! {
+                                            <g class="friend-sale"
+                                                on:click=move |ev| {
+                                                    if map_did_drag.get_untracked() {
+                                                        map_did_drag.set(false);
+                                                        ev.stop_propagation();
+                                                        return;
+                                                    }
+                                                    ev.stop_propagation();
+                                                    if let Some(w) = web_sys::window() {
+                                                        let _ = w.location().set_href(&href);
+                                                    }
+                                                }
+                                            >
+                                                <path
+                                                    d=d
+                                                    fill=LandUse::Hgb.color()
+                                                    stroke=LandUse::Hgb.color()
+                                                    stroke-width="1.2"
+                                                    stroke-linejoin="round"
+                                                    vector-effect="non-scaling-stroke"
+                                                    class="friend-path"
+                                                />
+                                            </g>
+                                        }
+                                    }).collect_view()}
+
+                                    // roads, paths and canyons — true width in metres, over the plots
+                                    {
+                                        let upm = (W - 2.0 * PAD) / site_span_m(&m_trails.bbox).0.max(1.0);
+                                        // paths first, roads over them, canyons on top
+                                        let mut list: Vec<&Trail> = trails().iter().collect();
+                                        list.sort_by_key(|t| match t.kind.as_str() { "path" => 0, "road" => 1, _ => 2 });
+                                        list.into_iter().map(|t| {
+                                            let d = line_path(&t.coords, &m_trails.bbox, W, H, PAD);
+                                            let (stroke, dash, opacity) = match t.kind.as_str() {
+                                                "road" => ("#777777", "none", "0.95"),
+                                                "canyon" => ("#304ffe", "6 4", "0.85"),
+                                                _ => ("#4b4b4d", "none", "0.95"),
+                                            };
+                                            view! {
+                                                <path
+                                                    d=d
+                                                    fill="none"
+                                                    stroke=stroke
+                                                    stroke-width=format!("{:.2}", t.width_m * upm)
+                                                    stroke-dasharray=dash
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    opacity=opacity
+                                                    class=format!("trail {}", t.kind)
+                                                    pointer-events="none"
+                                                />
+                                            }
+                                        }).collect_view()
+                                    }
 
                                     {m_places.places.iter().map(|p| {
                                         if p.coords.is_empty() { return view! { <g></g> }.into_any(); }
@@ -1559,6 +1347,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                     }).collect_view()
                                     }
 
+
                                     <text
                                         class="map-caption"
                                         text-anchor="start"
@@ -1588,7 +1377,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                         let st = flat_status(&id, &deals.get());
                                         let lu = land_use(&id);
                                         let line = match (st, lu) {
-                                            (FlatStatus::Available, _) => terms(&id).and_then(price_line).unwrap_or_default(),
+                                            (FlatStatus::Available, _) => terms(&id).and_then(price_line).unwrap_or_else(|| "price on request".into()),
                                             (FlatStatus::OnRequest, LandUse::Hgb) => terms(&id)
                                                 .and_then(|t| t.are_price_usd)
                                                 .map(|a| format!("{} / are · whole district", fmt_usd(a)))
@@ -1606,14 +1395,15 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         })}
 
                         <div class="map-hud-hint">
-                            {move || if left_board.get() == LeftBoard::Domains {
+                            {move || if domains_board {
                                 "drag domain glows to place · pan empty space · scroll zoom · saved in browser"
                             } else {
-                                "drag pan · scroll zoom · drag domain glows · /domains for domain board"
+                                "drag pan · scroll zoom · tap a flat"
                             }}
                         </div>
                     </div>
                     <div class="flat-legend">
+                        <div class="leg-row">
                         <span class="leg dim">"fill = land use"</span>
                         {move || {
                             let list = flats.get();
@@ -1626,8 +1416,27 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                 .collect_view()
                         }}
                         <span class="leg hatch">"OWNED"</span>
-                        <span class="leg dash">"IN TRANSFER"</span>
-                        <span class="leg dim">"· outline = district"</span>
+                        <span class="leg dash" title="a lease request you opened in this browser">"IN TRANSFER"</span>
+                        </div>
+                        <div class="leg-row">
+                        <span class="leg dim">"outline = district"</span>
+                        {[
+                            ("sinwood", "SINWOOD"),
+                            ("avalon", "AVALON"),
+                            ("etherland", "ETHERLAND"),
+                            ("asgard", "ASGARD"),
+                            ("core", "CORE"),
+                            ("bridge", "BRIDGE"),
+                            ("edem", "EDEM"),
+                        ].into_iter().map(|(z, name)| view! {
+                            <span class="leg ring" style:--sw=zone_color(z)>{name}</span>
+                        }).collect_view()}
+                        <span class="leg dim">"· lines"</span>
+                        <span class="leg line" style:--sw="#777777">"ROAD"</span>
+                        <span class="leg line thin" style:--sw="#4b4b4d">"PATH"</span>
+                        <span class="leg line dashed" style:--sw="#304ffe">"CANYON"</span>
+                        <span class="leg swatch" style:--sw=LandUse::Hgb.color()>"FRIENDS' SALE"</span>
+                        </div>
                     </div>
                 </section>
 
@@ -1635,214 +1444,57 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                 <section class="cyberia-panel cyberia-right">
                     <div class="cyberia-panel-h">
                         <span class="panel-kicker">"RENDER"</span>
-                        <span class="panel-sub">"flat · robot · 3d"</span>
+                        <span class="panel-sub">"flat · 3d"</span>
                     </div>
                     <div class="render-3d">
                         {move || {
-                            // —— flat ——
-                            let fid = selected_flat.get().unwrap_or_else(|| "sinwood".into());
+                            let fid = selected_flat.get().unwrap_or_default();
                             let list = flats.get();
                             let flat = list.iter().find(|f| f.id == fid).cloned();
                             let flat_name = flat
                                 .as_ref()
                                 .map(|f| bare_name(&f.name))
                                 .unwrap_or_else(|| fid.to_uppercase());
-                            let flat_kind = flat.as_ref().map(|f| f.kind.clone()).unwrap_or_default();
                             let n = flat.as_ref().map(|f| f.coords.len()).unwrap_or(0);
-                            let land_hue = if fid.contains("avalon") {
-                                "var(--cyber-orange)"
-                            } else if fid.contains("sinwood") {
-                                "var(--cyber-green)"
-                            } else {
-                                "var(--cyber-cyan)"
-                            };
-                            let leased_tag = if leased.get().iter().any(|x| x == &fid) {
-                                " · LEASED"
-                            } else {
-                                ""
-                            };
+                            let lu = land_use(&fid);
+                            let status = flat_status(&fid, &deals.get());
 
-                            // real footprint of the selected plot, in its own
-                            // local frame (12% margin so the outline doesn't
-                            // touch the render edge)
+                            // real footprint of the selected flat, in its own
+                            // local frame (12% margin so the outline clears the edge)
                             const RW: f64 = 120.0;
                             const RH: f64 = 120.0;
                             const RPAD: f64 = 14.0;
-                            let local_bbox = flat.as_ref().map(|f| {
-                                let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(&f.coords);
-                                let mlon = ((max_lon - min_lon) * 0.12).max(1e-7);
-                                let mlat = ((max_lat - min_lat) * 0.12).max(1e-7);
-                                BBox {
-                                    min_lon: min_lon - mlon,
-                                    max_lon: max_lon + mlon,
-                                    min_lat: min_lat - mlat,
-                                    max_lat: max_lat + mlat,
-                                }
-                            });
                             let plot_path = flat
                                 .as_ref()
-                                .zip(local_bbox.as_ref())
-                                .map(|(f, bb)| poly_path(&f.coords, bb, RW, RH, RPAD))
+                                .map(|f| {
+                                    let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(&f.coords);
+                                    let mlon = ((max_lon - min_lon) * 0.12).max(1e-7);
+                                    let mlat = ((max_lat - min_lat) * 0.12).max(1e-7);
+                                    let bb = BBox {
+                                        min_lon: min_lon - mlon,
+                                        max_lon: max_lon + mlon,
+                                        min_lat: min_lat - mlat,
+                                        max_lat: max_lat + mlat,
+                                    };
+                                    poly_path(&f.coords, &bb, RW, RH, RPAD)
+                                })
                                 .unwrap_or_default();
 
-                            // worksite: the GPS spot the owner set on the ground,
-                            // or the plot's centroid until they set one
-                            let work_map = work_at.get();
-                            let has_explicit = flat
-                                .as_ref()
-                                .map(|f| work_map.contains_key(&f.id))
-                                .unwrap_or(false);
-                            let work_pt = flat.as_ref().map(|f| {
-                                work_map
-                                    .get(&f.id)
-                                    .copied()
-                                    .unwrap_or_else(|| {
-                                        let (clon, clat) = centroid(&f.coords);
-                                        [clon, clat]
-                                    })
-                            });
-                            let (dot_x, dot_y) = work_pt
-                                .zip(local_bbox.as_ref())
-                                .map(|(p, bb)| project(p[0], p[1], bb, RW, RH, RPAD))
-                                .unwrap_or((RW / 2.0, RH / 2.0));
-                            let dot_cls = if has_explicit {
-                                "plot-work-dot set"
-                            } else {
-                                "plot-work-dot default"
-                            };
-                            let fid_click = fid.clone();
-                            let local_bbox_click = local_bbox.clone();
-
-                            // —— robot / worker ——
-                            let rid = selected_fleet.get();
-                            let (bot_name, bot_kind, bot_role, bot_status, bot_owned) = rid
-                                .as_ref()
-                                .and_then(|id| {
-                                    stock_fleet(id).map(|f| {
-                                        (
-                                            f.name.to_string(),
-                                            f.kind.to_string(),
-                                            f.role.to_string(),
-                                            f.status.to_string(),
-                                            false,
-                                        )
-                                    }).or_else(|| {
-                                        owned.get().into_iter().find(|r| &r.id == id).map(|r| {
-                                            (r.name, r.kind, r.role, "idle".into(), true)
-                                        })
-                                    })
-                                })
-                                .unwrap_or_else(|| {
-                                    ("—".into(), "none".into(), "no unit selected".into(), "—".into(), false)
-                                });
-                            let is_worker = bot_kind == "worker";
-                            let bot_hue = if bot_kind == "none" {
-                                "#444"
-                            } else if is_worker {
-                                "var(--cyber-cyan)"
-                            } else {
-                                "var(--cyber-orange)"
-                            };
-                            let bot_cls = if bot_kind == "none" {
-                                "bot-figure empty"
-                            } else if is_worker {
-                                "bot-figure worker"
-                            } else {
-                                "bot-figure machine"
-                            };
-
                             view! {
-                                // one scene: the plot's real footprint fills the render window,
-                                // the assigned unit is marked where it actually works on it
                                 <div class="render-stage">
-                                    <div
-                                        class=move || if placing_work.get() { "plot-slab placing" } else { "plot-slab" }
-                                        style:--prism-color=land_hue
-                                    >
-                                        <svg
-                                            class="plot-slab-svg"
-                                            viewBox="0 0 120 120"
-                                            on:click=move |ev| {
-                                                if !placing_work.get_untracked() { return; }
-                                                let Some(bb) = local_bbox_click.clone() else { return; };
-                                                let Some(el) = ev.current_target().and_then(|t| t.dyn_into::<web_sys::Element>().ok()) else { return; };
-                                                let rect = el.get_bounding_client_rect();
-                                                let (wx, wy) = client_to_world(
-                                                    ev.client_x() as f64 - rect.left(),
-                                                    ev.client_y() as f64 - rect.top(),
-                                                    rect.width(),
-                                                    rect.height(),
-                                                    (RW / 2.0, RH / 2.0),
-                                                    1.0,
-                                                    RW,
-                                                    RH,
-                                                );
-                                                let (lon, lat) = unproject(wx, wy, &bb, RW, RH, RPAD);
-                                                work_at.update(|m| {
-                                                    m.insert(fid_click.clone(), [lon, lat]);
-                                                    save_work_at(m);
-                                                });
-                                                gps_status.set("set · tap".into());
-                                                placing_work.set(false);
-                                            }
-                                        >
+                                    <div class="plot-slab" style:--prism-color=lu.color()>
+                                        <svg class="plot-slab-svg" viewBox="0 0 120 120">
                                             <path d=plot_path class="plot-slab-path" />
-                                            <circle cx=dot_x cy=dot_y r="9" class="plot-work-pulse" style:--bot-color=bot_hue></circle>
-                                            <circle cx=dot_x cy=dot_y r="5" class=dot_cls style:--bot-color=bot_hue></circle>
                                         </svg>
                                     </div>
                                     <div class="prism-meta">
-                                        <div class="prism-name">{format!("{flat_name}{leased_tag}")}</div>
-                                        <div class="prism-sub">{format!("{flat_kind} · {n} verts")}</div>
+                                        <div class="prism-name">{flat_name}</div>
                                         <div class="prism-sub">
-                                            {if has_explicit { "worksite · set by owner" } else { "worksite · centroid (default)" }}
+                                            <span style:color=lu.color()>{lu.label()}</span>
+                                            {format!(" · {} · {n} verts", status.label().to_lowercase())}
                                         </div>
                                         <a class="prism-link" href=format!("/plot/{fid}")>"OPEN FLAT →"</a>
                                     </div>
-                                    <div class="worksite-strip">
-                                        <div class="bot-mini">
-                                            <div class=bot_cls style:--bot-color=bot_hue>
-                                                <div class="bot-head"></div>
-                                                <div class="bot-body">
-                                                    <div class="bot-chest"></div>
-                                                    <div class="bot-arm bot-arm-l"></div>
-                                                    <div class="bot-arm bot-arm-r"></div>
-                                                </div>
-                                                <div class="bot-legs">
-                                                    <div class="bot-leg"></div>
-                                                    <div class="bot-leg"></div>
-                                                </div>
-                                                <div class="bot-glow"></div>
-                                            </div>
-                                        </div>
-                                        <div class="worksite-info">
-                                            <div class="wi-name" style:color=bot_hue>{bot_name}</div>
-                                            <div class="wi-role">{bot_role}</div>
-                                            <div class="wi-status">
-                                                {
-                                                    let status_lbl = if bot_owned {
-                                                        "OWNED".to_string()
-                                                    } else {
-                                                        bot_status.to_uppercase()
-                                                    };
-                                                    format!("{} · {}", bot_kind.to_uppercase(), status_lbl)
-                                                }
-                                            </div>
-                                        </div>
-                                        <div class="gps-controls">
-                                            <button
-                                                type="button"
-                                                class="gps-btn primary"
-                                                on:click=move |_| placing_work.update(|p| *p = !*p)
-                                            >
-                                                {move || if placing_work.get() { "TAP THE PLOT" } else { "SET ON MAP" }}
-                                            </button>
-                                            <button type="button" class="gps-btn" on:click=move |_| request_gps()>
-                                                "USE MY GPS · on site"
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="gps-status">{move || gps_status.get()}</div>
                                 </div>
                             }
                         }}
@@ -1886,8 +1538,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                     .as_ref()
                                     .map(|d| format!("{} / are · district {}", fmt_usd(d.are_price), fmt_usd(d.total())))
                                     .unwrap_or_else(|| "—".into()),
-                                LandUse::Venture => "business / joint-venture terms".to_string(),
+                                LandUse::Venture if status == FlatStatus::OnRequest => {
+                                    if zone == "avalon" { "joint-venture terms".to_string() } else { "on request".to_string() }
+                                }
                                 _ if status == FlatStatus::Closed => "—".to_string(),
+                                _ if status == FlatStatus::Available => {
+                                    book.and_then(price_line).unwrap_or_else(|| "price on request".into())
+                                }
                                 _ => book.and_then(price_line).unwrap_or_else(|| "—".into()),
                             };
                             let req_key = if lu == LandUse::Hgb { format!("district:{zone}") } else { flat.id.clone() };
@@ -1899,9 +1556,6 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             let closed_line = match (lu, book) {
                                 (_, Some(t)) if t.in_reregistration() => "the title is being re-registered · off sale until it settles".to_string(),
                                 (LandUse::Commons | LandUse::Special | LandUse::Unclassified, _) => lu.line().to_string(),
-                                (LandUse::Lease | LandUse::Dual, Some(t)) if !t.is_city_land() && t.price().is_none() => {
-                                    "opens with the second wave".to_string()
-                                }
                                 (_, Some(t)) if t.is_city_land() => format!("{} — held by the valley for everyone", t.kind_line()),
                                 (_, Some(_)) => "the plot sheet has no price for it yet".to_string(),
                                 (_, None) => "this flat is not in the plot sheet yet".to_string(),
@@ -1942,7 +1596,12 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                 {match (status, mine) {
                                     (FlatStatus::Available, _) => view! {
                                         <a class="intent-commit lease flat-cta" href=lease_href>
-                                            {if lu == LandUse::Dual { "LEASE THIS FLAT · business or home" } else { "LEASE THIS FLAT" }}
+                                            {match lu {
+                                                LandUse::Dual => "LEASE THIS FLAT · business or home",
+                                                LandUse::Venture => "LEASE FOR A BUSINESS",
+                                                _ => "LEASE THIS FLAT",
+                                            }}
+                                            {book.filter(|t| !t.niche.is_empty()).map(|t| format!(" · {}", t.niche.to_uppercase()))}
                                         </a>
                                     }.into_any(),
                                     (_, true) => view! {
@@ -1979,7 +1638,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                             {if city_held {
                                                                 "the valley builds here · open to a joint venture"
                                                             } else {
-                                                                "for a building company · not private · on request"
+                                                                "for a building company · on request"
                                                             }}
                                                         </span>
                                                     }.into_any()
@@ -1993,7 +1652,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                 }.into_any(),
                                                 _ => view! {
                                                     <span class="use-t">"BUSINESS GROUND"</span>
-                                                    <span class="use-s">"opens to a business or a joint venture, on request"</span>
+                                                    <span class="use-s">"no price in the book yet · ask and the valley answers"</span>
                                                 }.into_any(),
                                             }}
                                         </div>
@@ -2018,7 +1677,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                                             intents.set(load_intents());
                                                         }
                                                     >
-                                                        {if lu == LandUse::Hgb { "REQUEST THE DISTRICT TITLE" } else { "REQUEST A JOINT VENTURE" }}
+                                                        {if lu == LandUse::Hgb {
+                                                            "REQUEST THE DISTRICT TITLE"
+                                                        } else if zone == "avalon" || book.map(|t| t.is_construction()).unwrap_or(false) {
+                                                            "REQUEST A JOINT VENTURE"
+                                                        } else {
+                                                            "ASK FOR THIS GROUND"
+                                                        }}
                                                     </button>
                                                 }.into_any()
                                             }
@@ -2064,7 +1729,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         <div class="fleet-section" style="margin-top: 10px;">"YOUR REQUESTS"</div>
                         <div class="intent-queue">
                             {move || {
-                                let q = intents.get();
+                                let q: Vec<_> = intents.get().into_iter().filter(|i| i.fleet == "YOU").collect();
                                 if q.is_empty() {
                                     return view! {
                                         <div class="intent-empty">"nothing asked yet — lease a flat or request its papers"</div>
@@ -2103,93 +1768,21 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                 </section>
             </div>
 
-            // ── the flat is already someone's — say so with a pulse, not an error ──
-            {move || taken_popup.get().map(|(fid, name, zone, status)| {
-                let book = terms(&fid);
-                let lu = land_use(&fid);
-                let holder = book
-                    .and_then(|t| t.holder())
-                    .map(|h| format!(" by {h}"))
-                    .unwrap_or_default();
-                let (title, line) = match (status, lu) {
-                    (FlatStatus::Owned, _) => (
-                        "THIS FLAT HAS A PULSE",
-                        format!("{name} is already held{holder}. Land here changes hands once — pick a flat that still breathes free."),
-                    ),
-                    (FlatStatus::Transfer, _) => (
-                        "RIGHTS IN TRANSIT",
-                        format!("{name} is mid-handshake: a lease is moving through review right now. Watch the map — if the deal falls through, the flat opens again."),
-                    ),
-                    (FlatStatus::OnRequest, LandUse::Hgb) => (
-                        "SOLD AS ONE DISTRICT",
-                        format!("{name} is part of {} — the whole district goes as one HGB title at {} / are. Ask for the district title from the FLAT panel.", zone.to_uppercase(), book.and_then(|t| t.are_price_usd).map(fmt_usd).unwrap_or_default()),
-                    ),
-                    (FlatStatus::OnRequest, _) if book.map(|t| t.is_construction()).unwrap_or(false) => (
-                        "CONSTRUCTION BUSINESS",
-                        format!("{name} is set aside for the valley's building trade — a construction business, not a private home. Bring the company or a joint venture: ask from the FLAT panel."),
-                    ),
-                    (FlatStatus::OnRequest, _) if zone == "avalon" => (
-                        "AVALON IS A SPECIAL PROJECT",
-                        format!("{name} opens on request, as a joint venture: education from age 0 to maturity, a health resort, a cascade of reservoirs with aquatics. Bring a project that fits — the valley builds it with you. Ask from the FLAT panel."),
-                    ),
-                    (FlatStatus::OnRequest, _) => (
-                        "BUSINESS GROUND",
-                        format!("{name} is set aside for a business or a joint venture. Bring the business — ask from the FLAT panel and the valley answers."),
-                    ),
-                    (FlatStatus::Closed, _) if book.map(|t| t.in_reregistration()).unwrap_or(false) => (
-                        "PAPERS IN MOTION",
-                        format!("{name} is off sale while its title is re-registered. When the new papers settle, the map will say so — the bright green flats are open now."),
-                    ),
-                    (FlatStatus::Closed, LandUse::Special) => (
-                        "HIGH-ENERGY GROUND",
-                        format!("{name} is one of the valley's special places — where the energy runs strongest. It stays with the valley, open to everyone who comes to feel it."),
-                    ),
-                    (FlatStatus::Closed, LandUse::Lease | LandUse::Dual)
-                        if book.map(|t| !t.is_city_land() && t.price().is_none()).unwrap_or(false) => (
-                        "OPENS WITH THE SECOND WAVE",
-                        format!("{name} joins the lease book with the second wave. The bright green flats are open now — start there."),
-                    ),
-                    (FlatStatus::Closed, LandUse::Commons) => (
-                        "THIS GROUND BELONGS TO EVERYONE",
-                        format!("{name} is city commons — the valley keeps it open for all of us. The green flats are the ones waiting for a name."),
-                    ),
-                    (FlatStatus::Closed, _) if book.map(|t| t.is_city_land()).unwrap_or(false) => (
-                        "THIS GROUND BELONGS TO EVERYONE",
-                        format!("{name} is {} — the valley keeps it for all of us. The green flats are the ones waiting for a name.", book.map(|t| t.kind_line()).unwrap_or_default()),
-                    ),
-                    (FlatStatus::Closed, _) => (
-                        "NOT ON THE BOOK YET",
-                        format!("{name} has no price in the plot sheet yet. The green flats are priced and waiting — start there."),
-                    ),
-                    (FlatStatus::Available, _) => ("", String::new()),
-                };
-                view! {
-                    <div class="cyberia-sheet-backdrop" on:click=move |_| taken_popup.set(None)>
-                        <div class="cyberia-sheet taken-sheet" on:click=move |ev| ev.stop_propagation()>
-                            <div class="sheet-h">
-                                <span class="panel-kicker">{title}</span>
-                                <button class="sheet-x" on:click=move |_| taken_popup.set(None)>"✕"</button>
-                            </div>
-                            <p class="sheet-note taken-line">{line}</p>
-                            <button class="intent-commit" on:click=move |_| taken_popup.set(None)>
-                                "BACK TO THE MAP"
-                            </button>
-                        </div>
-                    </div>
-                }
-            })}
-
             <div class="search-dock cyberia-dock">
                 <span class="dock-count">
                     {move || {
-                        let n = intents.get().len();
-                        let m = flats.get().len();
-                        let o = owned.get().len();
-                        let l = leased.get().len();
-                        format!(
-                            "{n} intents · {m} flats · {}w+{o} fleets · {l} leases",
-                            WORKERS.len(),
-                        )
+                        let d = deals.get();
+                        let (mut open, mut ask, mut held) = (0, 0, 0);
+                        for f in flats.get().iter() {
+                            match flat_status(&f.id, &d) {
+                                FlatStatus::Available => open += 1,
+                                FlatStatus::OnRequest => ask += 1,
+                                FlatStatus::Owned | FlatStatus::Transfer => held += 1,
+                                FlatStatus::Closed => {}
+                            }
+                        }
+                        let mine = intents.get().iter().filter(|i| i.fleet == "YOU").count();
+                        format!("{open} flats open · {ask} on request · {held} held · {mine} your requests")
                     }}
                 </span>
                 <div class="cyberia-cta-bar dock-ctas">
@@ -2197,13 +1790,9 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         let Some(fid) = selected_flat.get_untracked() else { return };
                         let list = flats.get_untracked();
                         let Some(flat) = list.iter().find(|f| f.id == fid) else { return };
-                        let status = flat_status(&flat.id, &deals.get_untracked());
-                        if status == FlatStatus::Available {
-                            if let Some(w) = web_sys::window() {
-                                let _ = w.location().set_href(&format!("/plot/{fid}/lease"));
-                            }
-                        } else {
-                            taken_popup.set(Some((flat.id.clone(), bare_name(&flat.name), zone_key(flat).to_string(), status)));
+                        // every flat answers on its own page — open or not, the deal panel says why
+                        if let Some(w) = web_sys::window() {
+                            let _ = w.location().set_href(&format!("/plot/{}/lease", flat.id));
                         }
                     }>
                         <span class="cta-ico">"🗺"</span>
@@ -2216,7 +1805,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                         match (flat_status(&f, &deals.get()), land_use(&f)) {
                                             (FlatStatus::Available, _) => match terms(&f).and_then(|t| t.price()) {
                                                 Some(p) => format!("{name} · {}", fmt_usd(p)),
-                                                None => name.clone(),
+                                                None => format!("{name} · price on request"),
                                             },
                                             (FlatStatus::OnRequest, LandUse::Hgb) => format!("{name} · whole-district HGB sale"),
                                             (FlatStatus::OnRequest, _) => format!("{name} · joint venture on request"),

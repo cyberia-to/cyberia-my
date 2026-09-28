@@ -698,7 +698,7 @@ pub fn StatesPage() -> impl IntoView {
                                     <a class=format!("states-row{podium}") href=href target="_blank" rel="noopener">
                                         <span class="st-rank" style=format!(
                                             "color: {}; font-weight: {};",
-                                            if rank <= 3 { "var(--cyber-yellow)" } else if rank <= 10 { "var(--cyber-cyan)" } else { "#666" },
+                                            if rank <= 3 { "var(--cyber-yellow)" } else if rank <= 10 { "var(--cyber-cyan)" } else { "#777777" },
                                             if rank <= 10 { "700" } else { "400" },
                                         )>{rank}</span>
                                         <span class="st-name">

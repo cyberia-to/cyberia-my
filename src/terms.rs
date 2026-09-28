@@ -52,9 +52,9 @@ impl LandUse {
 
     pub fn label(self) -> &'static str {
         match self {
-            LandUse::Lease => "LEASE",
-            LandUse::Venture => "JOINT VENTURE · BUSINESS",
-            LandUse::Commons => "CITY COMMONS",
+            LandUse::Lease => "RESIDENCE",
+            LandUse::Venture => "BUSINESS",
+            LandUse::Commons => "CITY LAND",
             LandUse::Hgb => "HGB SALE · WHOLE DISTRICT",
             LandUse::Dual => "DUAL USE",
             LandUse::Special => "SPECIAL PLACE",
@@ -65,9 +65,9 @@ impl LandUse {
     /// legend-sized
     pub fn short(self) -> &'static str {
         match self {
-            LandUse::Lease => "LEASE",
-            LandUse::Venture => "VENTURE · BUSINESS",
-            LandUse::Commons => "COMMONS",
+            LandUse::Lease => "RESIDENCE",
+            LandUse::Venture => "BUSINESS",
+            LandUse::Commons => "CITY LAND",
             LandUse::Hgb => "HGB DISTRICT",
             LandUse::Dual => "DUAL USE",
             LandUse::Special => "SPECIAL",
@@ -77,8 +77,8 @@ impl LandUse {
 
     pub fn line(self) -> &'static str {
         match self {
-            LandUse::Lease => "25-year leasehold",
-            LandUse::Venture => "business or joint venture · on request",
+            LandUse::Lease => "a home on a 25-year leasehold",
+            LandUse::Venture => "ground for a business",
             LandUse::Commons => "belongs to the city · shared by everyone",
             LandUse::Hgb => "the whole district sold as one HGB title",
             LandUse::Dual => "business and housing on one flat",
@@ -134,6 +134,14 @@ pub struct Terms {
     /// `re-registration` — off sale while the title is being re-issued
     #[serde(default)]
     pub hold: String,
+    /// the business niche the valley keeps the flat for — `spa`, `chill`
+    #[serde(default)]
+    pub niche: String,
+    /// surveyed on the ground — outranks the sheet's ares and the drawing
+    #[serde(default)]
+    pub measured_m2: Option<f64>,
+    #[serde(default)]
+    pub measured_on: String,
 }
 
 impl Terms {
@@ -147,10 +155,20 @@ impl Terms {
         (!o.is_empty() && !o.eq_ignore_ascii_case(CITY)).then_some(o)
     }
 
-    /// The sheet marks it shared or city-held, whatever the map colour.
+    /// The sheet sets it aside for the city (commons), or the city holds it.
     pub fn is_city_land(&self) -> bool {
-        matches!(self.kind.as_str(), "community" | "commons")
-            || self.owner.trim().eq_ignore_ascii_case(CITY)
+        self.kind == "commons" || self.owner.trim().eq_ignore_ascii_case(CITY)
+    }
+
+    /// The sheet's type in the valley's words: private → residence,
+    /// community / commerce → business, commons → city land.
+    pub fn kind_word(&self) -> &'static str {
+        match self.kind.as_str() {
+            "private" => "residence",
+            "community" | "commerce" => "business",
+            "commons" => "city land",
+            _ => "",
+        }
     }
 
     pub fn price(&self) -> Option<f64> {
@@ -165,19 +183,24 @@ impl Terms {
         self.note == "construction business"
     }
 
-    /// `private` · `community · spa` · `construction business · not private`
+    /// `residence` · `business · spa` · `construction business of the city · laba`
     pub fn kind_line(&self) -> String {
         if !self.note.is_empty() {
-            return match self.kind.as_str() {
-                "business" => format!("{} · not private", self.note),
-                _ if self.is_city_land() => format!("{} of the city · {}", self.note, self.purpose),
-                _ => self.note.clone(),
+            return if self.is_city_land() {
+                format!("{} of the city · {}", self.note, self.purpose)
+            } else {
+                self.note.clone()
             };
         }
-        match (self.kind.is_empty(), self.purpose.is_empty()) {
-            (true, _) => "not in the plot sheet".into(),
-            (false, true) => self.kind.clone(),
-            (false, false) => format!("{} · {}", self.kind, self.purpose),
+        let base = match (self.kind_word(), self.purpose.is_empty()) {
+            ("", _) => "not in the plot sheet".to_string(),
+            (w, true) => w.to_string(),
+            (w, false) => format!("{w} · {}", self.purpose),
+        };
+        if self.niche.is_empty() {
+            base
+        } else {
+            format!("{base} · {} niche", self.niche)
         }
     }
 }
@@ -256,11 +279,45 @@ pub fn price_line(t: &Terms) -> Option<String> {
     })
 }
 
-/// `9.6 ares` from the sheet, else the drawn polygon.
+/// `1138.24` → `1,138.24`
+fn fmt_m2(v: f64) -> String {
+    let whole = fmt_usd(v.trunc()).trim_start_matches('$').to_string();
+    let frac = ((v - v.trunc()) * 100.0).round() as i64;
+    if frac == 0 {
+        whole
+    } else {
+        format!("{whole}.{frac:02}")
+    }
+}
+
+fn fmt_ares(a: f64) -> String {
+    let s = format!("{a:.2}");
+    let s = s.trim_end_matches('0').trim_end_matches('.');
+    format!("{s} ares")
+}
+
+/// The flat's size as one fact, in ares — surveyed first, then the sheet,
+/// else the drawn polygon. Previews show only this.
 pub fn size_line(t: Option<&Terms>, drawn_m2: f64) -> String {
-    match t.and_then(|t| t.ares) {
-        Some(a) => format!("{a} ares · {:.0} m²", a * 100.0),
-        None => format!("{:.1} ares · {drawn_m2:.0} m² drawn", drawn_m2 / 100.0),
+    match (t.and_then(|t| t.measured_m2), t.and_then(|t| t.ares)) {
+        (Some(m), _) => fmt_ares(m / 100.0),
+        (None, Some(a)) => fmt_ares(a),
+        (None, None) => fmt_ares((drawn_m2 / 10.0).round() / 10.0),
+    }
+}
+
+/// The flat page's full account of its size. A survey triangulates the
+/// slope, so on mountain ground it reads larger than the map, which measures
+/// the horizontal projection — the page says both.
+pub fn size_detail(t: Option<&Terms>, drawn_m2: f64) -> String {
+    match (t.and_then(|t| t.measured_m2), t.and_then(|t| t.ares)) {
+        (Some(m), _) => format!(
+            "{} · {} m² surveyed on the slope · {drawn_m2:.0} m² in plan on the map",
+            fmt_ares(m / 100.0),
+            fmt_m2(m)
+        ),
+        (None, Some(a)) => format!("{} · {:.0} m²", fmt_ares(a), a * 100.0),
+        (None, None) => format!("{} · {drawn_m2:.0} m² drawn on the map", fmt_ares((drawn_m2 / 10.0).round() / 10.0)),
     }
 }
 

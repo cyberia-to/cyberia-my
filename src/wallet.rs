@@ -131,12 +131,6 @@ pub fn load_leases() -> Vec<Lease> {
         .unwrap_or_default()
 }
 
-pub fn save_leases(list: &[Lease]) {
-    if let Ok(raw) = serde_json::to_string(list) {
-        ls_set(LEASES_KEY, &raw);
-    }
-}
-
 pub fn load_intents() -> Vec<IntentRec> {
     ls_get(INTENTS_KEY)
         .and_then(|raw| serde_json::from_str(&raw).ok())

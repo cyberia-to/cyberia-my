@@ -278,7 +278,7 @@ pub fn MePage() -> impl IntoView {
                 <section class="me-section">
                     <div class="me-section-h">
                         <span>"P&L · BY CATEGORY"</span>
-                        <span style="color:#556; font-size:10px;">"from the CX journal"</span>
+                        <span style="color:#4b4b4d; font-size:10px;">"from the CX journal"</span>
                     </div>
                     {move || {
                         let _ = intents.get();
@@ -333,7 +333,7 @@ pub fn MePage() -> impl IntoView {
                 <section class="me-section">
                     <div class="me-section-h">
                         <span>"CASHFLOW"</span>
-                        <span style="color:#556; font-size:10px;">{move || {
+                        <span style="color:#4b4b4d; font-size:10px;">{move || {
                             let _ = intents.get();
                             format!("{} movements · balance {} CX", load_ledger().len(), fmt_qty(load_balance().cx))
                         }}</span>
@@ -370,14 +370,14 @@ pub fn MePage() -> impl IntoView {
                                     view! {
                                         <div class="pnl-row cash-row">
                                             <span>
-                                                <span style="color:#556; font-size:10px; margin-right:8px;">{when}</span>
+                                                <span style="color:#4b4b4d; font-size:10px; margin-right:8px;">{when}</span>
                                                 <span style="color:var(--cyber-cyan); font-size:10px; letter-spacing:1px; margin-right:8px;">{cat.to_uppercase()}</span>
-                                                <span style="color:#99a;">{note}</span>
+                                                <span style="color:#777777;">{note}</span>
                                             </span>
                                             <span class="pnl-num" style=format!("color:{};", if flow >= 0.0 { "var(--cyber-green)" } else { "var(--cyber-red)" })>
                                                 {format!("{}{}", if flow >= 0.0 { "+" } else { "" }, fmt_qty(flow))}
                                             </span>
-                                            <span class="pnl-num" style="color:#889;">{fmt_qty(bal)}</span>
+                                            <span class="pnl-num" style="color:#777777;">{fmt_qty(bal)}</span>
                                         </div>
                                     }
                                 }).collect_view()}

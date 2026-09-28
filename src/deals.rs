@@ -5,18 +5,22 @@
 //! deal stored here. A signed or live deal wins; otherwise the book speaks.
 
 use crate::terms::{terms, LandUse};
+use crate::wallet::{load_intents, save_intents};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub const DEALS_KEY: &str = "cyberia.deals.v1";
+pub const DEALS_KEY: &str = "cyberia.deals.v2";
+/// v1 deals were opened by merely visiting /plot/<id>/lease — not by a
+/// request — so they are dropped on load, with their journal lines.
+const LEGACY_DEALS_KEY: &str = "cyberia.deals.v1";
 
 /// Where a flat stands inside its land use. The colour on the map is the
 /// land use (`terms::LandUse`); this is what you can do with the flat.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FlatStatus {
-    /// lease / dual use, priced and free
+    /// residence / business / dual use, priced and free
     Available,
-    /// joint venture, business, or a whole-district HGB sale
+    /// Avalon joint venture, unpriced business ground, a whole-district HGB sale
     OnRequest,
     /// a live deal in this browser
     Transfer,
@@ -33,17 +37,6 @@ impl FlatStatus {
             FlatStatus::Transfer => "IN TRANSFER",
             FlatStatus::Owned => "OWNED",
             FlatStatus::Closed => "NOT ON OFFER",
-        }
-    }
-
-    /// fill strength on the map — the land use colour carries the hue
-    pub fn alpha(self) -> f64 {
-        match self {
-            FlatStatus::Available => 0.62,
-            FlatStatus::OnRequest => 0.50,
-            FlatStatus::Transfer => 0.42,
-            FlatStatus::Owned => 0.30,
-            FlatStatus::Closed => 0.26,
         }
     }
 }
@@ -115,9 +108,19 @@ pub fn fmt_ts(ms: f64) -> String {
 }
 
 pub fn load_deals() -> HashMap<String, Deal> {
-    web_sys::window()
-        .and_then(|w| w.local_storage().ok().flatten())
-        .and_then(|ls| ls.get_item(DEALS_KEY).ok().flatten())
+    let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) else {
+        return HashMap::new();
+    };
+    if let Some(raw) = ls.get_item(LEGACY_DEALS_KEY).ok().flatten() {
+        let legacy: HashMap<String, Deal> = serde_json::from_str(&raw).unwrap_or_default();
+        let mut q = load_intents();
+        q.retain(|i| !(i.fleet == "YOU" && i.action == "lease" && legacy.contains_key(&i.flat)));
+        save_intents(&q);
+        let _ = ls.remove_item(LEGACY_DEALS_KEY);
+    }
+    ls.get_item(DEALS_KEY)
+        .ok()
+        .flatten()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default()
 }
@@ -150,11 +153,14 @@ pub fn flat_status(id: &str, deals: &HashMap<String, Deal>) -> FlatStatus {
     if t.in_reregistration() {
         return FlatStatus::Closed;
     }
+    let priced_and_free = !t.is_city_land() && t.price().is_some();
     match t.land_use() {
-        LandUse::Lease | LandUse::Dual if !t.is_city_land() && t.price().is_some() => {
-            FlatStatus::Available
-        }
-        // the city's own business ground stays open to a joint venture
+        // Avalon is one special project — joint venture only, whatever the price
+        LandUse::Venture if id.starts_with("avalon") => FlatStatus::OnRequest,
+        LandUse::Lease | LandUse::Dual | LandUse::Venture if priced_and_free => FlatStatus::Available,
+        // on sale with the price agreed on request
+        LandUse::Lease | LandUse::Dual if !t.is_city_land() => FlatStatus::Available,
+        // business ground with no price yet, the city's construction business
         LandUse::Venture => FlatStatus::OnRequest,
         LandUse::Hgb if !t.is_city_land() => FlatStatus::OnRequest,
         _ => FlatStatus::Closed,
@@ -171,7 +177,7 @@ pub fn open_deal(deals: &mut HashMap<String, Deal>, id: &str, name: &str) {
         history: vec![DealEvent {
             step: "request".into(),
             ts_ms: now_ms(),
-            note: "lease requested from the map".into(),
+            note: "lease requested on the flat page".into(),
         }],
     };
     match deals.get_mut(id) {

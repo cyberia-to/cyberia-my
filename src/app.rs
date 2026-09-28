@@ -4,6 +4,7 @@ use crate::cities::CitiesPage;
 use crate::console::{DomainsBoard, ValleyConsole};
 use crate::elements::ElementsPage;
 use crate::events::EventsPage;
+use crate::friends::FriendPage;
 use crate::genetics::GeneticsPage;
 use crate::me::MePage;
 use crate::nav::{CyberiaNav, MenuPage};
@@ -31,7 +32,7 @@ pub fn App() -> impl IntoView {
                 view! {
                     <div class="page-shell" style="padding:40px;">
                         <h1 style="color: var(--cyber-red);">"404"</h1>
-                        <p style="color:#888; margin-top:12px;">"City or page not found."</p>
+                        <p style="color:#777777; margin-top:12px;">"City or page not found."</p>
                         <a href="/studio" style="color: var(--cyber-green);">"← Signal Studio"</a>
                     </div>
                 }
@@ -94,6 +95,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/domains") view=DomainsBoard />
                 <Route path=path!("/plot/:id") view=PlotPage />
                 <Route path=path!("/plot/:id/lease") view=PlotPage />
+                <Route path=path!("/friend/:slug") view=FriendPage />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />
 
