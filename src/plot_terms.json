@@ -429,15 +429,6 @@
   "are_price_usd": 5000.0,
   "plot_price_usd": 25000.0
  },
- "sinwood-23": {
-  "fill": "#0f9d58",
-  "land_use": "lease",
-  "address": "sinwood-23",
-  "kind": "private",
-  "ares": 5.3,
-  "are_price_usd": 5000.0,
-  "plot_price_usd": 26500.0
- },
  "sinwood-22": {
   "fill": "#097138",
   "land_use": "lease",
@@ -446,6 +437,15 @@
   "ares": 5.1,
   "are_price_usd": 5000.0,
   "plot_price_usd": 25500.0
+ },
+ "sinwood-23": {
+  "fill": "#0f9d58",
+  "land_use": "lease",
+  "address": "sinwood-23",
+  "kind": "private",
+  "ares": 5.3,
+  "are_price_usd": 5000.0,
+  "plot_price_usd": 26500.0
  },
  "sinwood-24": {
   "fill": "#097138",
@@ -613,110 +613,117 @@
   "land_use": "special",
   "address": "etherland-0",
   "kind": "commons",
-  "ares": 10.4
+  "ares": 10.1
  },
  "etherland-1": {
-  "fill": "#c2185b",
-  "land_use": "special",
-  "address": "etherland-1",
-  "kind": "commons",
-  "ares": 20.9
- },
- "etherland-2": {
   "fill": "#9c27b0",
   "land_use": "commons",
+  "address": "etherland-1",
+  "kind": "commons",
+  "ares": 4.0
+ },
+ "etherland-2": {
+  "fill": "#c2185b",
+  "land_use": "special",
   "address": "etherland-2",
   "kind": "commons",
-  "ares": 8.8
+  "ares": 15.0
  },
  "etherland-3": {
-  "fill": "#ffea00",
-  "land_use": "dual",
+  "fill": "#9c27b0",
+  "land_use": "commons",
   "address": "etherland-3",
-  "kind": "commerce",
-  "ares": 20.6
+  "kind": "commons",
+  "ares": 8.8
  },
  "etherland-4": {
   "fill": "#ffea00",
   "land_use": "dual",
   "address": "etherland-4",
-  "kind": "private",
-  "ares": 10.4
- },
- "etherland-5": {
-  "fill": "#fbc02d",
-  "land_use": "dual",
-  "address": "etherland-5",
-  "kind": "private",
-  "ares": 15.3
- },
- "etherland-6": {
-  "fill": "#9c27b0",
-  "land_use": "commons",
-  "address": "etherland-6",
-  "kind": "private",
-  "ares": 6.9
- },
- "etherland-7": {
-  "fill": "#ffea00",
-  "land_use": "dual",
-  "address": "etherland-7",
-  "kind": "private",
-  "ares": 13.4
- },
- "etherland-8": {
-  "fill": "#c2185b",
-  "land_use": "special",
-  "address": "etherland-8",
   "kind": "commerce",
   "ares": 17.2
  },
- "etherland-9": {
+ "etherland-5": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-5",
+  "kind": "private",
+  "ares": 10.4
+ },
+ "etherland-6": {
   "fill": "#fbc02d",
   "land_use": "dual",
-  "address": "etherland-9",
+  "address": "etherland-6",
   "kind": "private",
-  "ares": 8.2
+  "ares": 15.3
+ },
+ "etherland-7": {
+  "fill": "#9c27b0",
+  "land_use": "commons",
+  "address": "etherland-7",
+  "kind": "private",
+  "ares": 6.9
+ },
+ "etherland-8": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-8",
+  "kind": "private",
+  "ares": 13.4
+ },
+ "etherland-9": {
+  "fill": "#c2185b",
+  "land_use": "special",
+  "address": "etherland-9",
+  "kind": "commerce",
+  "ares": 17.2
  },
  "etherland-10": {
-  "fill": "#ffea00",
+  "fill": "#fbc02d",
   "land_use": "dual",
   "address": "etherland-10",
   "kind": "private",
-  "ares": 9.6
+  "ares": 8.2
  },
  "etherland-11": {
-  "fill": "#fbc02d",
+  "fill": "#ffea00",
   "land_use": "dual",
   "address": "etherland-11",
   "kind": "private",
-  "ares": 6.2
+  "ares": 9.6
  },
  "etherland-12": {
-  "fill": "#ffea00",
+  "fill": "#fbc02d",
   "land_use": "dual",
   "address": "etherland-12",
+  "kind": "private",
+  "ares": 6.2
+ },
+ "etherland-13": {
+  "fill": "#ffea00",
+  "land_use": "dual",
+  "address": "etherland-13",
   "kind": "commerce",
   "ares": 12.8
  },
- "etherland-13": {
+ "etherland-14": {
   "fill": "#fbc02d",
   "land_use": "dual",
-  "address": "etherland-13",
+  "address": "etherland-14",
   "kind": "private",
   "ares": 10.8
  },
- "etherland-14": {
+ "etherland-15": {
   "fill": "#9c27b0",
   "land_use": "commons",
-  "address": "etherland-14",
+  "address": "etherland-15",
   "kind": "private",
   "ares": 10.5
  },
- "etherland-15": {
+ "etherland-16": {
   "fill": "#fbc02d",
   "land_use": "dual",
-  "address": "etherland-15",
+  "address": "etherland-16",
   "kind": "private",
   "ares": 10.1
  },

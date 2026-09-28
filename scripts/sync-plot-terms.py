@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Build src/plot_terms.json — the lease book, one entry per map plot — and
+"""Build src/cyberia_map.json's plots — the polygons as drawn on the map —
+src/plot_terms.json — the lease book, one entry per map plot — and
 src/cyberia_trails.json — the roads, paths and canyons between the plots — and
 src/friend_sales.json — land our friends sell beside the valley.
 
@@ -31,6 +32,7 @@ reported, not dropped.
 import csv
 import io
 import json
+import math
 import re
 import sys
 import urllib.request
@@ -126,6 +128,48 @@ def kml_fills(kml: str):
     return out
 
 
+def plot_id(name: str) -> str:
+    """'sinwood-25:@alex_dzin' → 'sinwood-25-alex-dzin', 'sinwood - 20' → 'sinwood-20'."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def plan_m2(coords) -> float:
+    """Area in plan, the same projection as land.rs `area_m2`."""
+    ring = coords[:-1] if len(coords) > 1 and coords[0] == coords[-1] else coords
+    lat0 = sum(c[1] for c in ring) / len(ring)
+    lon0 = sum(c[0] for c in ring) / len(ring)
+    r, k = 6_378_137.0, math.cos(math.radians(lat0))
+    xy = [(math.radians(c[0] - lon0) * r * k, math.radians(c[1] - lat0) * r) for c in ring]
+    return abs(sum(xy[i - 1][0] * xy[i][1] - xy[i][0] * xy[i - 1][1] for i in range(len(xy)))) / 2
+
+
+def kml_plots(kml: str):
+    """The map's `plots` folder → phase-0 flats, in map order. A name drawn
+    twice gets `-2` on its id; the district is the name's first word."""
+    root = ET.fromstring(kml)
+    folder = next(f for f in root.iter(NS + "Folder") if f.find(NS + "name").text == "plots")
+    out, seen = [], defaultdict(int)
+    for pm in folder.findall(NS + "Placemark"):
+        ring = pm.find(".//" + NS + "Polygon//" + NS + "coordinates")
+        if ring is None:
+            continue
+        name = pm.find(NS + "name").text.strip()
+        base = plot_id(name)
+        seen[base] += 1
+        pid = base if seen[base] == 1 else f"{base}-{seen[base]}"
+        coords = [[round(float(v), 7) for v in t.split(",")[:2]] for t in ring.text.split()]
+        out.append({
+            "id": pid,
+            "name": name,
+            "kind": "plot",
+            "zone": base.split("-")[0],
+            "phase": 0,
+            "geom": "polygon",
+            "coords": coords,
+        })
+    return out
+
+
 def kml_trails(kml: str):
     """The map's `trails` folder → roads, paths and canyons with a width in metres.
 
@@ -206,11 +250,26 @@ def kml_friend_sales(kml: str):
 
 
 def main() -> int:
-    plots = json.load(open(MAP))["phase0"]
+    # ── the polygons, as drawn ──
+    kml = fetch(KML_URL)
+    world = json.load(open(MAP))
+    before = {p["id"]: p["coords"] for p in world["phase0"]}
+    plots = kml_plots(kml)
+    world["phase0"] = plots
+    world["stats"]["plot_count"] = len(plots)
+    world["stats"]["plot_ha"] = round(sum(plan_m2(p["coords"]) for p in plots) / 10_000, 2)
+    MAP.write_text(json.dumps(world, ensure_ascii=False, indent=2) + "\n")
+    now = {p["id"]: p["coords"] for p in plots}
+    added = [i for i in now if i not in before]
+    gone = [i for i in before if i not in now]
+    redrawn = [i for i in now if i in before and now[i] != before[i]]
+    print(f"{len(plots)} plots → {MAP.relative_to(ROOT)}"
+          + (f" · new {', '.join(added)}" if added else "")
+          + (f" · gone {', '.join(gone)}" if gone else "")
+          + (f" · redrawn {', '.join(redrawn)}" if redrawn else ""))
     ids = [p["id"] for p in plots]
 
     # ── land use from the map ──
-    kml = fetch(KML_URL)
     fills = kml_fills(kml)
     trails = kml_trails(kml)
     friends = kml_friend_sales(kml)

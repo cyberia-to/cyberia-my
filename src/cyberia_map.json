@@ -15,8 +15,8 @@
     ]
   },
   "stats": {
-    "plot_count": 126,
-    "plot_ha": 16.53,
+    "plot_count": 127,
+    "plot_ha": 16.52,
     "district_ha": 37.05
   },
   "phase0": [
@@ -827,6 +827,18 @@
         [
           115.0899737,
           -8.3019911
+        ],
+        [
+          115.0900575,
+          -8.3019261
+        ],
+        [
+          115.0900501,
+          -8.3018982
+        ],
+        [
+          115.0900407,
+          -8.3018159
         ],
         [
           115.0901185,
@@ -2161,8 +2173,8 @@
       ]
     },
     {
-      "id": "sinwood-23",
-      "name": "sinwood-23",
+      "id": "sinwood-22",
+      "name": "sinwood-22",
       "kind": "plot",
       "zone": "sinwood",
       "phase": 0,
@@ -2191,8 +2203,8 @@
       ]
     },
     {
-      "id": "sinwood-22",
-      "name": "sinwood-22",
+      "id": "sinwood-23",
+      "name": "sinwood-23",
       "kind": "plot",
       "zone": "sinwood",
       "phase": 0,
@@ -3011,9 +3023,39 @@
       "geom": "polygon",
       "coords": [
         [
-          115.0884538,
-          -8.3013474
+          115.0886959,
+          -8.3011525
         ],
+        [
+          115.0885964,
+          -8.301237
+        ],
+        [
+          115.0884639,
+          -8.3013422
+        ],
+        [
+          115.0885241,
+          -8.3014193
+        ],
+        [
+          115.0888261,
+          -8.3011816
+        ],
+        [
+          115.0886959,
+          -8.3011525
+        ]
+      ]
+    },
+    {
+      "id": "etherland-2",
+      "name": "etherland-2",
+      "kind": "plot",
+      "zone": "etherland",
+      "phase": 0,
+      "geom": "polygon",
+      "coords": [
         [
           115.0885241,
           -8.3014193
@@ -3047,22 +3089,30 @@
           -8.3010438
         ],
         [
-          115.0887266,
-          -8.3010438
+          115.088725,
+          -8.3010669
         ],
         [
-          115.0884597,
-          -8.3013384
+          115.0886959,
+          -8.3011525
         ],
         [
-          115.0884538,
-          -8.3013474
+          115.0888261,
+          -8.3011816
+        ],
+        [
+          115.0886575,
+          -8.3013238
+        ],
+        [
+          115.0885241,
+          -8.3014193
         ]
       ]
     },
     {
-      "id": "etherland-2",
-      "name": "etherland-2",
+      "id": "etherland-3",
+      "name": "etherland-3",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3119,8 +3169,8 @@
       ]
     },
     {
-      "id": "etherland-3",
-      "name": "etherland-3",
+      "id": "etherland-4",
+      "name": "etherland-4",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3165,8 +3215,8 @@
       ]
     },
     {
-      "id": "etherland-4",
-      "name": "etherland-4",
+      "id": "etherland-5",
+      "name": "etherland-5",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3211,8 +3261,8 @@
       ]
     },
     {
-      "id": "etherland-5",
-      "name": "etherland-5",
+      "id": "etherland-6",
+      "name": "etherland-6",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3257,8 +3307,8 @@
       ]
     },
     {
-      "id": "etherland-6",
-      "name": "etherland-6",
+      "id": "etherland-7",
+      "name": "etherland-7",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3291,8 +3341,8 @@
       ]
     },
     {
-      "id": "etherland-7",
-      "name": "etherland-7",
+      "id": "etherland-8",
+      "name": "etherland-8",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3345,8 +3395,8 @@
       ]
     },
     {
-      "id": "etherland-8",
-      "name": "etherland-8",
+      "id": "etherland-9",
+      "name": "etherland-9",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3399,8 +3449,8 @@
       ]
     },
     {
-      "id": "etherland-9",
-      "name": "etherland-9",
+      "id": "etherland-10",
+      "name": "etherland-10",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3457,8 +3507,8 @@
       ]
     },
     {
-      "id": "etherland-10",
-      "name": "etherland-10",
+      "id": "etherland-11",
+      "name": "etherland-11",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3499,8 +3549,8 @@
       ]
     },
     {
-      "id": "etherland-11",
-      "name": "etherland-11",
+      "id": "etherland-12",
+      "name": "etherland-12",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3529,8 +3579,8 @@
       ]
     },
     {
-      "id": "etherland-12",
-      "name": "etherland-12",
+      "id": "etherland-13",
+      "name": "etherland-13",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3603,8 +3653,8 @@
       ]
     },
     {
-      "id": "etherland-13",
-      "name": "etherland-13",
+      "id": "etherland-14",
+      "name": "etherland-14",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3637,8 +3687,8 @@
       ]
     },
     {
-      "id": "etherland-14",
-      "name": "etherland-14",
+      "id": "etherland-15",
+      "name": "etherland-15",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
@@ -3671,8 +3721,8 @@
       ]
     },
     {
-      "id": "etherland-15",
-      "name": "etherland-15",
+      "id": "etherland-16",
+      "name": "etherland-16",
       "kind": "plot",
       "zone": "etherland",
       "phase": 0,
