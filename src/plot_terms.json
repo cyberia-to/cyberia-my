@@ -676,7 +676,7 @@
   "land_use": "special",
   "address": "etherland-9",
   "kind": "commerce",
-  "ares": 17.2
+  "ares": 20.1
  },
  "etherland-10": {
   "fill": "#fbc02d",
@@ -697,7 +697,7 @@
   "land_use": "dual",
   "address": "etherland-12",
   "kind": "private",
-  "ares": 6.2
+  "ares": 6.1
  },
  "etherland-13": {
   "fill": "#ffea00",
@@ -725,7 +725,7 @@
   "land_use": "dual",
   "address": "etherland-16",
   "kind": "private",
-  "ares": 10.1
+  "ares": 9.7
  },
  "bridge-0": {
   "fill": "#9c27b0",

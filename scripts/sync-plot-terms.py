@@ -190,11 +190,13 @@ def kml_trails(kml: str):
     folder = next(f for f in root.iter(NS + "Folder") if f.find(NS + "name").text == "trails")
     out = []
     for pm in folder.findall(NS + "Placemark"):
-        line = pm.find(".//" + NS + "LineString/" + NS + "coordinates")
-        if line is None:
-            continue
-        coords = [[round(float(v), 7) for v in t.split(",")[:2]] for t in line.text.split()]
-        if len(coords) < 2:
+        # a trail drawn in several strokes is one placemark with a line per stroke
+        strokes = [
+            [[round(float(v), 7) for v in t.split(",")[:2]] for t in line.text.split()]
+            for line in pm.findall(".//" + NS + "LineString/" + NS + "coordinates")
+        ]
+        strokes = [c for c in strokes if len(c) >= 2]
+        if not strokes:
             continue
         name = pm.find(NS + "name").text.strip()
         d = pm.find(NS + "description")
@@ -209,7 +211,8 @@ def kml_trails(kml: str):
             width = 3.5 if "small vehicles" in low else 5.0
         else:
             kind, width = "path", 2.0
-        out.append({"name": name, "kind": kind, "width_m": width, "color": colour or "", "note": desc, "coords": coords})
+        for coords in strokes:
+            out.append({"name": name, "kind": kind, "width_m": width, "color": colour or "", "note": desc, "coords": coords})
     return out
 
 
