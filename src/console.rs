@@ -1440,7 +1440,6 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         <span class="leg line" style:--sw="#777777">"ROAD"</span>
                         <span class="leg line thin" style:--sw="#097138">"PATH"</span>
                         <span class="leg line dashed" style:--sw="#304ffe">"CANYON"</span>
-                        <span class="leg swatch" style:--sw=LandUse::Hgb.color()>"FRIENDS' SALE"</span>
                         </div>
                     </div>
                 </section>
