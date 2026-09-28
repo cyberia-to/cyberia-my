@@ -68,7 +68,7 @@ impl LandUse {
             LandUse::Lease => "RESIDENCE",
             LandUse::Venture => "BUSINESS",
             LandUse::Commons => "CITY LAND",
-            LandUse::Hgb => "HGB DISTRICT",
+            LandUse::Hgb => "FOR SALE",
             LandUse::Dual => "DUAL USE",
             LandUse::Special => "SPECIAL",
             LandUse::Unclassified => "UNSET",
