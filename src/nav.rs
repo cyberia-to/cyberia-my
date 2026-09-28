@@ -1,6 +1,6 @@
 //! Shared top nav for cyberia.my catalog surfaces.
 //!
-//! Only YOU · CITIES · MAP stay in view. Every other surface is parked under
+//! Only CITIES · MAP stay in view. Every other surface is parked under
 //! `/menu/<name>` — still routed, no longer competing for the eye.
 
 use crate::land::FLAG_SVG;
@@ -8,6 +8,7 @@ use leptos::prelude::*;
 
 /// Surfaces hidden from the top bar: (slug, label, one-line purpose).
 pub const HIDDEN: &[(&str, &str, &str)] = &[
+    ("me", "YOU", "your dashboard — balance, leases, requests"),
     ("world", "WORLD", "who am I — words, links, signals"),
     ("studio", "STUDIO", "the constructor hub"),
     ("elements", "ELEMENTS", "periodic table of the stack"),
@@ -23,13 +24,12 @@ pub const HIDDEN: &[(&str, &str, &str)] = &[
     ("states", "STATES", "earth states by capital"),
 ];
 
-/// `active`: you | cities | map
+/// `active`: cities | map
 #[component]
 pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
     let a = active;
     view! {
         <div class="map-zone cyberia-nav">
-            <a class=if a == "you" { "nav-btn nav-here nav-you" } else { "nav-btn nav-you" } href="/me">"YOU"</a>
             <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href="/cities">"CITIES"</a>
             <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href="/map">"MAP"</a>
         </div>

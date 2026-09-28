@@ -101,6 +101,7 @@ pub fn App() -> impl IntoView {
 
                 // parked surfaces — out of the top bar, still one URL away
                 <Route path=path!("/menu") view=MenuPage />
+                <Route path=path!("/menu/me") view=MePage />
                 <Route path=path!("/menu/world") view=WorldPage />
                 <Route path=path!("/menu/studio") view=StudioPage />
                 <Route path=path!("/menu/elements") view=ElementsPage />
