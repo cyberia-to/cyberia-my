@@ -77,6 +77,9 @@ def main() -> int:
     routes = list(ROUTES)
     for p in plots:
         routes += [f"plot/{p['id']}", f"plot/{p['id']}/lease"]
+    for f in json.load(open(ROOT / "src" / "friend_sales.json")):
+        slug = "".join(c if c.isascii() and c.isalnum() else "-" for c in f["name"].lower())
+        routes.append(f"friend/{slug}")
 
     written = []
     for r in routes:

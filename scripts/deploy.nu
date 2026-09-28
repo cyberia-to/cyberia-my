@@ -23,7 +23,9 @@ def main [--skip-build] {
 
   print "→ rsync dist/ → cyberproxy:/var/www/html/cyberia.my/"
   ^ssh cyberproxy "mkdir -p /var/www/html/cyberia.my"
-  ^rsync -az --delete $"($root)/dist/" "cyberproxy:/var/www/html/cyberia.my/"
+  # the build is flat files only; every top-level directory in the docroot
+  # (cx, hackathon, music, fonts — synced from the pages repo) is left alone
+  ^rsync -az --delete --exclude "/*/" $"($root)/dist/" "cyberproxy:/var/www/html/cyberia.my/"
 
   print ""
   print "✓ deployed → https://cyberia.my/  (after DNS + TLS)"
