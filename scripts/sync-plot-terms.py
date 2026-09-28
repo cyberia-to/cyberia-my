@@ -165,7 +165,7 @@ def kml_trails(kml: str):
             width = 3.5 if "small vehicles" in low else 5.0
         else:
             kind, width = "path", 2.0
-        out.append({"name": name, "kind": kind, "width_m": width, "note": desc, "coords": coords})
+        out.append({"name": name, "kind": kind, "width_m": width, "color": colour or "", "note": desc, "coords": coords})
     return out
 
 

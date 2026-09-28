@@ -301,6 +301,9 @@ fn line_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> Stri
 struct Trail {
     kind: String,
     width_m: f64,
+    /// the line colour on the valley map
+    #[serde(default)]
+    color: String,
     coords: Vec<[f64; 2]>,
 }
 
@@ -1201,10 +1204,12 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                         list.sort_by_key(|t| match t.kind.as_str() { "path" => 0, "road" => 1, _ => 2 });
                                         list.into_iter().map(|t| {
                                             let d = line_path(&t.coords, &m_trails.bbox, W, H, PAD);
+                                            // paths wear their colour from the valley map, see-through
                                             let (stroke, dash, opacity) = match t.kind.as_str() {
-                                                "road" => ("#777777", "none", "0.95"),
-                                                "canyon" => ("#304ffe", "6 4", "0.85"),
-                                                _ => ("#4b4b4d", "none", "0.95"),
+                                                "road" => ("#777777".to_string(), "none", "0.95"),
+                                                "canyon" => ("#304ffe".to_string(), "6 4", "0.85"),
+                                                _ if !t.color.is_empty() => (t.color.clone(), "none", "0.5"),
+                                                _ => ("#4b4b4d".to_string(), "none", "0.5"),
                                             };
                                             view! {
                                                 <path
@@ -1433,7 +1438,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         }).collect_view()}
                         <span class="leg dim">"· lines"</span>
                         <span class="leg line" style:--sw="#777777">"ROAD"</span>
-                        <span class="leg line thin" style:--sw="#4b4b4d">"PATH"</span>
+                        <span class="leg line thin" style:--sw="#097138">"PATH"</span>
                         <span class="leg line dashed" style:--sw="#304ffe">"CANYON"</span>
                         <span class="leg swatch" style:--sw=LandUse::Hgb.color()>"FRIENDS' SALE"</span>
                         </div>
