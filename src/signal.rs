@@ -88,9 +88,9 @@ fn load_or_create_entropy() -> [u8; 32] {
     e
 }
 
-fn domain_key() -> mudra::domain::DomainKey {
+fn domain_key() -> neuron_auth::domain::DomainKey {
     let entropy = load_or_create_entropy();
-    mudra::domain::DomainKey::derive(&entropy, DOMAIN, HRP).expect("domain key derivation")
+    neuron_auth::domain::DomainKey::derive(&entropy, DOMAIN, HRP).expect("domain key derivation")
 }
 
 pub fn neuron() -> NeuronInfo {
@@ -328,7 +328,7 @@ pub fn commit_signal(id: &str) -> Result<(), String> {
     s.body_particle = hex(hemera::hash(body_bytes).as_bytes());
     s.neuron = key.bech32.clone();
     s.pubkey_hex = hex(&key.pubkey);
-    s.sig_hex = hex(&mudra::claim::sign_arbitrary(
+    s.sig_hex = hex(&neuron_auth::claim::sign_arbitrary(
         key.signing_key(),
         &key.bech32,
         body_bytes,
@@ -360,7 +360,7 @@ pub fn verify_stored_signal(s: &Signal) -> Result<(), String> {
     let pubkey: [u8; 33] = unhex(&s.pubkey_hex)
         .and_then(|v| v.try_into().ok())
         .ok_or("bad pubkey encoding")?;
-    match mudra::cosmos::address(&pubkey, HRP) {
+    match neuron_auth::cosmos::address(&pubkey, HRP) {
         Ok(addr) if addr == s.neuron => {}
         Ok(_) => return Err("neuron does not match pubkey".into()),
         Err(e) => return Err(format!("address: {e}")),
@@ -368,7 +368,7 @@ pub fn verify_stored_signal(s: &Signal) -> Result<(), String> {
     let sig: [u8; 64] = unhex(&s.sig_hex)
         .and_then(|v| v.try_into().ok())
         .ok_or("bad signature encoding")?;
-    if mudra::claim::verify_arbitrary(&pubkey, &s.neuron, body.as_bytes(), &sig) {
+    if neuron_auth::claim::verify_arbitrary(&pubkey, &s.neuron, body.as_bytes(), &sig) {
         Ok(())
     } else {
         Err("signature INVALID".into())

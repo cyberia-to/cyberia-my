@@ -134,7 +134,7 @@ pub fn StudioPage() -> impl IntoView {
                         <div class="kpi me-kpi">
                             <div class="kpi-lab">"NEURON"</div>
                             <div class="kpi-val" style="font-size:11px; word-break:break-all;">{me.bech32.clone()}</div>
-                            <div class="kpi-sub">"mudra domain key · cyberia.my"</div>
+                            <div class="kpi-sub">"neuron domain key · cyberia.my"</div>
                         </div>
                         <div class="kpi me-kpi">
                             <div class="kpi-lab">"PUBKEY"</div>
@@ -354,7 +354,7 @@ pub fn StudioPage() -> impl IntoView {
             </div>
 
             <p class="bank-footnote">
-                "Everything here is real: particles are hemera (Poseidon2) hashes, the neuron is a mudra domain key, committed signals carry ADR-036 signatures you can re-verify. The dialect — cards, coins, motifs, PLUMB — is a convention over the same graph."
+                "Everything here is real: particles are hemera (Poseidon2) hashes, the neuron is a neuron-auth domain key, committed signals carry ADR-036 signatures you can re-verify. The dialect — cards, coins, motifs, PLUMB — is a convention over the same graph."
             </p>
         </StudioShell>
     }
