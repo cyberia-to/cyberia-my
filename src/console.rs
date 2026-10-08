@@ -82,9 +82,9 @@ fn triad_question(triad: &str) -> &'static str {
         "form" => "what are the rules?",
         "mass" => "what is it made of?",
         "space" => "where does it happen?",
-        "life" => "who is alive?",
+        "life" => "what lives?",
         "word" => "what does it mean?",
-        "work" => "how is it made?",
+        "work" => "who does the work?",
         "play" => "how do we coordinate?",
         _ => "",
     }
