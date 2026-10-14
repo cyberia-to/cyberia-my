@@ -21,11 +21,17 @@ def main [--skip-build] {
     error make {msg: "dist/index.html missing — build first"}
   }
 
+  # one crawlable page per flat, plus sitemap.xml and robots.txt
+  print "→ render plot pages"
+  ^python3 $"($root)/scripts/render-plot-pages.py"
+
   print "→ rsync dist/ → cyberproxy:/var/www/html/cyberia.my/"
-  ^ssh cyberproxy "mkdir -p /var/www/html/cyberia.my"
-  # the build is flat files only; every top-level directory in the docroot
-  # (cx, hackathon, music, fonts — synced from the pages repo) is left alone
+  ^ssh cyberproxy "mkdir -p /var/www/html/cyberia.my/plot"
+  # the build is flat files at the root; every top-level directory in the
+  # docroot (cx, hackathon, music, fonts — synced from the pages repo) is
+  # left alone, except plot/, which this build owns
   ^rsync -az --delete --exclude "/*/" $"($root)/dist/" "cyberproxy:/var/www/html/cyberia.my/"
+  ^rsync -az --delete $"($root)/dist/plot/" "cyberproxy:/var/www/html/cyberia.my/plot/"
 
   print ""
   print "✓ deployed → https://cyberia.my/  (after DNS + TLS)"

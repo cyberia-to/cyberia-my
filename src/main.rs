@@ -11,10 +11,12 @@ mod genetics;
 mod land;
 mod me;
 mod nav;
+mod orders;
 mod places;
 mod plot;
 mod plot_board;
 mod plot_docs;
+mod plot_ground;
 mod plot_land;
 mod portal;
 mod products;
@@ -32,5 +34,10 @@ mod world;
 
 fn main() {
     console_error_panic_hook::set_once();
+    // a flat's static page (scripts/render-plot-pages.py) carries a summary
+    // for crawlers — the app takes the screen from here
+    if let Some(seo) = leptos::prelude::document().get_element_by_id("plot-seo") {
+        seo.remove();
+    }
     leptos::mount::mount_to_body(app::App);
 }
