@@ -63,7 +63,6 @@ pub fn PayPanel(
         <section class="plot-card plot-pay">
             <div class="cyberia-panel-h">
                 <span class="panel-kicker">"PAY"</span>
-                <span class="panel-sub">"the premium now, the rest by the index · or the whole price"</span>
             </div>
             {move || {
                 let (paid, payments, status, pform, ppct) = received();

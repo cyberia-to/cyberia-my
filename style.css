@@ -3905,3 +3905,108 @@ button.city-card:hover {
 .wallet-guide a {
     color: var(--cyber-green);
 }
+
+/* the flat page's side column: status, ground, papers */
+.cyberia-phase-pill.is-real::after {
+    content: none;
+}
+.side-status {
+    margin: 0;
+    border-radius: 0;
+    border-width: 0 0 0 4px;
+}
+.side-cta {
+    display: block;
+    margin-top: 12px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 12px;
+}
+.side-cancel {
+    margin-top: 8px;
+    background: none;
+    border: none;
+    color: #777;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+}
+.side-cancel:hover {
+    color: #fff;
+}
+.ground {
+    display: flex;
+    flex-direction: column;
+}
+.ground-row {
+    padding: 12px 14px;
+    border-bottom: 1px solid #111;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.ground-row:last-child {
+    border-bottom: none;
+}
+.ground-fig {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fff;
+}
+.ground-what {
+    font-size: 12px;
+    color: #d7d7d7;
+}
+.ground-what a {
+    color: var(--cyber-green);
+}
+.ground-sub {
+    font-size: 11px;
+    color: #777;
+}
+.side-order {
+    margin-top: 8px;
+    text-align: center;
+    text-decoration: none;
+}
+.papers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 10px 14px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+}
+.papers a {
+    color: #d7d7d7;
+    text-decoration: none;
+    border-bottom: 1px solid #333;
+}
+.papers a:hover {
+    color: #fff;
+    border-color: #fff;
+}
+.papers .papers-pack {
+    color: var(--cyber-green);
+    border-color: transparent;
+    margin-left: auto;
+}
+.side-support {
+    display: block;
+    padding: 4px 2px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #777;
+    text-decoration: none;
+}
+.side-support:hover {
+    color: #fff;
+}
+.plot-col-side .plot-card {
+    min-height: 0;
+}

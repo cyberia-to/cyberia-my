@@ -3,7 +3,7 @@
 //! Everything here lives in this browser; the valley's files live on IPFS.
 
 use crate::deals::{fmt_ts, load_dd, load_deals, load_jv, Deal, STEPS};
-use crate::eth::{connect, forget_eth, has_provider, load_eth, EthWallet};
+use crate::eth::{connect, forget_eth, has_provider, load_eth};
 use crate::land::{load_map, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::orders::{

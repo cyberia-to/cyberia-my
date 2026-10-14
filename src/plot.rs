@@ -2,19 +2,13 @@
 //! `/plot/:id/lease` — the same page entered from the map's LEASE press:
 //! the deal panel comes first and the request is opened on arrival.
 
-use crate::deals::{
-    advance_deal, cancel_deal, flat_status, fmt_ts, holder, load_deals, open_deal, FlatStatus,
-    STEPS,
-};
-use crate::terms::{bare_name, fmt_usd, land_use, price_line, size_detail, size_line, terms, LandUse, AVALON_TRACKS};
+use crate::deals::{flat_status, holder, load_deals, FlatStatus};
+use crate::terms::{bare_name, land_use, size_line, terms};
 use crate::land::{area_m2, load_map, LandFlat, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::plot_board::LandBoard;
-use crate::plot_docs::DocsPanel;
-use crate::plot_ground::GroundPanels;
-use crate::plot_pay::PayPanel;
+use crate::plot_side::SideColumn;
 use crate::plot_land::{load_state, Frame};
-use crate::wallet::push_intent;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_params_map};
 use std::sync::Arc;
@@ -133,10 +127,8 @@ pub fn PlotPage() -> impl IntoView {
     let book = terms(&flat.id);
     let zone = if flat.zone.is_empty() { "gesing".to_string() } else { flat.zone.clone() };
     let area = area_m2(&flat.coords);
-    let perimeter = frame.perimeter_m();
     let dcol = district_color(&zone);
     let fid = flat.id.clone();
-    let fname = flat.name.clone();
 
     // arrived from the map's LEASE press: the deal panel leads, the request
     // opens only when you press REQUEST LEASE
@@ -160,143 +152,6 @@ pub fn PlotPage() -> impl IntoView {
         });
     }
 
-    let deal_panel = {
-        let fid = fid.clone();
-        let fname = fname.clone();
-        move || {
-            let all = deals.get();
-            let deal = all.get(&fid).cloned();
-            let st = status.get();
-            let lu = land_use(&fid);
-            let ink = lu.color();
-            let fid_a = fid.clone();
-            let fid_c = fid.clone();
-            let fid_o = fid.clone();
-            let fname_o = fname.clone();
-            let head = match &deal {
-                Some(d) if d.published.is_some() => {
-                    let pd = d.published.clone().unwrap_or_default();
-                    (
-                        match pd.status.as_str() { "reserved" => "RESERVED".to_string(), "owned" => "SIGNED".to_string(), _ => "IN TRANSFER".to_string() },
-                        format!("{}{}", pd.line(), if pd.holder.is_empty() { String::new() } else { format!(" · {}", pd.holder) }),
-                        ink,
-                    )
-                }
-                Some(d) if d.cancelled => ("CANCELLED".to_string(), "the request was withdrawn — the flat is open again".to_string(), "#777777"),
-                Some(d) if d.is_signed() => ("SIGNED".to_string(), d.step_line().to_string(), ink),
-                Some(d) => (
-                    format!("{} · step {} of {}", d.step.to_uppercase(), d.step_index() + 1, STEPS.len()),
-                    d.step_line().to_string(),
-                    ink,
-                ),
-                None => (
-                    st.label().to_string(),
-                    match st {
-                        FlatStatus::Owned => "held by its owner — no deal open".to_string(),
-                        FlatStatus::OnRequest if lu == LandUse::Hgb => format!(
-                            "{} — the whole district goes as one HGB title; ask for it from the map",
-                            LandUse::Hgb.label().to_lowercase()
-                        ),
-                        FlatStatus::OnRequest if terms(&fid).map(|t| t.is_construction()).unwrap_or(false) => {
-                            terms(&fid).map(|t| t.kind_line()).unwrap_or_default() + " · on request, a company or a joint venture"
-                        }
-                        FlatStatus::OnRequest if fid.starts_with("avalon") => format!(
-                            "Avalon special project — on request, as a joint venture: {}",
-                            AVALON_TRACKS.join(" · ")
-                        ),
-                        FlatStatus::OnRequest => "business ground — no price in the book yet, on request".to_string(),
-                        FlatStatus::Closed => match (lu, terms(&fid)) {
-                            (_, Some(t)) if t.in_reregistration() => {
-                                "the title is being re-registered · off sale until it settles".to_string()
-                            }
-                            (LandUse::Commons | LandUse::Special | LandUse::Unclassified, _) => lu.line().to_string(),
-                            (_, Some(t)) if t.is_city_land() => format!("{} — the valley keeps it open for everyone", t.kind_line()),
-                            (_, Some(_)) => "the plot sheet has no price for it yet".to_string(),
-                            (_, None) => "this flat is not in the plot sheet yet".to_string(),
-                        },
-                        _ => "no deal yet — request a lease to start the track".to_string(),
-                    },
-                    ink,
-                ),
-            };
-            let price = match lu {
-                LandUse::Venture if fid.starts_with("avalon") => Some("joint-venture terms".to_string()),
-                LandUse::Venture if st == FlatStatus::OnRequest => Some("on request".to_string()),
-                LandUse::Hgb => terms(&fid)
-                    .and_then(|t| t.are_price_usd)
-                    .map(|a| format!("{} / are · whole district", fmt_usd(a))),
-                _ if st == FlatStatus::Closed => None,
-                _ if st == FlatStatus::Available => {
-                    Some(terms(&fid).and_then(price_line).unwrap_or_else(|| "price on request".into()))
-                }
-                _ => terms(&fid).and_then(price_line),
-            };
-            let since = deal
-                .as_ref()
-                .and_then(|d| d.history.last())
-                .map(|e| format!("since {}", fmt_ts(e.ts_ms)))
-                .unwrap_or_default();
-            let can_request = deal.as_ref().map(|d| d.cancelled).unwrap_or(true) && st == FlatStatus::Available;
-            let live = deal.as_ref().map(|d| d.is_live()).unwrap_or(false);
-            let next_label = deal
-                .as_ref()
-                .filter(|d| d.is_live())
-                .and_then(|d| STEPS.get(d.step_index() + 1))
-                .map(|(s, _)| format!("NEXT · {}", s.to_uppercase()))
-                .unwrap_or_default();
-            let history: Vec<_> = deal
-                .as_ref()
-                .map(|d| d.history.iter().rev().cloned().collect())
-                .unwrap_or_default();
-            view! {
-                <div class="deal-now" style:--st=head.2>
-                    <div class="deal-now-step">{head.0}</div>
-                    <div class="deal-now-line">{head.1}</div>
-                    {price.map(|p| view! { <div class="deal-now-price">{p}</div> })}
-                    <div class="deal-now-since">{since}</div>
-                    <div class="deal-steps">
-                        {STEPS.iter().enumerate().map(|(i, (s, _))| {
-                            let done = deal.as_ref().map(|d| !d.cancelled && i <= d.step_index()).unwrap_or(false);
-                            view! { <span class=if done { "deal-dot on" } else { "deal-dot" } title=*s></span> }
-                        }).collect_view()}
-                    </div>
-                    <div class="deal-actions">
-                        {can_request.then(move || view! {
-                            <button type="button" class="intent-commit lease" on:click=move |_| {
-                                deals.update(|d| open_deal(d, &fid_o, &fname_o));
-                                push_intent("YOU", "lease", &fid_o);
-                            }>"REQUEST LEASE"</button>
-                        })}
-                        {live.then(move || view! {
-                            <button type="button" class="intent-commit" on:click=move |_| {
-                                deals.update(|d| advance_deal(d, &fid_a, "step confirmed on the flat page"));
-                            }>{next_label.clone()}</button>
-                            <button type="button" class="gps-btn" on:click=move |_| {
-                                deals.update(|d| cancel_deal(d, &fid_c, "withdrawn by the requester"));
-                            }>"CANCEL"</button>
-                        })}
-                    </div>
-                </div>
-                <a class="deal-cabinet" href="/cabinet">"every status of yours · cabinet →"</a>
-                <div class="deal-history">
-                    {if history.is_empty() {
-                        view! { <p class="docs-empty">"no history yet"</p> }.into_any()
-                    } else {
-                        view! {
-                            {history.into_iter().map(|e| view! {
-                                <div class="deal-event">
-                                    <span class="deal-event-step">{e.step.to_uppercase()}</span>
-                                    <span class="deal-event-note">{e.note}</span>
-                                    <span class="deal-event-ts">{fmt_ts(e.ts_ms)}</span>
-                                </div>
-                            }).collect_view()}
-                        }.into_any()
-                    }}
-                </div>
-            }
-        }
-    };
-
     let passport = passport_json(&flat, &frame, status.get_untracked());
     let kml = boundary_kml(&flat);
     let map_href = format!("/map?plot={}", flat.id);
@@ -317,7 +172,7 @@ pub fn PlotPage() -> impl IntoView {
                                 <span style="color: #fff;">"ia"</span>
                             </h1>
                         </div>
-                        <div class="cyberia-phase-pill">
+                        <div class="cyberia-phase-pill is-real">
                             <span class="phase-dot" style:background=land_use(&fid_pill).color()></span>
                             {move || format!("{} · {}", name.clone(), status.get().label())}
                         </div>
@@ -332,14 +187,7 @@ pub fn PlotPage() -> impl IntoView {
                         <div class="cities-kicker" style:color=dcol>{format!("FLAT · {}", zone.to_uppercase())}</div>
                         <h2 class="cities-title">{bare_name(&flat.name)}</h2>
                         <p class="cities-lead">
-                            {format!(
-                                "{} · {} · sheet: {} · {:.0} m perimeter · {} verts{owner_line}",
-                                lu_page.label(),
-                                size_detail(book, area),
-                                book.map(|t| t.kind_line()).unwrap_or_else(|| "not in the plot sheet".into()),
-                                perimeter,
-                                flat.coords.len(),
-                            )}
+                            {format!("{} · {}{owner_line}", lu_page.label(), size_line(book, area))}
                         </p>
                     </div>
                     <a class="cta-btn cta-lease dock-found" href=map_href style="text-decoration:none; max-width: 220px;">
@@ -361,40 +209,15 @@ pub fn PlotPage() -> impl IntoView {
                         />
                     </div>
                     <div class="plot-col plot-col-side">
-                        <section class=if lease_mode { "plot-card plot-deal is-lease" } else { "plot-card plot-deal" }>
-                            <div class="cyberia-panel-h">
-                                <span class="panel-kicker">"DEAL"</span>
-                                <span class="panel-sub">"lease track · current first, history below"</span>
-                            </div>
-                            {deal_panel}
-                        </section>
-                        {
-                            let fid_pay = flat.id.clone();
-                            let published = Signal::derive(move || {
-                                pdata.get().and_then(|d| d.deal).filter(|d| !d.status.is_empty())
-                                    .or_else(|| deals.get().get(&fid_pay).and_then(|d| d.published.clone()))
-                            });
-                            let fid_show = flat.id.clone();
-                            let show = Memo::new(move |_| matches!(flat_status(&fid_show, &deals.get()), FlatStatus::Available | FlatStatus::Transfer));
-                            let fid_p = flat.id.clone();
-                            let name_p = bare_name(&flat.name);
-                            let price_p = book.and_then(|t| t.price());
-                            move || show.get().then(|| view! {
-                                <PayPanel plot_id=fid_p.clone() plot_name=name_p.clone() price=price_p published=published />
-                            })
-                        }
-                        <GroundPanels
+                        <SideColumn
                             plot_id=flat.id.clone()
                             plot_name=bare_name(&flat.name)
-                            book_m2=book.and_then(|t| t.measured_m2)
-                            book_on=book.map(|t| t.measured_on.clone()).unwrap_or_default()
                             drawn_m2=area
-                        />
-                        <DocsPanel
-                            plot_id=flat.id.clone()
-                            slug=flat.id.clone()
                             passport=passport
                             kml=kml
+                            lease_mode=lease_mode
+                            deals=deals
+                            pdata=pdata
                         />
                     </div>
                 </div>
