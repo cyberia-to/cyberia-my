@@ -70,5 +70,12 @@ critical list is the spine of this plan; items are ordered by dependency.
 
 ## status
 
-- [ ] 1 seo  - [ ] 2 survey/media  - [ ] 3 cabinet  - [ ] 4 docs
-- [ ] 5 wallet  - [ ] 6 nft metadata  - [ ] 7 bot  - [ ] 8 pack
+- [x] 1 seo  - [x] 2 survey/media  - [x] 3 cabinet  - [x] 4 docs
+- [x] 5 wallet  - [x] 6 nft metadata (contract waits for the chain answer)
+- [x] 7 bot written (`bot/`), runs once the token, group id and Pinata JWT exist
+- [ ] 8 pack — pin the PDF, fill CIDs in `src/docs_library.json`; company licences / office practice pages wait for the user's go
+
+Deployed to cyberia.my 2026-10-14 (commits f431f33…c32456d). Local check:
+`python3 scripts/serve-dist.py 8099` + `node scripts/check-page.mjs <url> <selectors…>`.
+Open: the MOCK badge on every phase pill (`style.css` `.cyberia-phase-pill::after`)
+sits on the flat page of a real product — the user decides.
