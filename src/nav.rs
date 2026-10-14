@@ -1,6 +1,6 @@
 //! Shared top nav for cyberia.my catalog surfaces.
 //!
-//! Only CITIES · MAP stay in view. Every other surface is parked under
+//! Only CITIES · MAP · CABINET stay in view. Every other surface is parked under
 //! `/menu/<name>` — still routed, no longer competing for the eye.
 
 use crate::land::FLAG_SVG;
@@ -24,7 +24,7 @@ pub const HIDDEN: &[(&str, &str, &str)] = &[
     ("states", "STATES", "earth states by capital"),
 ];
 
-/// `active`: cities | map
+/// `active`: cities | map | cabinet
 #[component]
 pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
     let a = active;
@@ -32,6 +32,7 @@ pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
         <div class="map-zone cyberia-nav">
             <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href="/cities">"CITIES"</a>
             <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href="/map">"MAP"</a>
+            <a class=if a == "cabinet" { "nav-btn nav-here" } else { "nav-btn" } href="/cabinet">"CABINET"</a>
         </div>
     }
 }

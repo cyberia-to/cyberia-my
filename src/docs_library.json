@@ -1,0 +1,52 @@
+[
+ {
+  "section": "the pack",
+  "line": "what a Holder signs — the template, the notarial deed beside it, and the pack to read first",
+  "items": [
+   {"title": "Hak Sewa — signable template", "what": "the lease agreement in Bahasa Indonesia and English: 18 parts, Annexes A–G, schedules", "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-template/"},
+   {"title": "Akta Sewa — hak sewa simple", "what": "the eight-clause notarial deed the same parties sign alongside the template", "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-simple/"},
+   {"title": "Perjanjian Sewa Menyewa — the notary's long format", "what": "Schedule 3 of the template maps onto it", "url": "https://cyberia.blog/cyber-valley/products/leasehold/perjanjian-sewa-menyewa-template/"},
+   {"title": "Leasehold — the product page", "what": "the two forms of payment, upfront or premium plus century-index rent, and every linked rule", "url": "https://cyberia.blog/cyber-valley/products/leasehold/"},
+   {"title": "Reading pack EN-RU (PDF)", "what": "the whole pack print-ready, English beside Russian", "cid": "", "note": "from support until it is pinned"}
+  ]
+ },
+ {
+  "section": "rules the city changes by proposal and vote",
+  "line": "graph pages the lease links to — the version of the day binds, the lease keeps the version you built under",
+  "items": [
+   {"title": "Design Code", "what": "footprint, garden, water, light, materials — what is built on a plot and how", "url": "https://cyberia.blog/cyber-valley/products/leasehold/design-code/"},
+   {"title": "Community Rules", "what": "how residents live beside each other", "url": "https://cyberia.blog/cyber-valley/policies/community-rules/"},
+   {"title": "Permitted Use", "what": "what a plot of each land use may carry", "url": "https://cyberia.blog/cyber-valley/policies/permitted-use/"},
+   {"title": "Guarantee fund policy", "what": "inflows, the ledger, the order of payment", "url": "https://cyberia.blog/cyber-valley/policies/guarantee-fund-policy/"},
+   {"title": "Biosphere and desa reserves", "what": "the share of revenue set aside, reviewed at the annual meeting", "url": "https://cyberia.blog/cyber-valley/policies/biosphere-and-desa-reserves/"},
+   {"title": "Compost", "what": "organic matter stays on the land", "url": "https://cyberia.blog/cyber-valley/policies/compost/"},
+   {"title": "Recycling", "what": "what leaves the valley and how", "url": "https://cyberia.blog/cyber-valley/policies/recycling/"},
+   {"title": "Referral system", "what": "who brought the Holder and what the valley pays for it", "url": "https://cyberia.blog/cyber-valley/strategy/referral-system/"}
+  ]
+ },
+ {
+  "section": "price and index",
+  "line": "the unit the rent is counted in, fixed daily, and the rate card of the estate",
+  "items": [
+   {"title": "Century Index — the protocol", "what": "fixed quantities of eight world assets; the collar; the bitcoin floor", "url": "https://cyberia.blog/cyberia/protocol/century-index/"},
+   {"title": "CX — the daily fix", "what": "today's level of 1 CX in USD and the worked examples", "url": "https://cyberia.my/cx"},
+   {"title": "Rates", "what": "stay and event rates on the land anchor", "url": "https://cyberia.blog/cyber-valley/products/rates/"}
+  ]
+ },
+ {
+  "section": "land and company documents for the deal — Annex C inventory",
+  "line": "certified copies delivered before signing; every file pinned to IPFS, nothing on our servers",
+  "items": [
+   {"title": "HGB No. 00048/Gesing — the Title", "what": "40,000 m², parcel NIB 22040417.00276, registered to PT Cyber Valley Estate, expiring 02-02-2053", "cid": ""},
+   {"title": "Surat Ukur No. 00086/2002", "what": "the survey letter of the Title", "cid": ""},
+   {"title": "AJB No. 81/2023", "what": "the deed by which the Company acquired the Title", "cid": ""},
+   {"title": "PKKPR No. 10082310215108014", "what": "land-use conformity, OSS, KBLI 68111, 40,000 m²", "cid": ""},
+   {"title": "NIB 2504220016017", "what": "the Company's business registration with its KBLI list", "cid": ""},
+   {"title": "Akta Pendirian No. 01 of 04-01-2022", "what": "the Company's deed of establishment and articles", "cid": ""},
+   {"title": "NPWP 53.898.326.3-902.000", "what": "the Company's tax registration", "cid": ""},
+   {"title": "PBB receipt, current year", "what": "land and building tax paid", "cid": ""},
+   {"title": "BPN non-encumbrance search", "what": "ordered through the PPAT within 30 days of signing", "cid": ""},
+   {"title": "Director appointment deed", "what": "shows the Director who signs the lease", "cid": ""}
+  ]
+ }
+]

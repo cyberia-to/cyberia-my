@@ -3732,3 +3732,81 @@ button.city-card:hover {
     color: #777;
     letter-spacing: 0.04em;
 }
+
+/* /cabinet and /docs — one column of cards */
+.library {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 960px;
+    width: 100%;
+}
+.doc-where {
+    color: #4b4b4d;
+}
+.doc-pending .doc-name {
+    color: #777;
+}
+.deal-cabinet {
+    display: block;
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--cyber-green);
+    text-decoration: none;
+}
+.cabinet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+}
+.cabinet-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid #1a1a1a;
+    border-radius: 3px;
+}
+.cabinet-mono {
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: #fff;
+    word-break: break-all;
+}
+.cabinet-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.cabinet-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1.2fr 1fr 1fr;
+    gap: 8px;
+    padding: 8px 6px;
+    font-size: 12px;
+    color: #ccc;
+    text-decoration: none;
+    border-bottom: 1px solid #111;
+}
+.cabinet-row:hover {
+    background: rgba(0, 254, 0, 0.05);
+}
+.cabinet-head {
+    color: #4b4b4d;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+.cabinet-flat {
+    color: var(--cyber-green);
+    font-weight: 700;
+}
+@media (max-width: 720px) {
+    .cabinet-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    .cabinet-head {
+        display: none;
+    }
+}

@@ -254,6 +254,7 @@ pub fn PlotPage() -> impl IntoView {
                         })}
                     </div>
                 </div>
+                <a class="deal-cabinet" href="/cabinet">"every status of yours · cabinet →"</a>
                 <div class="deal-history">
                     {if history.is_empty() {
                         view! { <p class="docs-empty">"no history yet"</p> }.into_any()

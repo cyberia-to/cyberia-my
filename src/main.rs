@@ -1,8 +1,11 @@
 mod app;
+mod cabinet;
 mod cities;
 mod console;
 mod deals;
+mod docs;
 mod economy;
+mod eth;
 mod elements;
 mod erp;
 mod events;

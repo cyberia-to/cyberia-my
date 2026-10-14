@@ -72,7 +72,8 @@ fn encode(s: &str) -> String {
 pub fn order_href(kind: OrderKind, plot_id: &str, plot_name: &str) -> String {
     match (HARDFORCE_BOT, kind) {
         (Some(bot), OrderKind::Survey | OrderKind::Media) => {
-            format!("https://t.me/{bot}?start={}_{}", kind.key(), plot_id.replace('-', "_"))
+            // start payloads allow [A-Za-z0-9_-]: `survey_sinwood-7`, kind before the first `_`
+            format!("https://t.me/{bot}?start={}_{plot_id}", kind.key())
         }
         _ => format!(
             "https://t.me/{SUPPORT_HANDLE}?text={}",

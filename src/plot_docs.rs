@@ -128,6 +128,9 @@ pub fn DocsPanel(
     let passport_url = text_data_url("application/json", &passport);
     let kml_url = text_data_url("application/vnd.google-earth.kml+xml", &kml);
     let passport_name = format!("{slug}-passport.json");
+    // written next to the flat's static page by scripts/render-plot-pages.py
+    let metadata_url = format!("/plot/{slug}/metadata.json");
+    let plan_url = format!("/plot/{slug}/plan.svg");
     let kml_name = format!("{slug}.kml");
 
     view! {
@@ -145,6 +148,14 @@ pub fn DocsPanel(
                     <a class="doc-dl" href=kml_url download=kml_name>
                         <span class="doc-name">"BOUNDARY KML"</span>
                         <span class="doc-meta">"opens in Google Earth / My Maps"</span>
+                    </a>
+                    <a class="doc-dl" href=metadata_url target="_blank" rel="noopener">
+                        <span class="doc-name">"TOKEN METADATA"</span>
+                        <span class="doc-meta">"ERC-721 json · the flat as an asset on Ethereum"</span>
+                    </a>
+                    <a class="doc-dl" href=plan_url target="_blank" rel="noopener">
+                        <span class="doc-name">"PLAN"</span>
+                        <span class="doc-meta">"svg · the outline, north up"</span>
                     </a>
                 </div>
                 <label class="doc-upload">
