@@ -3,50 +3,205 @@
   "section": "the pack",
   "line": "what a Holder signs — the template, the notarial deed beside it, and the pack to read first",
   "items": [
-   {"title": "Hak Sewa — signable template", "what": "the lease agreement in Bahasa Indonesia and English: 18 parts, Annexes A–G, schedules", "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-template/"},
-   {"title": "Akta Sewa — hak sewa simple", "what": "the eight-clause notarial deed the same parties sign alongside the template", "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-simple/"},
-   {"title": "Perjanjian Sewa Menyewa — the notary's long format", "what": "Schedule 3 of the template maps onto it", "url": "https://cyberia.blog/cyber-valley/products/leasehold/perjanjian-sewa-menyewa-template/"},
-   {"title": "Leasehold — the product page", "what": "the two forms of payment, upfront or premium plus century-index rent, and every linked rule", "url": "https://cyberia.blog/cyber-valley/products/leasehold/"},
-   {"title": "Reading pack EN-RU (PDF)", "what": "the whole pack print-ready, English beside Russian", "cid": "", "note": "from support until it is pinned"}
+   {
+    "title": "Hak Sewa — signable template",
+    "what": "the lease agreement in Bahasa Indonesia and English: 18 parts, Annexes A–G, schedules",
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-template/"
+   },
+   {
+    "title": "Akta Sewa — hak sewa simple",
+    "what": "the eight-clause notarial deed the same parties sign alongside the template",
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-simple/"
+   },
+   {
+    "title": "Perjanjian Sewa Menyewa — the notary's long format",
+    "what": "Schedule 3 of the template maps onto it",
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/perjanjian-sewa-menyewa-template/"
+   },
+   {
+    "title": "Leasehold — the product page",
+    "what": "the two forms of payment, upfront or premium plus century-index rent, and every linked rule",
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/"
+   },
+   {
+    "title": "Reading pack EN-RU (PDF)",
+    "what": "the whole pack print-ready, English beside Russian · 25 September 2026",
+    "cid": "bafybeigd2iuwvi5ckb3tphk3fwpk2xmolaha5f5pzal266jsq7efkyew7y"
+   }
   ]
  },
  {
   "section": "rules the city changes by proposal and vote",
   "line": "graph pages the lease links to — the version of the day binds, the lease keeps the version you built under",
   "items": [
-   {"title": "Design Code", "what": "footprint, garden, water, light, materials — what is built on a plot and how", "url": "https://cyberia.blog/cyber-valley/products/leasehold/design-code/"},
-   {"title": "Community Rules", "what": "how residents live beside each other", "url": "https://cyberia.blog/cyber-valley/policies/community-rules/"},
-   {"title": "Permitted Use", "what": "what a plot of each land use may carry", "url": "https://cyberia.blog/cyber-valley/policies/permitted-use/"},
-   {"title": "Guarantee fund policy", "what": "inflows, the ledger, the order of payment", "url": "https://cyberia.blog/cyber-valley/policies/guarantee-fund-policy/"},
-   {"title": "Biosphere and desa reserves", "what": "the share of revenue set aside, reviewed at the annual meeting", "url": "https://cyberia.blog/cyber-valley/policies/biosphere-and-desa-reserves/"},
-   {"title": "Compost", "what": "organic matter stays on the land", "url": "https://cyberia.blog/cyber-valley/policies/compost/"},
-   {"title": "Recycling", "what": "what leaves the valley and how", "url": "https://cyberia.blog/cyber-valley/policies/recycling/"},
-   {"title": "Referral system", "what": "who brought the Holder and what the valley pays for it", "url": "https://cyberia.blog/cyber-valley/strategy/referral-system/"}
+   {
+    "title": "Design Code",
+    "what": "footprint, garden, water, light, materials — what is built on a plot and how",
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/design-code/"
+   },
+   {
+    "title": "Community Rules",
+    "what": "how residents live beside each other",
+    "url": "https://cyberia.blog/cyber-valley/policies/community-rules/"
+   },
+   {
+    "title": "Permitted Use",
+    "what": "what a plot of each land use may carry",
+    "url": "https://cyberia.blog/cyber-valley/policies/permitted-use/"
+   },
+   {
+    "title": "Guarantee fund policy",
+    "what": "inflows, the ledger, the order of payment",
+    "url": "https://cyberia.blog/cyber-valley/policies/guarantee-fund-policy/"
+   },
+   {
+    "title": "Biosphere and desa reserves",
+    "what": "the share of revenue set aside, reviewed at the annual meeting",
+    "url": "https://cyberia.blog/cyber-valley/policies/biosphere-and-desa-reserves/"
+   },
+   {
+    "title": "Compost",
+    "what": "organic matter stays on the land",
+    "url": "https://cyberia.blog/cyber-valley/policies/compost/"
+   },
+   {
+    "title": "Recycling",
+    "what": "what leaves the valley and how",
+    "url": "https://cyberia.blog/cyber-valley/policies/recycling/"
+   },
+   {
+    "title": "Referral system",
+    "what": "who brought the Holder and what the valley pays for it",
+    "url": "https://cyberia.blog/cyber-valley/strategy/referral-system/"
+   }
   ]
  },
  {
   "section": "price and index",
   "line": "the unit the rent is counted in, fixed daily, and the rate card of the estate",
   "items": [
-   {"title": "Century Index — the protocol", "what": "fixed quantities of eight world assets; the collar; the bitcoin floor", "url": "https://cyberia.blog/cyberia/protocol/century-index/"},
-   {"title": "CX — the daily fix", "what": "today's level of 1 CX in USD and the worked examples", "url": "https://cyberia.my/cx"},
-   {"title": "Rates", "what": "stay and event rates on the land anchor", "url": "https://cyberia.blog/cyber-valley/products/rates/"}
+   {
+    "title": "Century Index — the protocol",
+    "what": "fixed quantities of eight world assets; the collar; the bitcoin floor",
+    "url": "https://cyberia.blog/cyberia/protocol/century-index/"
+   },
+   {
+    "title": "CX — the daily fix",
+    "what": "today's level of 1 CX in USD and the worked examples",
+    "url": "https://cyberia.my/cx"
+   },
+   {
+    "title": "Rates",
+    "what": "stay and event rates on the land anchor",
+    "url": "https://cyberia.blog/cyber-valley/products/rates/"
+   }
   ]
  },
  {
-  "section": "land and company documents for the deal — Annex C inventory",
-  "line": "certified copies delivered before signing; every file pinned to IPFS, nothing on our servers",
+  "section": "land documents — sinwood, HGB 00048/Gesing · Annex C inventory",
+  "line": "certified copies delivered before signing; every file on IPFS by its content hash, nothing on our servers",
   "items": [
-   {"title": "HGB No. 00048/Gesing — the Title", "what": "40,000 m², parcel NIB 22040417.00276, registered to PT Cyber Valley Estate, expiring 02-02-2053", "cid": ""},
-   {"title": "Surat Ukur No. 00086/2002", "what": "the survey letter of the Title", "cid": ""},
-   {"title": "AJB No. 81/2023", "what": "the deed by which the Company acquired the Title", "cid": ""},
-   {"title": "PKKPR No. 10082310215108014", "what": "land-use conformity, OSS, KBLI 68111, 40,000 m²", "cid": ""},
-   {"title": "NIB 2504220016017", "what": "the Company's business registration with its KBLI list", "cid": ""},
-   {"title": "Akta Pendirian No. 01 of 04-01-2022", "what": "the Company's deed of establishment and articles", "cid": ""},
-   {"title": "NPWP 53.898.326.3-902.000", "what": "the Company's tax registration", "cid": ""},
-   {"title": "PBB receipt, current year", "what": "land and building tax paid", "cid": ""},
-   {"title": "BPN non-encumbrance search", "what": "ordered through the PPAT within 30 days of signing", "cid": ""},
-   {"title": "Director appointment deed", "what": "shows the Director who signs the lease", "cid": ""}
+   {
+    "title": "HGB No. 00048/Gesing — the Title with Surat Ukur No. 00086/2002",
+    "what": "40,000 m², parcel NIB 22040417.00276, registered to PT Cyber Valley Estate, expiring 02-02-2053",
+    "cid": ""
+   },
+   {
+    "title": "AJB No. 81/2023",
+    "what": "the deed of sale by which the Company acquired the Title, 9 June 2023 · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeiben4tcbo5nn3kimudtpm45bw7jhs6m6uob332p2u5372oh6rxu6m"
+   },
+   {
+    "title": "PPJB — binding sale and purchase agreement",
+    "what": "the agreement that preceded the AJB · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeiebkwtgcpw5nnxpou4n3l2lbts3zp6g7n5zzmpiqinfta6dset4da"
+   },
+   {
+    "title": "Land sale authorization",
+    "what": "the seller's notarial authorization for the sale · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeiderx5ifx6pl6eg3wvfw5iqjhkdkgdu7ojfzj22nimgqiqmcpbvjm"
+   },
+   {
+    "title": "BPN technical consideration, 6 October 2022",
+    "what": "Pertimbangan Teknis Pertanahan No. 1108/BA.51.08.NT.01.01/X/2022 for the 40,000 m² · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeihgqqjnyjvya5khxm5ecncezsjcjt2tseyljjbdxydqlv6zmnxkzi"
+   },
+   {
+    "title": "PKKPR No. 10082310215108014",
+    "what": "land-use conformity, OSS 09-08-2023, KBLI 68111, 40,000 m²",
+    "cid": "bafkreihljuvjw2tyi6k27tyzjuxluinimys64yldmb2vm2ocv46adohkci"
+   },
+   {
+    "title": "SPPT PBB 2023",
+    "what": "land and building tax notice of the parcel",
+    "cid": "bafybeih6pmgyeaokj2hryiem6xjyq25drjakcq2zkdj6gst6klg3esrixe"
+   },
+   {
+    "title": "BPHTB — land acquisition tax proof",
+    "what": "duty on the acquisition of the Title, paid by the Company",
+    "cid": "bafybeiausbk3pnjwhkyexusrhot2fap6sfnn6t3c4fw2rxwupvzenrug3i"
+   },
+   {
+    "title": "BPN non-encumbrance search",
+    "what": "ordered through the PPAT within 30 days of signing, per deal",
+    "cid": ""
+   }
+  ]
+ },
+ {
+  "section": "company documents — PT Cyber Valley Estate",
+  "line": "the Company as it stands at the registry; IDs of directors and shareholders are blacked out, the articles are whole",
+  "items": [
+   {
+    "title": "NIB 2504220016017",
+    "what": "business registration with the KBLI list, printed 7 October 2025",
+    "cid": "bafybeictdfnuvidrr25faqcadcfhafepbemjm2laypqdkxmepaylxqwoby"
+   },
+   {
+    "title": "NPWP 53.898.326.3-902.000",
+    "what": "the Company's tax registration",
+    "cid": "bafkreifrwie5zp736zblcwboxk4rsgng36jdhyuobzmuht5e4zqqthqmk4"
+   },
+   {
+    "title": "Akta Pendirian No. 01 of 04-01-2022 with the Anggaran Dasar",
+    "what": "deed of establishment, AHU-0001412-AH.01.01 of 07-01-2022 · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeia3aefigpnf4jetq4yc2gfo6c7yx33pnraxqmcwc6fair7os5d3pm"
+   },
+   {
+    "title": "Anggaran Dasar — consolidated text, 13 August 2026",
+    "what": "the articles as consolidated by the Company, Bahasa Indonesia",
+    "cid": "bafkreifbs2tdophgkqmyimgzvix63fl5kcrizgtw6j7vaww6qwjhgobdpy"
+   },
+   {
+    "title": "Articles of Association EN-ID, 13 August 2026",
+    "what": "the same articles, English beside Indonesian",
+    "cid": "bafybeihgastboq77o6u44t3culuh43h644j6u54bewpscwrhrbgw5w2v4e"
+   },
+   {
+    "title": "Akta No. 13 of 14-04-2025 — shareholders' resolution",
+    "what": "change of the board and share transfer · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeicluu747ucipg733465ms24pbealvxhafmkvnsjq5trcmjlz72j34"
+   },
+   {
+    "title": "Akta No. 14 of 14-04-2025 — deposit of documents",
+    "what": "penyimpanan surat · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeibfgt6wgswgbnny57ponjigcjv2pnq74rg3szck4kjayp4lmagjie"
+   },
+   {
+    "title": "AHU-AH.01.09-0196845 of 21-04-2025",
+    "what": "the Ministry's acceptance of the change of board and the share transfer",
+    "cid": "bafkreibm7wcd6qfwkph7ujkeuxek6qf5nckxyup7uwco2bqtz5okotbrje"
+   },
+   {
+    "title": "AHU company detail — Akta No. 02 of 01-07-2025",
+    "what": "the registry's record of the articles amendment (purpose and KBLI) · identity numbers and home addresses of natural persons blacked out",
+    "cid": "bafybeie3qzp6i5qtcbdji66ynso42c4fiuiiywq3zqku74mzdnz5uedgli"
+   },
+   {
+    "title": "Director appointment deed, 2026",
+    "what": "the deed that shows the Director who signs the lease — the post-registration edition",
+    "cid": ""
+   }
   ]
  }
 ]

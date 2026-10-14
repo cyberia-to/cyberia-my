@@ -162,7 +162,7 @@ def pin(data: bytes, name: str, plot: str) -> str:
     req = urllib.request.Request(
         "https://uploads.pinata.cloud/v3/files",
         data=body,
-        headers={"Authorization": f"Bearer {PINATA}", "Content-Type": f"multipart/form-data; boundary={boundary}"},
+        headers={"Authorization": f"Bearer {PINATA}", "Content-Type": f"multipart/form-data; boundary={boundary}", "User-Agent": "cyberia-hardforce/1.0"},
     )
     with urllib.request.urlopen(req, timeout=600) as r:
         return json.load(r)["data"]["cid"]
