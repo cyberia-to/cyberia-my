@@ -6,11 +6,12 @@ use crate::deals::{
     advance_deal, cancel_deal, flat_status, fmt_ts, holder, load_deals, open_deal, FlatStatus,
     STEPS,
 };
-use crate::terms::{bare_name, fmt_usd, land_use, price_line, size_detail, terms, LandUse, AVALON_TRACKS};
+use crate::terms::{bare_name, fmt_usd, land_use, price_line, size_detail, size_line, terms, LandUse, AVALON_TRACKS};
 use crate::land::{area_m2, load_map, LandFlat, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::plot_board::LandBoard;
 use crate::plot_docs::DocsPanel;
+use crate::plot_ground::GroundPanels;
 use crate::plot_land::{load_state, Frame};
 use crate::wallet::push_intent;
 use leptos::prelude::*;
@@ -35,6 +36,15 @@ fn district_color(zone: &str) -> &'static str {
         "#304ffe"
     } else {
         "#ffffff"
+    }
+}
+
+/// `sinwood` → `Sinwood`
+fn title_case(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        None => String::new(),
     }
 }
 
@@ -122,9 +132,16 @@ pub fn PlotPage() -> impl IntoView {
     });
 
     {
-        let title = name.clone();
+        // the same title the flat's static page carries for crawlers
+        let title = format!(
+            "{} · {} {} in {}, Cyber Valley, Bali",
+            name,
+            size_line(book, area),
+            land_use(&flat.id).label().to_lowercase(),
+            title_case(&zone),
+        );
         Effect::new(move |_| {
-            document().set_title(&format!("Cyberia — {title}"));
+            document().set_title(&title);
         });
     }
 
@@ -327,6 +344,13 @@ pub fn PlotPage() -> impl IntoView {
                             </div>
                             {deal_panel}
                         </section>
+                        <GroundPanels
+                            plot_id=flat.id.clone()
+                            plot_name=bare_name(&flat.name)
+                            book_m2=book.and_then(|t| t.measured_m2)
+                            book_on=book.map(|t| t.measured_on.clone()).unwrap_or_default()
+                            drawn_m2=area
+                        />
                         <DocsPanel
                             plot_id=flat.id.clone()
                             slug=flat.id.clone()

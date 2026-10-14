@@ -3690,3 +3690,45 @@ button.city-card:hover {
 .plot-card .friend-desc {
     padding: 0 12px;
 }
+
+/* the ground: survey and media cards on the flat page */
+.ground-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ground-order {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+}
+.ground-order-btn {
+    text-decoration: none;
+    text-align: center;
+}
+.plot-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+.plot-media {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.plot-media img,
+.plot-media video {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #111;
+    border: 1px solid #222;
+    display: block;
+}
+.plot-media figcaption {
+    font-size: 11px;
+    color: #777;
+    letter-spacing: 0.04em;
+}
