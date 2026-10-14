@@ -185,9 +185,21 @@ pub fn CabinetPage() -> impl IntoView {
                                         <button type="button" class="gps-btn" on:click=move |_| { forget_eth(); eth.set(None); }>"FORGET"</button>
                                     }.into_any(),
                                     None => view! {
-                                        <div class="deal-now-line">{if has_provider() { "a wallet is in this browser" } else { "no wallet in this browser — MetaMask, Rabby or a wallet app" }}</div>
+                                        <div class="deal-now-line">{if has_provider() { "a wallet is in this browser" } else { "no wallet in this browser yet" }}</div>
                                         <button type="button" class="intent-commit lease" on:click=on_connect>"CONNECT WALLET"</button>
                                         <div class="deal-now-since">{move || eth_note.get()}</div>
+                                        {(!has_provider()).then(|| view! {
+                                            <div class="wallet-guide">
+                                                <div class="deal-now-step">"HOW TO GET ONE · 5 MINUTES"</div>
+                                                <ol>
+                                                    <li>"on a computer: add the "<a href="https://metamask.io/download" target="_blank" rel="noopener">"MetaMask"</a>" or "<a href="https://rabby.io" target="_blank" rel="noopener">"Rabby"</a>" extension to your browser"</li>
+                                                    <li>"on a phone: install the MetaMask or Rabby app, then open cyberia.my inside the app's own browser"</li>
+                                                    <li>"create a wallet · write the 12 words on paper · nobody at the valley will ever ask for them"</li>
+                                                    <li>"come back to this page and press CONNECT WALLET · approve in the wallet"</li>
+                                                </ol>
+                                                <div class="deal-now-since">"the wallet holds your plot's token on Ethereum and signs for the DAO · paying by bank transfer needs no wallet at all"</div>
+                                            </div>
+                                        })}
                                     }.into_any(),
                                 }}
                             </div>

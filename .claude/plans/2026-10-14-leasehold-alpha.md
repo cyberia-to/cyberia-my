@@ -79,3 +79,23 @@ Deployed to cyberia.my 2026-10-14 (commits f431f33…c32456d). Local check:
 `python3 scripts/serve-dist.py 8099` + `node scripts/check-page.mjs <url> <selectors…>`.
 Open: the MOCK badge on every phase pill (`style.css` `.cyberia-phase-pill::after`)
 sits on the flat page of a real product — the user decides.
+
+## second pass 2026-10-14 (after the user's answers)
+
+- [x] pay — premium or upfront to the Company's Permata account (details from
+  the bank letter), ETH rail waits for the Company's address, sent-vs-received
+  tracking; the valley confirms by bot `/paid` → the flat paints IN TRANSFER
+  (reserved) on the map, `/step signed` → OWNED
+- [x] register — `plot-data/<id>.json` `deal` + `plot-data/index.json`,
+  merged into the deals signal on map, plot page, cabinet; `/admin` for the
+  valley and the notary (recitals, Annex C inventory, commands)
+- [x] documents — 17 files on IPFS (company: NIB, NPWP, AHU 2025, akta 01/2022,
+  13 and 14/2025, AHU detail 2025-07, AoA 2026-08 ID + EN-ID; land: AJB 81/2023,
+  PPJB, sale authorization, BPN consideration 2022, PKKPR, SPPT PBB 2023,
+  BPHTB; the reading pack), personal IDs and addresses blacked out
+  (`cve/tools/redact.py`), CIDs in `cve/legal/signing/ipfs cids.json`
+- [x] wallet guide in the cabinet when no provider is injected
+- [ ] HGB 00048 certificate + KKPR spatial assessment: >10 MB, Drive MCP
+  refuses — the user drops the files; KEPMEN check waits on page 1
+- [ ] the post-registration deed (2026) and SK: not in Drive
+- [ ] ETH address of the Company; bracket values in the pack (table sent)
