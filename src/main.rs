@@ -1,3 +1,4 @@
+mod admin;
 mod app;
 mod cabinet;
 mod cities;
@@ -15,11 +16,13 @@ mod land;
 mod me;
 mod nav;
 mod orders;
+mod pay;
 mod places;
 mod plot;
 mod plot_board;
 mod plot_docs;
 mod plot_ground;
+mod plot_pay;
 mod plot_land;
 mod portal;
 mod products;

@@ -7,13 +7,15 @@ use crate::eth::{connect, forget_eth, has_provider, load_eth, EthWallet};
 use crate::land::{load_map, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::orders::{
-    community_href, load_orders_log, order_href, ordered, record_order, support_href, OrderKind,
-    OrderRec, SUPPORT_HANDLE,
+    community_href, fetch_index, load_orders_log, order_href, ordered, record_order, support_href,
+    OrderKind, OrderRec, PublishedDeal, SUPPORT_HANDLE,
 };
+use crate::pay::{load_sent, sent_for};
+use crate::terms::fmt_usd;
 use crate::signal::neuron;
 use crate::terms::{bare_name, terms};
 use leptos::prelude::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// One flat the Holder touched, with everything known about it here.
 struct Row {
@@ -24,16 +26,22 @@ struct Row {
     jv_ms: Option<f64>,
     survey: String,
     media: String,
+    paid: String,
 }
 
-fn rows(log: &[OrderRec]) -> Vec<Row> {
+fn rows(log: &[OrderRec], index: &HashMap<String, PublishedDeal>) -> Vec<Row> {
     let map = load_map();
-    let deals = load_deals();
+    let mut deals = load_deals();
+    crate::deals::merge_published(&mut deals, index);
+    let sent = load_sent();
     let dd = load_dd();
     let jv = load_jv();
     let mut ids: BTreeMap<String, ()> = BTreeMap::new();
     for k in deals.keys().chain(dd.keys()).chain(jv.keys()) {
         ids.insert(k.clone(), ());
+    }
+    for p in &sent {
+        ids.insert(p.plot.clone(), ());
     }
     for o in log {
         if o.kind != OrderKind::Kyc {
@@ -58,6 +66,11 @@ fn rows(log: &[OrderRec]) -> Vec<Row> {
                 Some(ts) => format!("ordered {}", fmt_ts(ts)),
                 None => "—".to_string(),
             };
+            let paid = match (index.get(id).map(|d| d.paid_usd).filter(|p| *p > 0.0), sent_for(&sent, id).first()) {
+                (Some(p), _) => format!("{} received", fmt_usd(p)),
+                (None, Some(s)) => format!("{} sent · awaiting", fmt_usd(s.usd)),
+                (None, None) => "—".to_string(),
+            };
             Row {
                 id: id.clone(),
                 name,
@@ -66,6 +79,7 @@ fn rows(log: &[OrderRec]) -> Vec<Row> {
                 jv_ms: jv.get(id).copied(),
                 survey,
                 media,
+                paid,
             }
         })
         .collect()
@@ -73,6 +87,10 @@ fn rows(log: &[OrderRec]) -> Vec<Row> {
 
 fn deal_line(d: &Option<Deal>) -> (String, &'static str) {
     match d {
+        Some(d) if d.published.is_some() => {
+            let pd = d.published.clone().unwrap_or_default();
+            (pd.status.clone(), if pd.status == "owned" { "#00fe00" } else { "#fcf000" })
+        }
         Some(d) if d.cancelled => ("cancelled".into(), "#777777"),
         Some(d) if d.is_signed() => ("signed".into(), "#00fe00"),
         Some(d) => (
@@ -86,6 +104,10 @@ fn deal_line(d: &Option<Deal>) -> (String, &'static str) {
 #[component]
 pub fn CabinetPage() -> impl IntoView {
     let log = RwSignal::new(load_orders_log());
+    let index = RwSignal::new(HashMap::<String, PublishedDeal>::new());
+    leptos::task::spawn_local(async move {
+        index.set(fetch_index().await);
+    });
     let eth = RwSignal::new(load_eth());
     let eth_note = RwSignal::new(String::new());
     let n = neuron();
@@ -194,7 +216,7 @@ pub fn CabinetPage() -> impl IntoView {
                             <span class="panel-sub">"every flat you asked about · the deal track and the ground"</span>
                         </div>
                         {move || {
-                            let list = rows(&log.get());
+                            let list = rows(&log.get(), &index.get());
                             if list.is_empty() {
                                 return view! {
                                     <p class="docs-empty">"no flat yet — pick one on the "<a href="/map" style="color: var(--cyber-green);">"map"</a>" and request a lease or its documents"</p>
@@ -203,7 +225,7 @@ pub fn CabinetPage() -> impl IntoView {
                             view! {
                                 <div class="cabinet-table">
                                     <div class="cabinet-row cabinet-head">
-                                        <span>"flat"</span><span>"deal"</span><span>"due diligence"</span><span>"survey"</span><span>"media"</span>
+                                        <span>"flat"</span><span>"deal"</span><span>"paid"</span><span>"due diligence"</span><span>"survey"</span><span>"media"</span>
                                     </div>
                                     {list.into_iter().map(|r| {
                                         let (dl, dc) = deal_line(&r.deal);
@@ -217,6 +239,7 @@ pub fn CabinetPage() -> impl IntoView {
                                             <a class="cabinet-row" href=href>
                                                 <span class="cabinet-flat">{r.name}</span>
                                                 <span style:color=dc>{dl}</span>
+                                                <span>{r.paid}</span>
                                                 <span>{dd}</span>
                                                 <span>{r.survey}</span>
                                                 <span>{r.media}</span>

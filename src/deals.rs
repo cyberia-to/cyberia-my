@@ -4,7 +4,9 @@
 //! book (`terms.rs`, synced from the plot sheet — holder, type, price) and a
 //! deal stored here. A signed or live deal wins; otherwise the book speaks.
 
-use crate::terms::{terms, LandUse};
+use crate::orders::PublishedDeal;
+use crate::terms::{bare_name, terms, LandUse};
+use crate::land::load_map;
 use crate::wallet::{load_intents, save_intents};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -66,6 +68,9 @@ pub struct Deal {
     pub cancelled: bool,
     #[serde(default)]
     pub history: Vec<DealEvent>,
+    /// the valley published it (`/plot-data`) — never saved to this browser
+    #[serde(default)]
+    pub published: Option<PublishedDeal>,
 }
 
 impl Deal {
@@ -126,10 +131,53 @@ pub fn load_deals() -> HashMap<String, Deal> {
 }
 
 pub fn save_deals(m: &HashMap<String, Deal>) {
+    let own: HashMap<&String, &Deal> = m.iter().filter(|(_, d)| d.published.is_none()).collect();
     if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
-        if let Ok(s) = serde_json::to_string(m) {
+        if let Ok(s) = serde_json::to_string(&own) {
             let _ = ls.set_item(DEALS_KEY, &s);
         }
+    }
+}
+
+/// The valley's published deals outrank this browser's own track: reserved
+/// and transfer paint IN TRANSFER, owned paints OWNED, available clears.
+pub fn merge_published(deals: &mut HashMap<String, Deal>, index: &HashMap<String, PublishedDeal>) {
+    let map = load_map();
+    for (id, pd) in index {
+        let step = match pd.status.as_str() {
+            "reserved" | "transfer" => "transfer",
+            "owned" => "signed",
+            _ => {
+                if deals.get(id).map(|d| d.published.is_some()).unwrap_or(false) {
+                    deals.remove(id);
+                }
+                continue;
+            }
+        };
+        let name = map
+            .phase0
+            .iter()
+            .find(|f| &f.id == id)
+            .map(|f| bare_name(&f.name))
+            .unwrap_or_else(|| id.to_uppercase());
+        let own_history = deals.get(id).map(|d| d.history.clone()).unwrap_or_default();
+        let mut history = own_history;
+        history.push(DealEvent {
+            step: step.into(),
+            ts_ms: now_ms(),
+            note: format!("published by the valley · {}", pd.line()),
+        });
+        deals.insert(
+            id.clone(),
+            Deal {
+                flat_id: id.clone(),
+                flat_name: name,
+                step: step.into(),
+                cancelled: false,
+                history,
+                published: Some(pd.clone()),
+            },
+        );
     }
 }
 
@@ -179,6 +227,7 @@ pub fn open_deal(deals: &mut HashMap<String, Deal>, id: &str, name: &str) {
             ts_ms: now_ms(),
             note: "lease requested on the flat page".into(),
         }],
+        published: None,
     };
     match deals.get_mut(id) {
         Some(d) if !d.cancelled => {}
@@ -192,7 +241,7 @@ pub fn open_deal(deals: &mut HashMap<String, Deal>, id: &str, name: &str) {
 pub fn advance_deal(deals: &mut HashMap<String, Deal>, id: &str, note: &str) {
     if let Some(d) = deals.get_mut(id) {
         let i = d.step_index();
-        if d.cancelled || i + 1 >= STEPS.len() {
+        if d.cancelled || d.published.is_some() || i + 1 >= STEPS.len() {
             return;
         }
         d.step = STEPS[i + 1].0.into();
@@ -207,7 +256,7 @@ pub fn advance_deal(deals: &mut HashMap<String, Deal>, id: &str, note: &str) {
 
 pub fn cancel_deal(deals: &mut HashMap<String, Deal>, id: &str, note: &str) {
     if let Some(d) = deals.get_mut(id) {
-        if d.is_signed() {
+        if d.is_signed() || d.published.is_some() {
             return;
         }
         d.cancelled = true;

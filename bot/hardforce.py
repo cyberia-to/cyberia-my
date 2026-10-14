@@ -15,10 +15,19 @@ to it: tasks.json (task message id → order), events.jsonl (everything).
 Environment:
     BOT_TOKEN           from BotFather
     HARDFORCE_CHAT_ID   the group's id (add the bot, send /id there)
-    PINATA_JWT          Pinata API key (JWT) for pinFileToIPFS
+    PINATA_JWT          Pinata API key (JWT) with Files API v3 upload scope
     DOCROOT             /var/www/html/cyberia.my
     SITE                https://cyberia.my
     GATEWAY             https://gateway.pinata.cloud/ipfs/
+    ADMIN_CHAT_ID       optional — a second chat whose commands write the register
+
+The register — admin commands, in the hard force chat or ADMIN_CHAT_ID:
+    /deals · /hold <plot> <name> · /form <plot> upfront|index [pct] ·
+    /price <plot> <usd> · /paid <plot> <usd> bank|eth [reference] ·
+    /status <plot> reserved|transfer|owned|available ·
+    /step <plot> kyc|dd|docs|notary|signed [YYYY-MM-DD]
+Every command rewrites plot-data/<plot>.json and plot-data/index.json; the
+site reads both. The first payment received reserves the flat.
 """
 import json
 import mimetypes
@@ -39,6 +48,7 @@ PINATA = os.environ.get("PINATA_JWT", "")
 DOCROOT = Path(os.environ.get("DOCROOT", "/var/www/html/cyberia.my"))
 SITE = os.environ.get("SITE", "https://cyberia.my").rstrip("/")
 GATEWAY = os.environ.get("GATEWAY", "https://gateway.pinata.cloud/ipfs/")
+ADMIN = os.environ.get("ADMIN_CHAT_ID", "")
 STATE = Path(__file__).resolve().parent / "state"
 API = f"https://api.telegram.org/bot{TOKEN}"
 FILES = f"https://api.telegram.org/file/bot{TOKEN}"
@@ -131,25 +141,31 @@ def download(file_id: str) -> tuple[bytes, str]:
 
 
 def pin(data: bytes, name: str, plot: str) -> str:
-    """pinFileToIPFS — returns the CID."""
+    """Pinata Files API v3, public network — returns the CID."""
     boundary = uuid.uuid4().hex
     mime = mimetypes.guess_type(name)[0] or "application/octet-stream"
-    meta = json.dumps({"name": f"{plot}/{name}", "keyvalues": {"plot": plot, "site": "cyberia.my"}})
+
+    def field(k, v):
+        return f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
+
     body = b"".join(
         [
-            f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\nContent-Type: {mime}\r\n\r\n".encode(),
+            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\nContent-Type: {mime}\r\n\r\n'.encode(),
             data,
-            f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"pinataMetadata\"\r\n\r\n{meta}\r\n".encode(),
+            b"\r\n",
+            field("network", "public"),
+            field("name", f"{plot}/{name}"),
+            field("keyvalues", json.dumps({"plot": plot, "site": "cyberia.my"})),
             f"--{boundary}--\r\n".encode(),
         ]
     )
     req = urllib.request.Request(
-        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        "https://uploads.pinata.cloud/v3/files",
         data=body,
         headers={"Authorization": f"Bearer {PINATA}", "Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
     with urllib.request.urlopen(req, timeout=600) as r:
-        return json.load(r)["IpfsHash"]
+        return json.load(r)["data"]["cid"]
 
 
 def plot_data(plot: str) -> dict:
@@ -211,6 +227,110 @@ def handle_result(msg: dict, task: dict):
     log({"event": "result", "plot": plot, "kind": kind, "added": added})
 
 
+# ── the register ─────────────────────────────────────────────────────────
+
+STATUSES = ("reserved", "transfer", "owned", "available")
+STEPS = ("kyc", "dd", "docs", "notary", "signed")
+
+
+def deal_of(d: dict) -> dict:
+    d.setdefault("deal", None)
+    if not d["deal"]:
+        d["deal"] = {"status": "", "holder": "", "form": "", "premium_pct": None, "price_usd": None, "paid_usd": 0.0, "payments": [], "steps": {}, "updated": ""}
+    return d["deal"]
+
+
+def book_price(plot: str):
+    """The plot price from the site's own token metadata — the lease book."""
+    try:
+        with urllib.request.urlopen(f"{SITE}/plot/{plot}/metadata.json", timeout=20) as r:
+            doc = json.load(r)
+        for a in doc.get("attributes", []):
+            if a.get("trait_type") == "price":
+                m = re.search(r"\$([\d,]+)", str(a.get("value", "")))
+                if m:
+                    return float(m.group(1).replace(",", ""))
+    except Exception:
+        return None
+    return None
+
+
+def rebuild_index():
+    out = DOCROOT / "plot-data"
+    out.mkdir(parents=True, exist_ok=True)
+    index = {}
+    for f in sorted(out.glob("*.json")):
+        if f.name == "index.json" or f.name.startswith("."):
+            continue
+        try:
+            d = json.load(f.open())
+        except Exception:
+            continue
+        deal = d.get("deal")
+        if not deal or not deal.get("status"):
+            continue
+        index[f.stem] = {k: deal.get(k) for k in ("status", "holder", "form", "premium_pct", "price_usd", "paid_usd", "updated")}
+    tmp = out / ".index.json.tmp"
+    tmp.write_text(json.dumps(index, ensure_ascii=False, indent=1))
+    tmp.replace(out / "index.json")
+    return index
+
+
+def handle_admin(msg: dict, text: str) -> str:
+    parts = text.split()
+    cmd, args = parts[0].lower(), parts[1:]
+    if cmd == "/deals":
+        index = rebuild_index()
+        if not index:
+            return "no published deal yet"
+        return "\n".join(f"{p}: {v['status']} · {v.get('holder') or '—'} · {v.get('form') or '—'} {v.get('premium_pct') or ''}% · paid {v.get('paid_usd') or 0:.0f} of {v.get('price_usd') or 0:.0f}" for p, v in index.items())
+    if len(args) < 1 or not re.fullmatch(r"[a-z0-9-]+", args[0]):
+        return "usage: /hold /form /price /paid /status /step <plot> …"
+    plot = args[0]
+    d = plot_data(plot)
+    deal = deal_of(d)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if cmd == "/hold":
+        deal["holder"] = " ".join(args[1:])
+    elif cmd == "/form":
+        if len(args) < 2 or args[1] not in ("upfront", "index"):
+            return "usage: /form <plot> upfront|index [premium %]"
+        deal["form"] = args[1]
+        deal["premium_pct"] = 100 if args[1] == "upfront" else (int(args[2].rstrip("%")) if len(args) > 2 else deal.get("premium_pct"))
+    elif cmd == "/price":
+        if len(args) < 2:
+            return "usage: /price <plot> <usd>"
+        deal["price_usd"] = float(args[1].replace(",", ""))
+    elif cmd == "/paid":
+        if len(args) < 3 or args[2] not in ("bank", "eth"):
+            return "usage: /paid <plot> <usd> bank|eth [reference]"
+        usd = float(args[1].replace(",", ""))
+        deal["payments"].append({"on": today, "usd": usd, "method": args[2], "reference": " ".join(args[3:]), "note": ""})
+        deal["paid_usd"] = round(sum(p["usd"] for p in deal["payments"]), 2)
+        if deal.get("price_usd") is None:
+            deal["price_usd"] = book_price(plot)
+        if deal["status"] in ("", "available"):
+            deal["status"] = "reserved"
+        deal["steps"].setdefault("premium", today)
+    elif cmd == "/status":
+        if len(args) < 2 or args[1] not in STATUSES:
+            return "usage: /status <plot> reserved|transfer|owned|available"
+        deal["status"] = args[1]
+    elif cmd == "/step":
+        if len(args) < 2 or args[1] not in STEPS:
+            return "usage: /step <plot> kyc|dd|docs|notary|signed [YYYY-MM-DD]"
+        deal["steps"][args[1]] = args[2] if len(args) > 2 else today
+        if args[1] == "signed":
+            deal["status"] = "owned"
+    else:
+        return "unknown command"
+    deal["updated"] = now()
+    save_plot_data(plot, d)
+    rebuild_index()
+    log({"event": "register", "cmd": cmd, "plot": plot, "deal": deal})
+    return f"{plot}: {deal['status'] or 'open'} · {deal.get('holder') or '—'} · {deal.get('form') or '—'} {deal.get('premium_pct') or ''}% · paid {deal.get('paid_usd') or 0:.0f} of {deal.get('price_usd') or 0:.0f}\n{SITE}/plot/{plot}/"
+
+
 # ── loop ─────────────────────────────────────────────────────────────────
 
 def handle(update: dict):
@@ -224,6 +344,14 @@ def handle(update: dict):
         return
     if text.strip() == "/id":
         tg("sendMessage", chat_id=msg["chat"]["id"], text=f"chat id: {chat_id}")
+        return
+    if chat_id in (CHAT, ADMIN) and text.split()[0].lower() in ("/deals", "/hold", "/form", "/price", "/paid", "/status", "/step"):
+        try:
+            answer = handle_admin(msg, text)
+        except Exception as e:
+            answer = f"could not write the register: {e}"
+            log({"event": "register-error", "error": repr(e)})
+        tg("sendMessage", chat_id=msg["chat"]["id"], text=answer, disable_web_page_preview=True)
         return
     if chat_id == CHAT and msg.get("reply_to_message"):
         task = tasks().get(str(msg["reply_to_message"]["message_id"]))

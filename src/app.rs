@@ -5,6 +5,7 @@ use crate::console::{DomainsBoard, ValleyConsole};
 use crate::elements::ElementsPage;
 use crate::events::EventsPage;
 use crate::friends::FriendPage;
+use crate::admin::AdminPage;
 use crate::cabinet::CabinetPage;
 use crate::docs::DocsPage;
 use crate::genetics::GeneticsPage;
@@ -100,6 +101,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/friend/:slug") view=FriendPage />
                 <Route path=path!("/cabinet") view=CabinetPage />
                 <Route path=path!("/docs") view=DocsPage />
+                <Route path=path!("/admin") view=AdminPage />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />
 

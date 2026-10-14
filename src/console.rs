@@ -477,6 +477,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
     }
     // deals first: loading them drops legacy auto-opened requests from the journal
     let deals = RwSignal::new(load_deals());
+    // the valley's published deals (reserved · transfer · owned) paint over this browser's own
+    leptos::task::spawn_local(async move {
+        let index = crate::orders::fetch_index().await;
+        if !index.is_empty() {
+            deals.update(|d| crate::deals::merge_published(d, &index));
+        }
+    });
     let intents = RwSignal::new(load_intents());
     let dd = RwSignal::new(load_dd());
     let jv = RwSignal::new(load_jv());

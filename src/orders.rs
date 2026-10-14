@@ -131,7 +131,7 @@ pub fn ordered(log: &[OrderRec], kind: OrderKind, plot: &str) -> Option<f64> {
 }
 
 /// What the ground brought back — `/plot-data/<id>.json`, written by the
-/// hard force bot into the pages repo.
+/// hard force bot into the docroot — and the deal the valley publishes.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct PlotData {
     #[serde(default)]
@@ -139,7 +139,81 @@ pub struct PlotData {
     #[serde(default)]
     pub media: Vec<Media>,
     #[serde(default)]
+    pub deal: Option<PublishedDeal>,
+    #[serde(default)]
     pub updated: String,
+}
+
+/// The valley's word on a flat's deal: status, holder, form, money received.
+/// `status`: `reserved` (premium received) · `transfer` (papers in motion)
+/// · `owned` (signed) · `available`.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct PublishedDeal {
+    #[serde(default)]
+    pub status: String,
+    /// the name the Holder agreed to show
+    #[serde(default)]
+    pub holder: String,
+    /// `upfront` | `index`
+    #[serde(default)]
+    pub form: String,
+    #[serde(default)]
+    pub premium_pct: Option<u32>,
+    #[serde(default)]
+    pub price_usd: Option<f64>,
+    #[serde(default)]
+    pub paid_usd: f64,
+    #[serde(default)]
+    pub payments: Vec<Payment>,
+    /// step → date: request · kyc · dd · premium · docs · notary · signed
+    #[serde(default)]
+    pub steps: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub updated: String,
+}
+
+impl PublishedDeal {
+    pub fn line(&self) -> &'static str {
+        match self.status.as_str() {
+            "reserved" => "reserved — the premium is received, the papers follow",
+            "transfer" => "rights in transfer — signatures on both sides",
+            "owned" => "signed — the flat is held",
+            _ => "open",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Payment {
+    #[serde(default)]
+    pub on: String,
+    #[serde(default)]
+    pub usd: f64,
+    /// `bank` | `eth`
+    #[serde(default)]
+    pub method: String,
+    #[serde(default)]
+    pub reference: String,
+    #[serde(default)]
+    pub note: String,
+}
+
+/// `/plot-data/index.json` — every flat the valley published a deal for.
+pub async fn fetch_index() -> std::collections::HashMap<String, PublishedDeal> {
+    fetch_json("/plot-data/index.json").await.unwrap_or_default()
+}
+
+async fn fetch_json<T: serde::de::DeserializeOwned>(path: &str) -> Option<T> {
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_futures::JsFuture;
+    let window = web_sys::window()?;
+    let resp = JsFuture::from(window.fetch_with_str(path)).await.ok()?;
+    let resp: web_sys::Response = resp.dyn_into().ok()?;
+    if !resp.ok() {
+        return None;
+    }
+    let text = JsFuture::from(resp.text().ok()?).await.ok()?.as_string()?;
+    serde_json::from_str(&text).ok()
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -169,18 +243,8 @@ pub struct Media {
     pub note: String,
 }
 
-/// None when the flat has no published data yet (404) or the fetch failed.
+/// None when the flat has no published data yet (nginx answers a missing
+/// file with index.html, so the body is parsed, never trusted by status).
 pub async fn fetch_plot_data(plot_id: &str) -> Option<PlotData> {
-    use wasm_bindgen::JsCast;
-    use wasm_bindgen_futures::JsFuture;
-    let window = web_sys::window()?;
-    let resp = JsFuture::from(window.fetch_with_str(&format!("/plot-data/{plot_id}.json")))
-        .await
-        .ok()?;
-    let resp: web_sys::Response = resp.dyn_into().ok()?;
-    if !resp.ok() {
-        return None;
-    }
-    let text = JsFuture::from(resp.text().ok()?).await.ok()?.as_string()?;
-    serde_json::from_str(&text).ok()
+    fetch_json(&format!("/plot-data/{plot_id}.json")).await
 }

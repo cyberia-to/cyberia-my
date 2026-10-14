@@ -12,6 +12,7 @@ use crate::nav::CyberiaNav;
 use crate::plot_board::LandBoard;
 use crate::plot_docs::DocsPanel;
 use crate::plot_ground::GroundPanels;
+use crate::plot_pay::PayPanel;
 use crate::plot_land::{load_state, Frame};
 use crate::wallet::push_intent;
 use leptos::prelude::*;
@@ -112,6 +113,20 @@ pub fn PlotPage() -> impl IntoView {
 
     let frame = Arc::new(Frame::new(&flat.coords));
     let deals = RwSignal::new(load_deals());
+    leptos::task::spawn_local(async move {
+        let index = crate::orders::fetch_index().await;
+        if !index.is_empty() {
+            deals.update(|d| crate::deals::merge_published(d, &index));
+        }
+    });
+    // the flat's own published file carries the payments the index summary lacks
+    let pdata = RwSignal::new(None::<crate::orders::PlotData>);
+    {
+        let fid_data = flat.id.clone();
+        leptos::task::spawn_local(async move {
+            pdata.set(crate::orders::fetch_plot_data(&fid_data).await);
+        });
+    }
     let state = RwSignal::new(load_state(&flat.id));
     let name = bare_name(&flat.name);
     let owner = holder(&flat.id).map(|s| s.to_string());
@@ -159,6 +174,14 @@ pub fn PlotPage() -> impl IntoView {
             let fid_o = fid.clone();
             let fname_o = fname.clone();
             let head = match &deal {
+                Some(d) if d.published.is_some() => {
+                    let pd = d.published.clone().unwrap_or_default();
+                    (
+                        match pd.status.as_str() { "reserved" => "RESERVED".to_string(), "owned" => "SIGNED".to_string(), _ => "IN TRANSFER".to_string() },
+                        format!("{}{}", pd.line(), if pd.holder.is_empty() { String::new() } else { format!(" · {}", pd.holder) }),
+                        ink,
+                    )
+                }
                 Some(d) if d.cancelled => ("CANCELLED".to_string(), "the request was withdrawn — the flat is open again".to_string(), "#777777"),
                 Some(d) if d.is_signed() => ("SIGNED".to_string(), d.step_line().to_string(), ink),
                 Some(d) => (
@@ -345,6 +368,21 @@ pub fn PlotPage() -> impl IntoView {
                             </div>
                             {deal_panel}
                         </section>
+                        {
+                            let fid_pay = flat.id.clone();
+                            let published = Signal::derive(move || {
+                                pdata.get().and_then(|d| d.deal).filter(|d| !d.status.is_empty())
+                                    .or_else(|| deals.get().get(&fid_pay).and_then(|d| d.published.clone()))
+                            });
+                            let fid_show = flat.id.clone();
+                            let show = Memo::new(move |_| matches!(flat_status(&fid_show, &deals.get()), FlatStatus::Available | FlatStatus::Transfer));
+                            let fid_p = flat.id.clone();
+                            let name_p = bare_name(&flat.name);
+                            let price_p = book.and_then(|t| t.price());
+                            move || show.get().then(|| view! {
+                                <PayPanel plot_id=fid_p.clone() plot_name=name_p.clone() price=price_p published=published />
+                            })
+                        }
                         <GroundPanels
                             plot_id=flat.id.clone()
                             plot_name=bare_name(&flat.name)
