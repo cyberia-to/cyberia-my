@@ -1,0 +1,17 @@
+[Unit]
+Description=hard force bot — orders from cyberia.my to the crew and back
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+EnvironmentFile=/etc/hardforce.env
+WorkingDirectory=/opt/hardforce
+ExecStart=/usr/bin/python3 -I /opt/hardforce/hardforce.py
+Restart=always
+RestartSec=5
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
