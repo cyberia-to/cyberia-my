@@ -79,7 +79,7 @@ pub fn AdminPage() -> impl IntoView {
     let map = load_map();
     let inventory: Vec<Item> = library()
         .iter()
-        .filter(|s| s.section.starts_with("land and company"))
+        .filter(|s| s.key == "land")
         .flat_map(|s| s.items.clone())
         .collect();
 

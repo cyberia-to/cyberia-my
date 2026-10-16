@@ -26,12 +26,14 @@ def main [--skip-build] {
   ^python3 $"($root)/scripts/render-plot-pages.py"
 
   print "→ rsync dist/ → cyberproxy:/var/www/html/cyberia.my/"
-  ^ssh cyberproxy "mkdir -p /var/www/html/cyberia.my/plot"
+  ^ssh cyberproxy "mkdir -p /var/www/html/cyberia.my/plot /var/www/html/cyberia.my/covers"
   # the build is flat files at the root; every top-level directory in the
   # docroot (cx, hackathon, music, fonts — synced from the pages repo) is
   # left alone, except plot/, which this build owns
   ^rsync -az --delete --exclude "/*/" $"($root)/dist/" "cyberproxy:/var/www/html/cyberia.my/"
   ^rsync -az --delete $"($root)/dist/plot/" "cyberproxy:/var/www/html/cyberia.my/plot/"
+  # the documents' first pages, beside the library
+  ^rsync -az --delete $"($root)/dist/covers/" "cyberproxy:/var/www/html/cyberia.my/covers/"
 
   print ""
   print "✓ deployed → https://cyberia.my/  (after DNS + TLS)"

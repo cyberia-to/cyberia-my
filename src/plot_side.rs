@@ -287,7 +287,7 @@ pub fn SideColumn(
             <a href=kml_url download=format!("{plot_id}.kml")>"boundary kml"</a>
             <a href=format!("/plot/{plot_id}/plan.svg") target="_blank" rel="noopener">"plan"</a>
             <a href=format!("/plot/{plot_id}/metadata.json") target="_blank" rel="noopener">"token"</a>
-            <a href="/docs" class="papers-pack">"due diligence pack →"</a>
+            <a href="/docs#land" class="papers-pack">"due diligence pack →"</a>
         </div>
     };
 

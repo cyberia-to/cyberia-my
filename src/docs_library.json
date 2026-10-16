@@ -1,103 +1,363 @@
 [
  {
-  "section": "signable pack — PDF on the Company's letterhead",
-  "line": "the instruments as they are signed: Bahasa Indonesia beside English, every party field blank, no personal data · 14 October 2026",
+  "key": "sign",
+  "section": "what you sign",
+  "color": "#00fe00",
+  "line": "the instruments on the Company's letterhead — Bahasa Indonesia beside English, the Indonesian text prevails, every party field blank · 14 October 2026",
   "items": [
    {
-    "title": "Hak Sewa — signable pack, one file",
-    "what": "cover, the agreement, the akta, the notary's template, Annexes A–G · 52 pages",
-    "cid": "bafybeigyhwzsdfja2z6xnrqq3h4w4hvk7u5nncntowlqpbf3ky5cl6p55m"
+    "title": "The whole pack",
+    "what": "cover, the agreement, the akta, the notary's template, Annexes A–G",
+    "cid": "bafybeigyhwzsdfja2z6xnrqq3h4w4hvk7u5nncntowlqpbf3ky5cl6p55m",
+    "thumb": "bafkreid7haahbyixjgsaqxozq73qmq3imbtxsl73yl3lj5pwzpjai6cckq",
+    "pages": 52,
+    "kb": 323,
+    "lang": "ID / EN",
+    "url": "",
+    "cover": "/covers/signable-pack-id-en.jpg"
    },
    {
-    "title": "Hak Sewa — Perjanjian / Lease Agreement",
-    "what": "Bahasa Indonesia beside English, the Indonesian text prevails · 18 parts, schedules · 30 pages",
-    "cid": "bafkreidkpvg4yrsogqvxm3qthjqa4l2m2ba5mks4664xndbprzyvfn6tvi"
+    "title": "Hak Sewa — Lease Agreement",
+    "what": "18 parts, schedules; the two forms of payment, the Council, the upgrade tracks",
+    "cid": "bafkreidkpvg4yrsogqvxm3qthjqa4l2m2ba5mks4664xndbprzyvfn6tvi",
+    "thumb": "bafkreiaedjt6dcqy4vxjskbwu7v2ck3adwg6szv5ta53wyfgdqme5vyyri",
+    "pages": 30,
+    "kb": 204,
+    "lang": "ID / EN",
+    "url": "",
+    "cover": "/covers/signable-01-hak-sewa-agreement.jpg"
    },
    {
-    "title": "Akta Sewa — Bentuk Sederhana / Simple Form",
+    "title": "Akta Sewa — Simple Form",
     "what": "the eight-clause notarial deed signed alongside the agreement",
-    "cid": "bafkreicunjgorzxizhaw6tc22urcsg5kaxpfobxy4sdlb4cmtqzki7w3gm"
+    "cid": "bafkreicunjgorzxizhaw6tc22urcsg5kaxpfobxy4sdlb4cmtqzki7w3gm",
+    "thumb": "bafkreibsfir3qqxmc5rfgg2o5nrhgia43jc5lfaalc3hekopl2lhse3c4y",
+    "pages": 2,
+    "kb": 60,
+    "lang": "ID / EN",
+    "url": "",
+    "cover": "/covers/signable-02-akta-sewa-simple.jpg"
    },
    {
-    "title": "Perjanjian Sewa Menyewa — Template Notaris",
-    "what": "the notary's long format the agreement maps onto, Bahasa Indonesia",
-    "cid": "bafkreib3jags4cnvygpvb2pjvkcpqgnbdxtf7rkrggwa3x5jq6wfynhy2e"
+    "title": "Perjanjian Sewa Menyewa",
+    "what": "the notary's long format the agreement maps onto",
+    "cid": "bafkreib3jags4cnvygpvb2pjvkcpqgnbdxtf7rkrggwa3x5jq6wfynhy2e",
+    "thumb": "bafkreih2s753yvqen5pl545e6krqxherti3mhogopdcbq7vmfmdxpllc5y",
+    "pages": 6,
+    "kb": 60,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/signable-03-perjanjian-sewa-menyewa.jpg"
    },
    {
     "title": "Annex A — Estate Registry",
     "what": "the Title the Plot sits on",
-    "cid": "bafkreicx2ehx4osssl4ujkxjsef42hwfujsujescdkj6vsquq2kldzmxtm"
+    "cid": "bafkreicx2ehx4osssl4ujkxjsef42hwfujsujescdkj6vsquq2kldzmxtm",
+    "thumb": "bafkreih3feh6tygxplhcdse57cafs4dpnwgtetvgltmczah2q7n3qmgyvq",
+    "pages": 1,
+    "kb": 13,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-04-annex-a.jpg"
    },
    {
     "title": "Annex B — Plot Boundary",
     "what": "corners, neighbours, access, the drawing · per Plot",
-    "cid": "bafkreib772rpmtjarps3ngzc72tmyaotoyolp5z4dpjxnn5xfrt4oewthy"
+    "cid": "bafkreib772rpmtjarps3ngzc72tmyaotoyolp5z4dpjxnn5xfrt4oewthy",
+    "thumb": "bafkreigbikt36rty2k3sf467s7omy47qaep4b3yc72ijn74wt2ar32frgi",
+    "pages": 2,
+    "kb": 35,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-05-annex-b.jpg"
    },
    {
     "title": "Annex C — Due Diligence Pack",
     "what": "inventory and record of handover · per deal",
-    "cid": "bafkreidtv5lv56noq7nhz52konxu5byioi52iw2g4gotwspcoknfnphbkm"
+    "cid": "bafkreidtv5lv56noq7nhz52konxu5byioi52iw2g4gotwspcoknfnphbkm",
+    "thumb": "bafkreiewrzeb67decl3tzlqevdrzzqk5zggaxfjng7nka255babbqddhna",
+    "pages": 2,
+    "kb": 35,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-06-annex-c.jpg"
    },
    {
     "title": "Annex D — Offer of Record",
     "what": "the page and price shown to the Holder · per deal",
-    "cid": "bafkreiclupledqmo5vqwxxr7hhyiy2mg4ke42bxke4if7767gxyjsxo6ka"
+    "cid": "bafkreiclupledqmo5vqwxxr7hhyiy2mg4ke42bxke4if7767gxyjsxo6ka",
+    "thumb": "bafkreibnae26j6ulka3jhhsc3shf3ovgsrlasixgpa2nobpgoeftkijgy4",
+    "pages": 1,
+    "kb": 32,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-07-annex-d.jpg"
    },
    {
     "title": "Annex E — Century Index",
     "what": "terms, formulas, rules, quantities · per deal",
-    "cid": "bafkreidqugcrhtyu5torztlnn7ob6cgfbtodhtlzz5gh3gfxlpcyohdg5q"
+    "cid": "bafkreidqugcrhtyu5torztlnn7ob6cgfbtodhtlzz5gh3gfxlpcyohdg5q",
+    "thumb": "bafkreieb3dffeuxuuykzljlledvup45iaibhypyd6tk7v4qhwakkm4fuza",
+    "pages": 4,
+    "kb": 50,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-08-annex-e.jpg"
    },
    {
     "title": "Annex F — Utilities, Access and Mobility",
     "what": "self-sufficiency norms per Plot",
-    "cid": "bafkreih34lvzbxrwsbmaib7x2uoeokqhw5fkycffk2kiirrne5lyh3yfri"
+    "cid": "bafkreih34lvzbxrwsbmaib7x2uoeokqhw5fkycffk2kiirrne5lyh3yfri",
+    "thumb": "bafkreiankanadfss4wnaf4iisn72qvk4shbtjivvuxuggeazijlci4335u",
+    "pages": 1,
+    "kb": 33,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-09-annex-f.jpg"
    },
    {
     "title": "Annex G — Handover Condition",
     "what": "record of handover of the Plot · per Plot",
-    "cid": "bafkreibjngwomuaub6qipopqzstwvkpuecx3jl2vqddsvtct3tbfrdsxfe"
+    "cid": "bafkreibjngwomuaub6qipopqzstwvkpuecx3jl2vqddsvtct3tbfrdsxfe",
+    "thumb": "bafkreienxykisfhig4ocyisal622llsb7upokra7dfccxkhbl7idrjgu5i",
+    "pages": 2,
+    "kb": 35,
+    "lang": "EN",
+    "url": "",
+    "cover": "/covers/signable-10-annex-g.jpg"
+   },
+   {
+    "title": "Reading pack",
+    "what": "the whole pack to read first, English beside Russian · 25 September 2026",
+    "cid": "bafybeigd2iuwvi5ckb3tphk3fwpk2xmolaha5f5pzal266jsq7efkyew7y",
+    "thumb": "bafkreido7sfpl3nd3xqwpb73mbnzwbmzcqfsedr4ck7kmz3zf5mjbm4cqm",
+    "pages": 64,
+    "kb": 410,
+    "lang": "EN / RU",
+    "url": "",
+    "cover": "/covers/hak-sewa-reading-pack-en-ru.jpg"
    }
   ]
  },
  {
-  "section": "the pack",
-  "line": "what a Holder signs — the template, the notarial deed beside it, and the pack to read first",
+  "key": "land",
+  "section": "the land · HGB 00048/Gesing",
+  "color": "#00acff",
+  "line": "40,000 m² of sinwood registered to PT Cyber Valley Estate — the Title and every paper behind it, delivered as certified copies before signing · identity numbers and home addresses of natural persons blacked out",
   "items": [
    {
-    "title": "Hak Sewa — signable template",
-    "what": "the lease agreement in Bahasa Indonesia and English: 18 parts, Annexes A–G, schedules",
-    "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-template/"
+    "title": "HGB No. 00048/Gesing — the Title",
+    "what": "with Surat Ukur No. 00086/2002 · parcel NIB 22040417.00276 · expiring 02-02-2053",
+    "cid": "",
+    "note": "scan arrives before signing"
    },
    {
-    "title": "Akta Sewa — hak sewa simple",
-    "what": "the eight-clause notarial deed the same parties sign alongside the template",
-    "url": "https://cyberia.blog/cyber-valley/products/leasehold/hak-sewa-simple/"
+    "title": "AJB No. 81/2023",
+    "what": "the deed of sale by which the Company acquired the Title, 9 June 2023",
+    "cid": "bafybeiben4tcbo5nn3kimudtpm45bw7jhs6m6uob332p2u5372oh6rxu6m",
+    "thumb": "bafkreidwfy45wijnsrkz64vteit5klrd7qk5hlwk4cb2nnq3bpxin6vrce",
+    "pages": 6,
+    "kb": 1352,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-ajb-81-2023.jpg"
    },
    {
-    "title": "Perjanjian Sewa Menyewa — the notary's long format",
-    "what": "Schedule 3 of the template maps onto it",
-    "url": "https://cyberia.blog/cyber-valley/products/leasehold/perjanjian-sewa-menyewa-template/"
+    "title": "PPJB",
+    "what": "the binding sale and purchase agreement that preceded the AJB",
+    "cid": "bafybeiebkwtgcpw5nnxpou4n3l2lbts3zp6g7n5zzmpiqinfta6dset4da",
+    "thumb": "bafkreidsfgbwvucirgeylgz5tdpwboh5doym5erd5pykmvzxuawp56mffy",
+    "pages": 9,
+    "kb": 1235,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-ppjb.jpg"
    },
    {
-    "title": "Leasehold — the product page",
-    "what": "the two forms of payment, upfront or premium plus century-index rent, and every linked rule",
-    "url": "https://cyberia.blog/cyber-valley/products/leasehold/"
+    "title": "Land sale authorization",
+    "what": "the seller's notarial authorization for the sale",
+    "cid": "bafybeiderx5ifx6pl6eg3wvfw5iqjhkdkgdu7ojfzj22nimgqiqmcpbvjm",
+    "thumb": "bafkreifzhr46a3dtajaphvh3zbx3vvsaebtipfxyp5sw3nmyjrd4q5uhoy",
+    "pages": 7,
+    "kb": 959,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-sale-authorization.jpg"
    },
    {
-    "title": "Reading pack EN-RU (PDF)",
-    "what": "the whole pack print-ready, English beside Russian · 25 September 2026",
-    "cid": "bafybeigd2iuwvi5ckb3tphk3fwpk2xmolaha5f5pzal266jsq7efkyew7y"
+    "title": "BPN technical consideration",
+    "what": "Pertimbangan Teknis Pertanahan No. 1108/2022 for the 40,000 m², 6 October 2022",
+    "cid": "bafybeihgqqjnyjvya5khxm5ecncezsjcjt2tseyljjbdxydqlv6zmnxkzi",
+    "thumb": "bafkreifqvg6ij3znyq4y2xn2g3zoaojrg557p6eozpwkfodwos2hmcqci4",
+    "pages": 4,
+    "kb": 1063,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-land-assessment-2022.jpg"
+   },
+   {
+    "title": "PKKPR No. 10082310215108014",
+    "what": "land-use conformity, OSS 09-08-2023, KBLI 68111",
+    "cid": "bafkreihljuvjw2tyi6k27tyzjuxluinimys64yldmb2vm2ocv46adohkci",
+    "thumb": "bafkreiarq7bghjrkynfg6v3hbqcmakqz223lhtohxtdymhpe62vjm27p6q",
+    "pages": 4,
+    "kb": 130,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-pkkpr.jpg"
+   },
+   {
+    "title": "SPPT PBB 2023",
+    "what": "land and building tax notice of the parcel",
+    "cid": "bafybeih6pmgyeaokj2hryiem6xjyq25drjakcq2zkdj6gst6klg3esrixe",
+    "thumb": "bafkreiexzhbnrwytponquxtjr3ix6pirn3rfrqxo7zuffolafqnuz5bfjm",
+    "pages": 1,
+    "kb": 909,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-pbb-2023.jpg"
+   },
+   {
+    "title": "BPHTB",
+    "what": "duty on the acquisition of the Title, paid by the Company",
+    "cid": "bafybeiausbk3pnjwhkyexusrhot2fap6sfnn6t3c4fw2rxwupvzenrug3i",
+    "thumb": "bafkreienyyn75c4yapiw37snqgufqf56lqwkizyvegiaaxpltyhnzaxznq",
+    "pages": 1,
+    "kb": 661,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/sinwood-bphtb.jpg"
+   },
+   {
+    "title": "BPN non-encumbrance search",
+    "what": "ordered through the PPAT within 30 days of signing",
+    "cid": "",
+    "note": "per deal"
    }
   ]
  },
  {
+  "key": "company",
+  "section": "the Company · PT Cyber Valley Estate",
+  "color": "#fcf000",
+  "line": "the Company as it stands at the registry — IDs of directors and shareholders blacked out, the articles whole",
+  "items": [
+   {
+    "title": "NIB 2504220016017",
+    "what": "business registration with the KBLI list, printed 7 October 2025",
+    "cid": "bafybeictdfnuvidrr25faqcadcfhafepbemjm2laypqdkxmepaylxqwoby",
+    "thumb": "bafkreibf3xbnbpdtkqwtrzpja6kdzpve3ueaitwu6nvqcbbsq6vp2xlpli",
+    "pages": 3,
+    "kb": 553,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-nib.jpg"
+   },
+   {
+    "title": "NPWP 53.898.326.3-902.000",
+    "what": "the Company's tax registration",
+    "cid": "bafkreifrwie5zp736zblcwboxk4rsgng36jdhyuobzmuht5e4zqqthqmk4",
+    "thumb": "bafkreiapggevxh6cz35ld4y7qoxdqjceklrhdnn6qd5dy4qtqfpuiugj4y",
+    "pages": 2,
+    "kb": 184,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-npwp.jpg"
+   },
+   {
+    "title": "Akta Pendirian No. 01 / 2022",
+    "what": "deed of establishment with the Anggaran Dasar · AHU-0001412-AH.01.01 of 07-01-2022",
+    "cid": "bafybeia3aefigpnf4jetq4yc2gfo6c7yx33pnraxqmcwc6fair7os5d3pm",
+    "thumb": "bafkreiafc7tmwru6buz4zpcwl5lgqraowa35suvtk3zffvwtuybzi22keq",
+    "pages": 22,
+    "kb": 4440,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-akta-pendirian-01-2022.jpg"
+   },
+   {
+    "title": "Anggaran Dasar — consolidated",
+    "what": "the articles as consolidated by the Company, 13 August 2026",
+    "cid": "bafkreifbs2tdophgkqmyimgzvix63fl5kcrizgtw6j7vaww6qwjhgobdpy",
+    "thumb": "bafkreidm7vbfu67z2w6aetzinj37q7bktw2nd2m6t6gsjw4jdowr4yhfja",
+    "pages": 8,
+    "kb": 145,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-anggaran-dasar-2026-08.jpg"
+   },
+   {
+    "title": "Articles of Association",
+    "what": "the same articles, English beside Indonesian, 13 August 2026",
+    "cid": "bafybeihgastboq77o6u44t3culuh43h644j6u54bewpscwrhrbgw5w2v4e",
+    "thumb": "bafkreihixcdz5ke2sbvfqbxltxexl6cj6bqyzixdrybe2bowe4ethjjdye",
+    "pages": 13,
+    "kb": 299,
+    "lang": "EN / ID",
+    "url": "",
+    "cover": "/covers/cve-articles-en-id-2026-08.jpg"
+   },
+   {
+    "title": "Akta No. 13 / 2025",
+    "what": "shareholders' resolution: change of the board and share transfer, 14 April 2025",
+    "cid": "bafybeicluu747ucipg733465ms24pbealvxhafmkvnsjq5trcmjlz72j34",
+    "thumb": "bafkreidy5oe54gokrzo5ava2reybrultzfeu7oizt2j3jsyy4iw4myhte4",
+    "pages": 9,
+    "kb": 1309,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-akta-13-2025-04-14.jpg"
+   },
+   {
+    "title": "Akta No. 14 / 2025",
+    "what": "deposit of documents (penyimpanan surat), 14 April 2025",
+    "cid": "bafybeibfgt6wgswgbnny57ponjigcjv2pnq74rg3szck4kjayp4lmagjie",
+    "thumb": "bafkreihjy63526wi5mpgovn3tbpbxvprbbmwguhbn53ak2r5wjxjdshbju",
+    "pages": 7,
+    "kb": 1057,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-akta-14-2025-04-14.jpg"
+   },
+   {
+    "title": "AHU-AH.01.09-0196845",
+    "what": "the Ministry's acceptance of the change of board and the share transfer, 21 April 2025",
+    "cid": "bafkreibm7wcd6qfwkph7ujkeuxek6qf5nckxyup7uwco2bqtz5okotbrje",
+    "thumb": "bafkreiciubvizplb2xyg7ooq546vg65klkwpuasqgnft4vxxdbn6rrqkhm",
+    "pages": 1,
+    "kb": 45,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-ahu-2025-04-21.jpg"
+   },
+   {
+    "title": "AHU company detail",
+    "what": "the registry's record of the articles amendment, Akta No. 02 of 1 July 2025",
+    "cid": "bafybeie3qzp6i5qtcbdji66ynso42c4fiuiiywq3zqku74mzdnz5uedgli",
+    "thumb": "bafkreifttn6f2vkoqo7rj77iwc3v5dgvxnuwjg37jhisw5dmrgz7vdgspy",
+    "pages": 3,
+    "kb": 1007,
+    "lang": "ID",
+    "url": "",
+    "cover": "/covers/cve-ahu-detail-2025-07.jpg"
+   },
+   {
+    "title": "Director appointment deed, 2026",
+    "what": "the deed that shows the Director who signs the lease — the post-registration edition",
+    "cid": "",
+    "note": "arrives before signing"
+   }
+  ]
+ },
+ {
+  "key": "rules",
   "section": "rules the city changes by proposal and vote",
+  "color": "#d500f9",
   "line": "graph pages the lease links to — the version of the day binds, the lease keeps the version you built under",
   "items": [
    {
     "title": "Design Code",
-    "what": "footprint, garden, water, light, materials — what is built on a plot and how",
+    "what": "footprint, garden, water, light, materials",
     "url": "https://cyberia.blog/cyber-valley/products/leasehold/design-code/"
    },
    {
@@ -117,7 +377,7 @@
    },
    {
     "title": "Biosphere and desa reserves",
-    "what": "the share of revenue set aside, reviewed at the annual meeting",
+    "what": "the share set aside, reviewed yearly",
     "url": "https://cyberia.blog/cyber-valley/policies/biosphere-and-desa-reserves/"
    },
    {
@@ -132,18 +392,25 @@
    },
    {
     "title": "Referral system",
-    "what": "who brought the Holder and what the valley pays for it",
+    "what": "who brought the Holder and what the valley pays",
     "url": "https://cyberia.blog/cyber-valley/strategy/referral-system/"
+   },
+   {
+    "title": "Leasehold — the product page",
+    "what": "the two forms of payment and every linked rule",
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/"
    }
   ]
  },
  {
+  "key": "index",
   "section": "price and index",
+  "color": "#ff5b00",
   "line": "the unit the rent is counted in, fixed daily, and the rate card of the estate",
   "items": [
    {
     "title": "Century Index — the protocol",
-    "what": "fixed quantities of eight world assets; the collar; the bitcoin floor",
+    "what": "eight world assets in fixed quantities; the collar; the bitcoin floor",
     "url": "https://cyberia.blog/cyberia/protocol/century-index/"
    },
    {
@@ -155,113 +422,6 @@
     "title": "Rates",
     "what": "stay and event rates on the land anchor",
     "url": "https://cyberia.blog/cyber-valley/products/rates/"
-   }
-  ]
- },
- {
-  "section": "land documents — sinwood, HGB 00048/Gesing · Annex C inventory",
-  "line": "certified copies delivered before signing; every file on IPFS by its content hash, nothing on our servers",
-  "items": [
-   {
-    "title": "HGB No. 00048/Gesing — the Title with Surat Ukur No. 00086/2002",
-    "what": "40,000 m², parcel NIB 22040417.00276, registered to PT Cyber Valley Estate, expiring 02-02-2053",
-    "cid": ""
-   },
-   {
-    "title": "AJB No. 81/2023",
-    "what": "the deed of sale by which the Company acquired the Title, 9 June 2023 · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeiben4tcbo5nn3kimudtpm45bw7jhs6m6uob332p2u5372oh6rxu6m"
-   },
-   {
-    "title": "PPJB — binding sale and purchase agreement",
-    "what": "the agreement that preceded the AJB · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeiebkwtgcpw5nnxpou4n3l2lbts3zp6g7n5zzmpiqinfta6dset4da"
-   },
-   {
-    "title": "Land sale authorization",
-    "what": "the seller's notarial authorization for the sale · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeiderx5ifx6pl6eg3wvfw5iqjhkdkgdu7ojfzj22nimgqiqmcpbvjm"
-   },
-   {
-    "title": "BPN technical consideration, 6 October 2022",
-    "what": "Pertimbangan Teknis Pertanahan No. 1108/BA.51.08.NT.01.01/X/2022 for the 40,000 m² · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeihgqqjnyjvya5khxm5ecncezsjcjt2tseyljjbdxydqlv6zmnxkzi"
-   },
-   {
-    "title": "PKKPR No. 10082310215108014",
-    "what": "land-use conformity, OSS 09-08-2023, KBLI 68111, 40,000 m²",
-    "cid": "bafkreihljuvjw2tyi6k27tyzjuxluinimys64yldmb2vm2ocv46adohkci"
-   },
-   {
-    "title": "SPPT PBB 2023",
-    "what": "land and building tax notice of the parcel",
-    "cid": "bafybeih6pmgyeaokj2hryiem6xjyq25drjakcq2zkdj6gst6klg3esrixe"
-   },
-   {
-    "title": "BPHTB — land acquisition tax proof",
-    "what": "duty on the acquisition of the Title, paid by the Company",
-    "cid": "bafybeiausbk3pnjwhkyexusrhot2fap6sfnn6t3c4fw2rxwupvzenrug3i"
-   },
-   {
-    "title": "BPN non-encumbrance search",
-    "what": "ordered through the PPAT within 30 days of signing, per deal",
-    "cid": ""
-   }
-  ]
- },
- {
-  "section": "company documents — PT Cyber Valley Estate",
-  "line": "the Company as it stands at the registry; IDs of directors and shareholders are blacked out, the articles are whole",
-  "items": [
-   {
-    "title": "NIB 2504220016017",
-    "what": "business registration with the KBLI list, printed 7 October 2025",
-    "cid": "bafybeictdfnuvidrr25faqcadcfhafepbemjm2laypqdkxmepaylxqwoby"
-   },
-   {
-    "title": "NPWP 53.898.326.3-902.000",
-    "what": "the Company's tax registration",
-    "cid": "bafkreifrwie5zp736zblcwboxk4rsgng36jdhyuobzmuht5e4zqqthqmk4"
-   },
-   {
-    "title": "Akta Pendirian No. 01 of 04-01-2022 with the Anggaran Dasar",
-    "what": "deed of establishment, AHU-0001412-AH.01.01 of 07-01-2022 · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeia3aefigpnf4jetq4yc2gfo6c7yx33pnraxqmcwc6fair7os5d3pm"
-   },
-   {
-    "title": "Anggaran Dasar — consolidated text, 13 August 2026",
-    "what": "the articles as consolidated by the Company, Bahasa Indonesia",
-    "cid": "bafkreifbs2tdophgkqmyimgzvix63fl5kcrizgtw6j7vaww6qwjhgobdpy"
-   },
-   {
-    "title": "Articles of Association EN-ID, 13 August 2026",
-    "what": "the same articles, English beside Indonesian",
-    "cid": "bafybeihgastboq77o6u44t3culuh43h644j6u54bewpscwrhrbgw5w2v4e"
-   },
-   {
-    "title": "Akta No. 13 of 14-04-2025 — shareholders' resolution",
-    "what": "change of the board and share transfer · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeicluu747ucipg733465ms24pbealvxhafmkvnsjq5trcmjlz72j34"
-   },
-   {
-    "title": "Akta No. 14 of 14-04-2025 — deposit of documents",
-    "what": "penyimpanan surat · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeibfgt6wgswgbnny57ponjigcjv2pnq74rg3szck4kjayp4lmagjie"
-   },
-   {
-    "title": "AHU-AH.01.09-0196845 of 21-04-2025",
-    "what": "the Ministry's acceptance of the change of board and the share transfer",
-    "cid": "bafkreibm7wcd6qfwkph7ujkeuxek6qf5nckxyup7uwco2bqtz5okotbrje"
-   },
-   {
-    "title": "AHU company detail — Akta No. 02 of 01-07-2025",
-    "what": "the registry's record of the articles amendment (purpose and KBLI) · identity numbers and home addresses of natural persons blacked out",
-    "cid": "bafybeie3qzp6i5qtcbdji66ynso42c4fiuiiywq3zqku74mzdnz5uedgli"
-   },
-   {
-    "title": "Director appointment deed, 2026",
-    "what": "the deed that shows the Director who signs the lease — the post-registration edition",
-    "cid": ""
    }
   ]
  }
