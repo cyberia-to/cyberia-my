@@ -127,8 +127,9 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
                     let facts = it.facts();
                     match it.href() {
                         Some(href) if !it.cid.is_empty() => {
+                            // the cover's address changes with the file, so a browser never shows a stale page
                             let thumb = if !it.cover.is_empty() {
-                                Some(it.cover.clone())
+                                Some(format!("{}?v={}", it.cover, &it.cid[it.cid.len().saturating_sub(8)..]))
                             } else {
                                 (!it.thumb.is_empty()).then(|| format!("{GATEWAY}{}", it.thumb))
                             };
