@@ -76,7 +76,7 @@ critical list is the spine of this plan; items are ordered by dependency.
 - [ ] 8 pack — pin the PDF, fill CIDs in `src/docs_library.json`; company licences / office practice pages wait for the user's go
 
 Deployed to cyberia.my 2026-10-14 (commits f431f33…c32456d). Local check:
-`python3 scripts/serve-dist.py 8099` + `node scripts/check-page.mjs <url> <selectors…>`.
+`python3 scripts/serve-dist.py 8099` + `python3 scripts/cdp.py <url> --selectors <selectors…>`.
 Open: the MOCK badge on every phase pill (`style.css` `.cyberia-phase-pill::after`)
 sits on the flat page of a real product — the user decides.
 
