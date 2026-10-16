@@ -3,15 +3,15 @@
   "key": "sign",
   "section": "what you sign",
   "color": "#00fe00",
-  "line": "the instruments on the Company's letterhead — Bahasa Indonesia beside English, the Indonesian text prevails, every party field blank · 14 October 2026",
+  "line": "the instruments as books on the Company's letterhead — cover, contents, numbered parts, Bahasa Indonesia beside English, footnotes on every page, a colophon with the source hash · 16 October 2026",
   "items": [
    {
     "title": "The whole pack",
-    "what": "cover, the agreement, the akta, the notary's template, Annexes A–G",
-    "cid": "bafybeigyhwzsdfja2z6xnrqq3h4w4hvk7u5nncntowlqpbf3ky5cl6p55m",
-    "thumb": "bafkreid7haahbyixjgsaqxozq73qmq3imbtxsl73yl3lj5pwzpjai6cckq",
-    "pages": 52,
-    "kb": 323,
+    "what": "cover, contents, the agreement, the akta, the notary's template, Annexes A–G · 74 pages",
+    "cid": "bafybeieu44jfcpet656pkdbeeqr6ca5qncaeuybm6hdnkpkcma4mhgqnyq",
+    "thumb": "",
+    "pages": 74,
+    "kb": 2630,
     "lang": "ID / EN",
     "url": "",
     "cover": "/covers/signable-pack-id-en.jpg"
@@ -19,10 +19,10 @@
    {
     "title": "Hak Sewa — Lease Agreement",
     "what": "18 parts, schedules; the two forms of payment, the Council, the upgrade tracks",
-    "cid": "bafkreidkpvg4yrsogqvxm3qthjqa4l2m2ba5mks4664xndbprzyvfn6tvi",
-    "thumb": "bafkreiaedjt6dcqy4vxjskbwu7v2ck3adwg6szv5ta53wyfgdqme5vyyri",
-    "pages": 30,
-    "kb": 204,
+    "cid": "bafybeiascw6hah5j6xisohaegotss3vuorql6rxax53mivkxehf5omfava",
+    "thumb": "",
+    "pages": 39,
+    "kb": 1243,
     "lang": "ID / EN",
     "url": "",
     "cover": "/covers/signable-01-hak-sewa-agreement.jpg"
@@ -30,10 +30,10 @@
    {
     "title": "Akta Sewa — Simple Form",
     "what": "the eight-clause notarial deed signed alongside the agreement",
-    "cid": "bafkreicunjgorzxizhaw6tc22urcsg5kaxpfobxy4sdlb4cmtqzki7w3gm",
-    "thumb": "bafkreibsfir3qqxmc5rfgg2o5nrhgia43jc5lfaalc3hekopl2lhse3c4y",
-    "pages": 2,
-    "kb": 60,
+    "cid": "bafkreid3oxw3vz3n3vgziiocmn6yx5nf5u3kes3l5jfmhoke2y2vf7wkua",
+    "thumb": "",
+    "pages": 4,
+    "kb": 85,
     "lang": "ID / EN",
     "url": "",
     "cover": "/covers/signable-02-akta-sewa-simple.jpg"
@@ -41,10 +41,10 @@
    {
     "title": "Perjanjian Sewa Menyewa",
     "what": "the notary's long format the agreement maps onto",
-    "cid": "bafkreib3jags4cnvygpvb2pjvkcpqgnbdxtf7rkrggwa3x5jq6wfynhy2e",
-    "thumb": "bafkreih2s753yvqen5pl545e6krqxherti3mhogopdcbq7vmfmdxpllc5y",
-    "pages": 6,
-    "kb": 60,
+    "cid": "bafybeifrgu5dhdytco37gpjkafchjojaf3h2bezbvwn3ezokr3tjtk56my",
+    "thumb": "",
+    "pages": 10,
+    "kb": 858,
     "lang": "ID",
     "url": "",
     "cover": "/covers/signable-03-perjanjian-sewa-menyewa.jpg"
@@ -52,10 +52,10 @@
    {
     "title": "Annex A — Estate Registry",
     "what": "the Title the Plot sits on",
-    "cid": "bafkreicx2ehx4osssl4ujkxjsef42hwfujsujescdkj6vsquq2kldzmxtm",
-    "thumb": "bafkreih3feh6tygxplhcdse57cafs4dpnwgtetvgltmczah2q7n3qmgyvq",
-    "pages": 1,
-    "kb": 13,
+    "cid": "bafkreihil4vohqheujdxeohhry2kgmfqdisxqkldxwore3ynrxf2eq6be4",
+    "thumb": "",
+    "pages": 3,
+    "kb": 56,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-04-annex-a.jpg"
@@ -63,10 +63,10 @@
    {
     "title": "Annex B — Plot Boundary",
     "what": "corners, neighbours, access, the drawing · per Plot",
-    "cid": "bafkreib772rpmtjarps3ngzc72tmyaotoyolp5z4dpjxnn5xfrt4oewthy",
-    "thumb": "bafkreigbikt36rty2k3sf467s7omy47qaep4b3yc72ijn74wt2ar32frgi",
-    "pages": 2,
-    "kb": 35,
+    "cid": "bafkreidvpwk27b3igx4ulud4b3tv3vbetdlboy5qhnsk6q4olravenxoya",
+    "thumb": "",
+    "pages": 4,
+    "kb": 61,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-05-annex-b.jpg"
@@ -74,10 +74,10 @@
    {
     "title": "Annex C — Due Diligence Pack",
     "what": "inventory and record of handover · per deal",
-    "cid": "bafkreidtv5lv56noq7nhz52konxu5byioi52iw2g4gotwspcoknfnphbkm",
-    "thumb": "bafkreiewrzeb67decl3tzlqevdrzzqk5zggaxfjng7nka255babbqddhna",
-    "pages": 2,
-    "kb": 35,
+    "cid": "bafkreibzgri7uzhzn6363vnivz3u4fbqbhiiuhj6dt6soz22u6u3ttwgn4",
+    "thumb": "",
+    "pages": 4,
+    "kb": 61,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-06-annex-c.jpg"
@@ -85,10 +85,10 @@
    {
     "title": "Annex D — Offer of Record",
     "what": "the page and price shown to the Holder · per deal",
-    "cid": "bafkreiclupledqmo5vqwxxr7hhyiy2mg4ke42bxke4if7767gxyjsxo6ka",
-    "thumb": "bafkreibnae26j6ulka3jhhsc3shf3ovgsrlasixgpa2nobpgoeftkijgy4",
-    "pages": 1,
-    "kb": 32,
+    "cid": "bafkreibc6xg7waigrtinfa5ffsco3ruiaqn5qnzmtmnrkopmkcpeh6ta5u",
+    "thumb": "",
+    "pages": 3,
+    "kb": 57,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-07-annex-d.jpg"
@@ -96,10 +96,10 @@
    {
     "title": "Annex E — Century Index",
     "what": "terms, formulas, rules, quantities · per deal",
-    "cid": "bafkreidqugcrhtyu5torztlnn7ob6cgfbtodhtlzz5gh3gfxlpcyohdg5q",
-    "thumb": "bafkreieb3dffeuxuuykzljlledvup45iaibhypyd6tk7v4qhwakkm4fuza",
-    "pages": 4,
-    "kb": 50,
+    "cid": "bafkreif3c5pheowlloyk4i7s7yavg74thrqbocsujddzno7kjq2obb3uxa",
+    "thumb": "",
+    "pages": 7,
+    "kb": 78,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-08-annex-e.jpg"
@@ -107,10 +107,10 @@
    {
     "title": "Annex F — Utilities, Access and Mobility",
     "what": "self-sufficiency norms per Plot",
-    "cid": "bafkreih34lvzbxrwsbmaib7x2uoeokqhw5fkycffk2kiirrne5lyh3yfri",
-    "thumb": "bafkreiankanadfss4wnaf4iisn72qvk4shbtjivvuxuggeazijlci4335u",
-    "pages": 1,
-    "kb": 33,
+    "cid": "bafkreife7bvrvr5v7hmf6amp3vulyh6bhwdqm3mlymmclzvgngh2xtv3sq",
+    "thumb": "",
+    "pages": 3,
+    "kb": 59,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-09-annex-f.jpg"
@@ -118,10 +118,10 @@
    {
     "title": "Annex G — Handover Condition",
     "what": "record of handover of the Plot · per Plot",
-    "cid": "bafkreibjngwomuaub6qipopqzstwvkpuecx3jl2vqddsvtct3tbfrdsxfe",
-    "thumb": "bafkreienxykisfhig4ocyisal622llsb7upokra7dfccxkhbl7idrjgu5i",
-    "pages": 2,
-    "kb": 35,
+    "cid": "bafkreigovi5pdqumu6ofijzo56rdmqnrzcd3lj7pmmq5eluht4gpwwmm6m",
+    "thumb": "",
+    "pages": 4,
+    "kb": 61,
     "lang": "EN",
     "url": "",
     "cover": "/covers/signable-10-annex-g.jpg"
