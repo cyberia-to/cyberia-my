@@ -214,7 +214,7 @@ pub fn PortalNav(#[prop(into)] active: String) -> impl IntoView {
     }
 }
 
-/// Shared page chrome for portal pages.
+/// Shared page chroma for portal pages.
 #[component]
 fn PortalShell(
     #[prop(into)] active: String,
@@ -233,8 +233,8 @@ fn PortalShell(
     });
     view! {
         <div class="page-shell cities-shell">
-            <div class="site-chrome cyberia-chrome">
-                <div class="chrome-inner">
+            <div class="site-chroma cyberia-chroma">
+                <div class="chroma-inner">
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">

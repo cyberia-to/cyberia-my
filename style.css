@@ -12,8 +12,13 @@
     --cyber-pink: #d500f9;
     --cyber-dim: #1a1a1a;
     --cyber-muted: #333333;
+<<<<<<< Updated upstream
     --cyber-text: #d7d7d7;
     --chrome-h: 56px;
+=======
+    --cyber-text: #e0e0e0;
+    --chroma-h: 56px;
+>>>>>>> Stashed changes
 }
 * {
     margin: 0;
@@ -50,7 +55,7 @@ body {
     background: var(--cyber-green);
 }
 
-/* minimal chrome — fill viewport; children own their own scroll */
+/* minimal chroma — fill viewport; children own their own scroll */
 .page-shell {
     height: 100%;
     height: 100dvh;
@@ -59,12 +64,12 @@ body {
     display: flex;
     flex-direction: column;
 }
-.site-chrome {
+.site-chroma {
     flex-shrink: 0;
     border-bottom: 1px solid #151515;
     background: #000;
 }
-.chrome-inner {
+.chroma-inner {
     padding: 8px 12px;
 }
 .header-row1 {
@@ -861,15 +866,15 @@ a.kanban-card-link .kanban-card {
     display: flex;
     flex-direction: column;
 }
-.cyberia-shell .site-chrome,
-.cyberia-chrome {
+.cyberia-shell .site-chroma,
+.cyberia-chroma {
     flex-shrink: 0;
 }
 /* single header row only — no subhead strip; stage eats the rest */
-.cyberia-chrome .header-row2 {
+.cyberia-chroma .header-row2 {
     display: none;
 }
-.cyberia-chrome .chrome-inner {
+.cyberia-chroma .chroma-inner {
     padding-bottom: 6px;
 }
 .cyberia-phase-pill {

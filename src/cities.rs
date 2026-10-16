@@ -116,8 +116,8 @@ pub fn CitiesPage() -> impl IntoView {
 
     view! {
         <div class="page-shell cities-shell">
-            <div class="site-chrome cyberia-chrome">
-                <div class="chrome-inner">
+            <div class="site-chroma cyberia-chroma">
+                <div class="chroma-inner">
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">

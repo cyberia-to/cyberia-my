@@ -12,7 +12,7 @@ use crate::signal::{
 use crate::wallet::load_balance;
 use leptos::prelude::*;
 
-/// Shared chrome for all /world/* pages.
+/// Shared chroma for all /world/* pages.
 #[component]
 pub fn StudioShell(
     #[prop(into)] title: String,
@@ -29,8 +29,8 @@ pub fn StudioShell(
     });
     view! {
         <div class="page-shell cities-shell">
-            <div class="site-chrome cyberia-chrome">
-                <div class="chrome-inner">
+            <div class="site-chroma cyberia-chroma">
+                <div class="chroma-inner">
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">
@@ -374,8 +374,8 @@ pub fn WorldPage() -> impl IntoView {
 
     view! {
         <div class="page-shell cities-shell">
-            <div class="site-chrome cyberia-chrome">
-                <div class="chrome-inner">
+            <div class="site-chroma cyberia-chroma">
+                <div class="chroma-inner">
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">
