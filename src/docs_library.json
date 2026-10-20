@@ -6,7 +6,7 @@
   "line": "the instruments in Bahasa Indonesia, the text that binds; pick a second language to read beside it — English and Russian are on the shelf, any other is made on request · 19 October 2026",
   "items": [
    {
-    "title": "Hak Sewa — paket penandatanganan",
+    "title": "Hak Sewa — Paket Penandatanganan",
     "what": "cover, contents, the agreement, the akta, the notary's template, Annexes A–G · 85 pages",
     "cid": "bafybeiaxaawqr2llz2ikqeqlaeeumi2sclcasuhln2g3rgmojybrw3mkwu",
     "thumb": "",
@@ -16,7 +16,7 @@
     "url": "",
     "cover": "/covers/signable-pack-id.jpg",
     "key": "signable-pack",
-    "title_en": "The whole pack",
+    "title_en": "Hak Sewa — the Signing Pack",
     "langs": {
      "id": {
       "cid": "bafybeiaxaawqr2llz2ikqeqlaeeumi2sclcasuhln2g3rgmojybrw3mkwu",
@@ -81,7 +81,7 @@
     }
    },
    {
-    "title": "Perjanjian Sewa Menyewa",
+    "title": "Perjanjian Sewa Menyewa — Template Notaris",
     "what": "the notary's long format the agreement maps onto",
     "cid": "bafybeibybc7b2phhumykrc6c6spzwfcnzbamyz2f4x52wcvb2krddnn5d4",
     "thumb": "",
@@ -91,7 +91,7 @@
     "url": "",
     "cover": "/covers/signable-03-perjanjian-sewa-menyewa-id.jpg",
     "key": "signable-03-perjanjian-sewa-menyewa",
-    "title_en": "Perjanjian Sewa Menyewa",
+    "title_en": "Lease Agreement — the Notary's Template",
     "langs": {
      "id": {
       "cid": "bafybeibybc7b2phhumykrc6c6spzwfcnzbamyz2f4x52wcvb2krddnn5d4",
@@ -324,13 +324,14 @@
   "line": "40,000 m² of sinwood registered to PT Cyber Valley Estate — the Title and every paper behind it, each copy behind its own title page and colophon · identity numbers and home addresses of natural persons blacked out",
   "items": [
    {
-    "title": "HGB No. 00048/Gesing — the Title",
+    "title": "Sertipikat HGB No. 00048/Gesing — Alas Hak",
     "what": "with Surat Ukur No. 00086/2002 · parcel NIB 22040417.00276 · expiring 02-02-2053",
     "cid": "",
-    "note": "scan arrives before signing"
+    "note": "scan arrives before signing",
+    "title_en": "HGB Certificate No. 00048/Gesing — the Title"
    },
    {
-    "title": "AJB No. 81/2023",
+    "title": "Akta Jual Beli No. 81/2023",
     "what": "the deed of sale by which the Company acquired the Title, 9 June 2023",
     "cid": "bafybeiavjc5opojj6itcpzkzm4ystv5hn5fgupbo6j7cp5zraynfrtdumu",
     "thumb": "",
@@ -339,10 +340,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-ajb-81-2023.jpg",
-    "key": "sinwood-ajb-81-2023"
+    "key": "sinwood-ajb-81-2023",
+    "title_en": "Deed of Sale No. 81/2023"
    },
    {
-    "title": "PPJB",
+    "title": "Perjanjian Pengikatan Jual Beli",
     "what": "the binding sale and purchase agreement that preceded the AJB",
     "cid": "bafybeigcx2nqufcckns4wzyungnkk6ed7r5wadstwselcouvw2lntjsp6a",
     "thumb": "",
@@ -351,10 +353,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-ppjb.jpg",
-    "key": "sinwood-ppjb"
+    "key": "sinwood-ppjb",
+    "title_en": "Binding Sale and Purchase Agreement"
    },
    {
-    "title": "Land sale authorization",
+    "title": "Surat Kuasa Menjual",
     "what": "the seller's notarial authorization for the sale",
     "cid": "bafybeifcgl6gvz3sripyksjsrdbkbupgbmexcsovlikzow4642n6wywulm",
     "thumb": "",
@@ -363,10 +366,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-sale-authorization.jpg",
-    "key": "sinwood-sale-authorization"
+    "key": "sinwood-sale-authorization",
+    "title_en": "Notarial Authorization to Sell"
    },
    {
-    "title": "BPN technical consideration",
+    "title": "Pertimbangan Teknis Pertanahan BPN",
     "what": "Pertimbangan Teknis Pertanahan No. 1108/2022 for the 40,000 m², 6 October 2022",
     "cid": "bafybeigt4aaono6haswjgy425nuevbsphdyeh2qtooki4m4retpjjraxyq",
     "thumb": "",
@@ -375,10 +379,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-land-assessment-2022.jpg",
-    "key": "sinwood-land-assessment-2022"
+    "key": "sinwood-land-assessment-2022",
+    "title_en": "BPN Land Technical Consideration"
    },
    {
-    "title": "PKKPR No. 10082310215108014",
+    "title": "PKKPR No. 10082310215108014 — Kesesuaian Pemanfaatan Ruang",
     "what": "land-use conformity, OSS 09-08-2023, KBLI 68111",
     "cid": "bafkreicgcubeevnlffo4r42rtnjjrej7xmn2ck7lqbv67s4xfqpncjqeuy",
     "thumb": "",
@@ -387,10 +392,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-pkkpr.jpg",
-    "key": "sinwood-pkkpr"
+    "key": "sinwood-pkkpr",
+    "title_en": "PKKPR No. 10082310215108014 — Land-use Conformity"
    },
    {
-    "title": "SPPT PBB 2023",
+    "title": "SPPT PBB 2023 — Pajak Bumi dan Bangunan",
     "what": "land and building tax notice of the parcel",
     "cid": "bafybeic4rlgv4n2dlsh3djpmcm4ryyovfwfbvemfza7fchvcfxfdw2rqfe",
     "thumb": "",
@@ -399,10 +405,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-pbb-2023.jpg",
-    "key": "sinwood-pbb-2023"
+    "key": "sinwood-pbb-2023",
+    "title_en": "Land and Building Tax Notice 2023"
    },
    {
-    "title": "BPHTB",
+    "title": "BPHTB — Bea Perolehan Hak atas Tanah dan Bangunan",
     "what": "duty on the acquisition of the Title, paid by the Company",
     "cid": "bafybeialrbqczjnuzsi5re6h6whw7biplaj2tdqfojn2cmgsz3ajb3iyim",
     "thumb": "",
@@ -411,13 +418,15 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-bphtb.jpg",
-    "key": "sinwood-bphtb"
+    "key": "sinwood-bphtb",
+    "title_en": "Duty on the Acquisition of the Title"
    },
    {
-    "title": "BPN non-encumbrance search",
+    "title": "Surat Keterangan Pendaftaran Tanah BPN",
     "what": "ordered through the PPAT within 30 days of signing",
     "cid": "",
-    "note": "per deal"
+    "note": "per deal",
+    "title_en": "BPN Non-encumbrance Statement"
    }
   ]
  },
@@ -428,7 +437,7 @@
   "line": "the Company as it stands at the registry — each copy behind its own title page and colophon · IDs of directors and shareholders blacked out, the articles whole",
   "items": [
    {
-    "title": "NIB 2504220016017",
+    "title": "NIB 2504220016017 — Nomor Induk Berusaha",
     "what": "business registration with the KBLI list, printed 7 October 2025",
     "cid": "bafybeic5zqkigew4u5nqm4uk5jkabo64gldvjw4uj4okdyxw5txrmvuzyq",
     "thumb": "",
@@ -437,10 +446,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-nib.jpg",
-    "key": "cve-nib"
+    "key": "cve-nib",
+    "title_en": "NIB 2504220016017 — Business Registration"
    },
    {
-    "title": "NPWP 53.898.326.3-902.000",
+    "title": "NPWP 53.898.326.3-902.000 — Nomor Pokok Wajib Pajak",
     "what": "the Company's tax registration",
     "cid": "bafkreifae5tpty2iemh4u6zynafpq2w7qju7blbulumgy5x7ujs7g5us64",
     "thumb": "",
@@ -449,7 +459,8 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-npwp.jpg",
-    "key": "cve-npwp"
+    "key": "cve-npwp",
+    "title_en": "NPWP 53.898.326.3-902.000 — Tax Registration"
    },
    {
     "title": "Akta Pendirian No. 01 / 2022",
@@ -461,10 +472,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-akta-pendirian-01-2022.jpg",
-    "key": "cve-akta-pendirian-01-2022"
+    "key": "cve-akta-pendirian-01-2022",
+    "title_en": "Deed of Establishment No. 01 / 2022"
    },
    {
-    "title": "Anggaran Dasar — consolidated",
+    "title": "Anggaran Dasar — konsolidasi",
     "what": "the articles as consolidated by the Company, 13 August 2026",
     "cid": "bafkreicdgx2y5znyoywxyhbr6dy52eezafdtf3q4vyp7yli2ixgoejslhi",
     "thumb": "",
@@ -473,10 +485,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-anggaran-dasar-2026-08.jpg",
-    "key": "cve-anggaran-dasar-2026-08"
+    "key": "cve-anggaran-dasar-2026-08",
+    "title_en": "Articles of Association — consolidated"
    },
    {
-    "title": "Articles of Association",
+    "title": "Anggaran Dasar — Indonesia dan Inggris",
     "what": "the same articles, English beside Indonesian, 13 August 2026",
     "cid": "bafybeiazu5i37hyesqypff3tv37jv3ersadn5bjeudqqyjs625rechmmv4",
     "thumb": "",
@@ -485,10 +498,11 @@
     "lang": "EN / ID",
     "url": "",
     "cover": "/covers/cve-articles-en-id-2026-08.jpg",
-    "key": "cve-articles-en-id-2026-08"
+    "key": "cve-articles-en-id-2026-08",
+    "title_en": "Articles of Association — English beside Indonesian"
    },
    {
-    "title": "Akta No. 13 / 2025",
+    "title": "Akta No. 13 / 2025 — Keputusan Pemegang Saham",
     "what": "shareholders' resolution: change of the board and share transfer, 14 April 2025",
     "cid": "bafybeig5sapxjyzhvpu3tuoq7t2qka5ov7qmg4fsmcrgbzarm5zdiaixjy",
     "thumb": "",
@@ -497,10 +511,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-akta-13-2025-04-14.jpg",
-    "key": "cve-akta-13-2025-04-14"
+    "key": "cve-akta-13-2025-04-14",
+    "title_en": "Deed No. 13 / 2025 — Shareholders' Resolution"
    },
    {
-    "title": "Akta No. 14 / 2025",
+    "title": "Akta No. 14 / 2025 — Penyimpanan Surat",
     "what": "deposit of documents (penyimpanan surat), 14 April 2025",
     "cid": "bafybeihoygikflqfs4gffps2t4vilv6wfvpozjdkupaloiag6zzukpeqc4",
     "thumb": "",
@@ -509,10 +524,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-akta-14-2025-04-14.jpg",
-    "key": "cve-akta-14-2025-04-14"
+    "key": "cve-akta-14-2025-04-14",
+    "title_en": "Deed No. 14 / 2025 — Deposit of Documents"
    },
    {
-    "title": "AHU-AH.01.09-0196845",
+    "title": "Surat Kemenkumham AHU-AH.01.09-0196845",
     "what": "the Ministry's acceptance of the change of board and the share transfer, 21 April 2025",
     "cid": "bafkreig4bhdnprdwysso55x63tvd2d3psp6knf46e54x5mo6owujscfhqa",
     "thumb": "",
@@ -521,10 +537,11 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-ahu-2025-04-21.jpg",
-    "key": "cve-ahu-2025-04-21"
+    "key": "cve-ahu-2025-04-21",
+    "title_en": "Ministry of Law Acceptance AHU-AH.01.09-0196845"
    },
    {
-    "title": "AHU company detail",
+    "title": "Profil Perseroan AHU",
     "what": "the registry's record of the articles amendment, Akta No. 02 of 1 July 2025",
     "cid": "bafybeigvsdeliuwl3uymcopsnffn5pvommusfft3f6pqze5rrtding5v3y",
     "thumb": "",
@@ -533,13 +550,15 @@
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-ahu-detail-2025-07.jpg",
-    "key": "cve-ahu-detail-2025-07"
+    "key": "cve-ahu-detail-2025-07",
+    "title_en": "AHU Company Record"
    },
    {
-    "title": "Director appointment deed, 2026",
+    "title": "Akta Pengangkatan Direktur 2026",
     "what": "the deed that shows the Director who signs the lease — the post-registration edition",
     "cid": "",
-    "note": "arrives before signing"
+    "note": "arrives before signing",
+    "title_en": "Director Appointment Deed 2026"
    }
   ]
  },
@@ -550,49 +569,58 @@
   "line": "graph pages the lease links to — the version of the day binds, the lease keeps the version you built under",
   "items": [
    {
-    "title": "Design Code",
+    "title": "Kode Desain",
     "what": "footprint, garden, water, light, materials",
-    "url": "https://cyberia.blog/cyber-valley/products/leasehold/design-code/"
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/design-code/",
+    "title_en": "Design Code"
    },
    {
-    "title": "Community Rules",
+    "title": "Aturan Komunitas",
     "what": "how residents live beside each other",
-    "url": "https://cyberia.blog/cyber-valley/policies/community-rules/"
+    "url": "https://cyberia.blog/cyber-valley/policies/community-rules/",
+    "title_en": "Community Rules"
    },
    {
-    "title": "Permitted Use",
+    "title": "Penggunaan yang Diizinkan",
     "what": "what a plot of each land use may carry",
-    "url": "https://cyberia.blog/cyber-valley/policies/permitted-use/"
+    "url": "https://cyberia.blog/cyber-valley/policies/permitted-use/",
+    "title_en": "Permitted Use"
    },
    {
-    "title": "Guarantee fund policy",
+    "title": "Kebijakan Dana Jaminan",
     "what": "inflows, the ledger, the order of payment",
-    "url": "https://cyberia.blog/cyber-valley/policies/guarantee-fund-policy/"
+    "url": "https://cyberia.blog/cyber-valley/policies/guarantee-fund-policy/",
+    "title_en": "Guarantee Fund Policy"
    },
    {
-    "title": "Biosphere and desa reserves",
+    "title": "Cadangan Biosfer dan Desa",
     "what": "the share set aside, reviewed yearly",
-    "url": "https://cyberia.blog/cyber-valley/policies/biosphere-and-desa-reserves/"
+    "url": "https://cyberia.blog/cyber-valley/policies/biosphere-and-desa-reserves/",
+    "title_en": "Biosphere and Desa Reserves"
    },
    {
-    "title": "Compost",
+    "title": "Kompos",
     "what": "organic matter stays on the land",
-    "url": "https://cyberia.blog/cyber-valley/policies/compost/"
+    "url": "https://cyberia.blog/cyber-valley/policies/compost/",
+    "title_en": "Compost"
    },
    {
-    "title": "Recycling",
+    "title": "Daur Ulang",
     "what": "what leaves the valley and how",
-    "url": "https://cyberia.blog/cyber-valley/policies/recycling/"
+    "url": "https://cyberia.blog/cyber-valley/policies/recycling/",
+    "title_en": "Recycling"
    },
    {
-    "title": "Referral system",
+    "title": "Sistem Referral",
     "what": "who brought the Holder and what the valley pays",
-    "url": "https://cyberia.blog/cyber-valley/strategy/referral-system/"
+    "url": "https://cyberia.blog/cyber-valley/strategy/referral-system/",
+    "title_en": "Referral System"
    },
    {
-    "title": "Leasehold — the product page",
+    "title": "Hak Sewa — halaman produk",
     "what": "the two forms of payment and every linked rule",
-    "url": "https://cyberia.blog/cyber-valley/products/leasehold/"
+    "url": "https://cyberia.blog/cyber-valley/products/leasehold/",
+    "title_en": "Leasehold — the Product Page"
    }
   ]
  },
@@ -603,19 +631,22 @@
   "line": "the unit the rent is counted in, fixed daily, and the rate card of the estate",
   "items": [
    {
-    "title": "Century Index — the protocol",
+    "title": "Century Index — protokol",
     "what": "eight world assets in fixed quantities; the collar; the bitcoin floor",
-    "url": "https://cyberia.blog/cyberia/protocol/century-index/"
+    "url": "https://cyberia.blog/cyberia/protocol/century-index/",
+    "title_en": "Century Index — the Protocol"
    },
    {
-    "title": "CX — the daily fix",
+    "title": "CX — fiksing harian",
     "what": "today's level of 1 CX in USD and the worked examples",
-    "url": "https://cyberia.my/cx"
+    "url": "https://cyberia.my/cx",
+    "title_en": "CX — the Daily Fix"
    },
    {
-    "title": "Rates",
+    "title": "Tarif",
     "what": "stay and event rates on the land anchor",
-    "url": "https://cyberia.blog/cyber-valley/products/rates/"
+    "url": "https://cyberia.blog/cyber-valley/products/rates/",
+    "title_en": "Rates"
    }
   ]
  }

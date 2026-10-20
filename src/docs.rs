@@ -155,6 +155,7 @@ fn dossier(s: &Section, _support: &str) -> impl IntoView {
                                 {(!ready).then(|| view! { <span class="cover-open">"BEFORE SIGNING"</span> })}
                             </div>
                             <div class="cover-title">{it.title.clone()}</div>
+                            <div class="cover-title-en">{it.title_en.clone()}</div>
                         </a>
                     }
                 }).collect_view()}
