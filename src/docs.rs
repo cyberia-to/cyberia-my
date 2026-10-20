@@ -156,7 +156,9 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
                             } else {
                                 (!it.thumb.is_empty()).then(|| format!("{GATEWAY}{}", it.thumb))
                             };
+                            let langs = (!it.key.is_empty() && s.key == "sign").then(|| lang_row(it, support));
                             view! {
+                                <div class="cover-cell">
                                 <a class="cover-card" href=href target="_blank" rel="noopener">
                                     <div class="cover">
                                         {match thumb {
@@ -172,7 +174,8 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
                                         <span class="hash" title=it.cid.clone()>{it.hash_chip()}</span>
                                     </div>
                                 </a>
-                                {(!it.key.is_empty() && s.key == "sign").then(|| lang_row(it, support))}
+                                {langs}
+                                </div>
                             }.into_any()
                         }
                         _ => {

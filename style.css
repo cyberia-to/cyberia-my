@@ -4239,16 +4239,23 @@ button.city-card:hover {
 }
 
 /* a second language beside the Indonesian */
+.cover-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cover-cell .cover-card {
+    flex: 1 1 auto;
+}
 .lang-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    padding: 0 8px 8px;
+    gap: 3px;
 }
 .lang {
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    padding: 3px 7px;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    padding: 2px 5px;
     border: 1px solid #222;
     border-radius: 2px;
     color: #777;
