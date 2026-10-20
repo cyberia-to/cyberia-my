@@ -7,6 +7,7 @@ use crate::land::FLAG_SVG;
 use crate::nav::CyberiaNav;
 use crate::orders::support_href;
 use leptos::prelude::*;
+use leptos_router::hooks::use_params_map;
 use serde::Deserialize;
 
 const LIBRARY_JSON: &str = include_str!("docs_library.json");
@@ -68,12 +69,6 @@ pub struct LangFile {
     pub kb: u32,
 }
 
-/// Second languages a reader may ask for, in the order shown; the first two are on the shelf today.
-pub const LANGS: &[(&str, &str)] = &[
-    ("en", "EN"), ("ru", "RU"), ("zh", "中文"), ("de", "DE"), ("fr", "FR"), ("es", "ES"), ("ja", "日本語"),
-    ("ko", "한국어"), ("ar", "AR"), ("pt", "PT"), ("it", "IT"), ("tr", "TR"), ("uk", "UK"), ("hi", "HI"),
-];
-
 impl Item {
     /// Where the document opens: its IPFS address, or a graph page.
     pub fn href(&self) -> Option<String> {
@@ -128,7 +123,7 @@ pub fn library() -> &'static [Section] {
     LIB.get_or_init(|| serde_json::from_str(LIBRARY_JSON).unwrap_or_default())
 }
 
-fn dossier(s: &Section, support: &str) -> impl IntoView {
+fn dossier(s: &Section, _support: &str) -> impl IntoView {
     let color = if s.color.is_empty() { "#ffffff".to_string() } else { s.color.clone() };
     let pinned = s.items.iter().filter(|i| !i.cid.is_empty()).count();
     let pending = s.items.len() - pinned;
@@ -147,48 +142,20 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
             </div>
             <div class="cover-grid">
                 {s.items.iter().map(|it| {
-                    let facts = it.facts();
-                    match it.href() {
-                        Some(href) if !it.cid.is_empty() => {
-                            // the cover's address changes with the file, so a browser never shows a stale page
-                            let thumb = if !it.cover.is_empty() {
-                                Some(format!("{}?v={}", it.cover, &it.cid[it.cid.len().saturating_sub(8)..]))
-                            } else {
-                                (!it.thumb.is_empty()).then(|| format!("{GATEWAY}{}", it.thumb))
-                            };
-                            let langs = (!it.key.is_empty() && s.key == "sign").then(|| lang_row(it, support));
-                            view! {
-                                <div class="cover-cell">
-                                <a class="cover-card" href=href target="_blank" rel="noopener">
-                                    <div class="cover">
-                                        {match thumb {
-                                            Some(t) => view! { <img src=t loading="lazy" alt=it.title.clone() /> }.into_any(),
-                                            None => view! { <div class="cover-blank"></div> }.into_any(),
-                                        }}
-                                        <span class="cover-open">"OPEN"</span>
-                                    </div>
-                                    <div class="cover-title">{it.title.clone()}</div>
-                                    <div class="cover-what">{it.what.clone()}</div>
-                                    <div class="cover-meta">
-                                        <span>{facts}</span>
-                                        <span class="hash" title=it.cid.clone()>{it.hash_chip()}</span>
-                                    </div>
-                                </a>
-                                {langs}
-                                </div>
-                            }.into_any()
-                        }
-                        _ => {
-                            let href = it.href().unwrap_or_else(|| support.to_string());
-                            view! {
-                                <a class="cover-card is-pending" href=href target="_blank" rel="noopener">
-                                    <div class="cover"><div class="cover-blank"></div><span class="cover-open">"BEFORE SIGNING"</span></div>
-                                    <div class="cover-title">{it.title.clone()}</div>
-                                    <div class="cover-what">{it.what.clone()}</div>
-                                    <div class="cover-meta"><span>{it.meta()}</span></div>
-                                </a>
-                            }.into_any()
-                        }
+                    let ready = !it.cid.is_empty() && !it.key.is_empty();
+                    let href = if ready { format!("/docs/{}", it.key) } else { it.href().unwrap_or_else(|| "/docs".into()) };
+                    let cover = (!it.cover.is_empty() && ready).then(|| format!("{}?v={}", it.cover, &it.cid[it.cid.len().saturating_sub(8)..]));
+                    view! {
+                        <a class=if ready { "cover-card" } else { "cover-card is-pending" } href=href>
+                            <div class="cover">
+                                {match cover {
+                                    Some(t) => view! { <img src=t loading="lazy" alt=it.title.clone() /> }.into_any(),
+                                    None => view! { <div class="cover-blank"></div> }.into_any(),
+                                }}
+                                {(!ready).then(|| view! { <span class="cover-open">"BEFORE SIGNING"</span> })}
+                            </div>
+                            <div class="cover-title">{it.title.clone()}</div>
+                        </a>
                     }
                 }).collect_view()}
             </div>
@@ -196,29 +163,128 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
     }
 }
 
-/// Bahasa Indonesia is the text; a second language opens beside it, or is asked for.
-fn lang_row(it: &Item, support: &str) -> impl IntoView {
-    let title = if it.title_en.is_empty() { it.title.clone() } else { it.title_en.clone() };
+/// The languages a reader may open a book beside; the first two are on the shelf today.
+pub const LANGS: &[(&str, &str)] = &[
+    ("en", "English"), ("ru", "Русский"), ("zh", "中文"), ("de", "Deutsch"), ("fr", "Français"), ("es", "Español"),
+    ("ja", "日本語"), ("ko", "한국어"), ("ar", "العربية"), ("pt", "Português"), ("it", "Italiano"), ("tr", "Türkçe"),
+    ("uk", "Українська"), ("hi", "हिन्दी"),
+];
+
+fn find(key: &str) -> Option<(&'static Section, &'static Item)> {
+    library().iter().find_map(|s| s.items.iter().find(|i| i.key == key).map(|i| (s, i)))
+}
+
+/// `/docs/:key` — one document: its cover, what it is, and the language it opens in.
+#[component]
+pub fn DocPage() -> impl IntoView {
+    let params = use_params_map();
+    let key = params.get_untracked().get("key").unwrap_or_default();
+    let support = support_href();
+    let Some((s, it)) = find(&key) else {
+        document().set_title("Cyberia — no such document");
+        return view! {
+            <div class="page-shell" style="padding:40px;">
+                <h1 style="color: var(--cyber-red);">"404"</h1>
+                <p style="color:#777777; margin-top:12px;">{format!("no document called {key} in the library")}</p>
+                <a href="/docs" style="color: var(--cyber-green);">"← back to the library"</a>
+            </div>
+        }
+        .into_any();
+    };
+    document().set_title(&format!("Cyberia — {}", it.title));
+    let color = if s.color.is_empty() { "#ffffff".to_string() } else { s.color.clone() };
+    let cover = (!it.cover.is_empty()).then(|| format!("{}?v={}", it.cover, &it.cid[it.cid.len().saturating_sub(8)..]));
+    let title_en = if it.title_en.is_empty() || it.title_en == it.title { String::new() } else { it.title_en.clone() };
+    let signable = s.key == "sign";
     let id_href = format!("{GATEWAY}{}", it.cid);
+    let back = format!("/docs#{}", s.key);
+    let gen_title = if it.title_en.is_empty() { it.title.clone() } else { it.title_en.clone() };
+
     view! {
-        <div class="lang-row">
-            <a class="lang is-on" href=id_href target="_blank" rel="noopener" title="Bahasa Indonesia — the text that binds">"ID"</a>
-            {LANGS.iter().map(|(code, label)| {
-                match it.langs.get(*code) {
-                    Some(f) if !f.cid.is_empty() => view! {
-                        <a class="lang is-ready" href=format!("{GATEWAY}{}", f.cid) target="_blank" rel="noopener" title=format!("Bahasa Indonesia beside {label} · {} pages", f.pages)>{format!("+{label}")}</a>
-                    }.into_any(),
-                    _ => {
-                        let text = format!("GENERATE {title} — Bahasa Indonesia + {label}");
-                        let href = format!("{}?text={}", support, String::from(js_sys::encode_uri_component(&text)));
-                        view! {
-                            <a class="lang is-ask" href=href target="_blank" rel="noopener" title=format!("ask for the book beside {label} — made on request")>{format!("+{label}")}</a>
-                        }.into_any()
-                    }
-                }
-            }).collect_view()}
+        <div class="page-shell cities-shell plot-shell">
+            <div class="site-chrome cyberia-chrome">
+                <div class="chrome-inner">
+                    <div class="header-row1">
+                        <div class="logo-zone">
+                            <h1 class="logo">
+                                <a href="/cities" class="brand-flag" title="home" inner_html=FLAG_SVG></a>
+                                <span style="color: var(--cyber-green);">"cyber"</span>
+                                <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
+                                <span style="color: #fff;">"ia"</span>
+                            </h1>
+                        </div>
+                        <CyberiaNav active="cabinet" />
+                    </div>
+                </div>
+            </div>
+            <div class="cities-stage plot-stage-wrap">
+                <div class="doc-page" style:--ink=color>
+                    <div class="doc-cover">
+                        {match cover {
+                            Some(t) => view! { <img src=t alt=it.title.clone() /> }.into_any(),
+                            None => view! { <div class="cover-blank"></div> }.into_any(),
+                        }}
+                    </div>
+                    <div class="doc-side">
+                        <a class="doc-back" href=back>{format!("← {}", s.section.split(" ·").next().unwrap_or("library"))}</a>
+                        <h2 class="doc-title">{it.title.clone()}</h2>
+                        {(!title_en.is_empty()).then(|| view! { <div class="doc-title-en">{title_en.clone()}</div> })}
+                        <p class="doc-what">{it.what.clone()}</p>
+                        {if signable {
+                            view! {
+                                <div class="doc-open">
+                                    <div class="doc-open-k">"OPEN IN"</div>
+                                    <a class="doc-lang is-main" href=id_href.clone() target="_blank" rel="noopener">
+                                        <span class="doc-lang-name">"Bahasa Indonesia"</span>
+                                        <span class="doc-lang-note">"the text that binds"</span>
+                                        <span class="doc-lang-act">"OPEN"</span>
+                                    </a>
+                                    <div class="doc-open-k">"BESIDE A SECOND LANGUAGE"</div>
+                                    {LANGS.iter().map(|(code, name)| {
+                                        match it.langs.get(*code) {
+                                            Some(f) if !f.cid.is_empty() => view! {
+                                                <a class="doc-lang is-ready" href=format!("{GATEWAY}{}", f.cid) target="_blank" rel="noopener">
+                                                    <span class="doc-lang-name">{*name}</span>
+                                                    <span class="doc-lang-note">{format!("{} pages", f.pages)}</span>
+                                                    <span class="doc-lang-act">"OPEN"</span>
+                                                </a>
+                                            }.into_any(),
+                                            _ => {
+                                                let text = format!("GENERATE {gen_title} — Bahasa Indonesia + {name}");
+                                                let href = format!("{}?text={}", support, String::from(js_sys::encode_uri_component(&text)));
+                                                view! {
+                                                    <a class="doc-lang is-ask" href=href target="_blank" rel="noopener">
+                                                        <span class="doc-lang-name">{*name}</span>
+                                                        <span class="doc-lang-note">"made on request"</span>
+                                                        <span class="doc-lang-act">"ASK"</span>
+                                                    </a>
+                                                }.into_any()
+                                            }
+                                        }
+                                    }).collect_view()}
+                                </div>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <div class="doc-open">
+                                    <a class="doc-lang is-main" href=id_href.clone() target="_blank" rel="noopener">
+                                        <span class="doc-lang-name">{if it.lang.is_empty() { "the copy".to_string() } else { format!("the copy · {}", it.lang) }}</span>
+                                        <span class="doc-lang-note">{format!("{} pages", it.pages)}</span>
+                                        <span class="doc-lang-act">"OPEN"</span>
+                                    </a>
+                                </div>
+                            }.into_any()
+                        }}
+                        <div class="doc-facts">
+                            <span>{it.facts()}</span>
+                            <span class="doc-hash" title="the content hash · the file's name on IPFS, the same on every gateway">{format!("ipfs · {}", it.cid)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     }
+    .into_any()
 }
 
 fn chips(s: &Section) -> impl IntoView {
