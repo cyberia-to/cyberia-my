@@ -6,9 +6,9 @@
   "line": "the instruments in Bahasa Indonesia, the text that binds; pick a second language to read beside it — English and Russian are on the shelf, any other is made on request · 20 October 2026",
   "items": [
    {
-    "title": "Hak Sewa — Perjanjian dengan Lampiran A–G",
-    "what": "the one instrument bound with its seven annexes — what the notary draws the akta from",
-    "cid": "bafybeiamo5wnmlwqp7v6ysirqbvpawlrtkyscyqgvqsd2w6dqkhbcbdmse",
+    "title": "Hak Sewa — Perjanjian",
+    "what": "the agreement with Annexes A–G in one file — the text the notary draws the akta from",
+    "cid": "bafybeigzg4g5ngq36g4bhmcjikpdyg4gj2ila7epxx7uozoo7z6rx7h4ci",
     "thumb": "",
     "pages": 52,
     "kb": 1655,
@@ -16,42 +16,17 @@
     "url": "",
     "cover": "/covers/signable-pack-id.jpg",
     "key": "signable-pack",
-    "title_en": "Hak Sewa — the Agreement with Annexes A–G",
+    "title_en": "Hak Sewa — Lease Agreement",
     "langs": {
      "id": {
-      "cid": "bafybeiamo5wnmlwqp7v6ysirqbvpawlrtkyscyqgvqsd2w6dqkhbcbdmse",
+      "cid": "bafybeigzg4g5ngq36g4bhmcjikpdyg4gj2ila7epxx7uozoo7z6rx7h4ci",
       "pages": 52,
       "kb": 1655
      },
      "en": {
-      "cid": "bafybeigzfngzzozi6ypyfjixxpniosldtud4gfnps6c3kpa2oig4mjo5xi",
+      "cid": "bafybeidmldgnzzteuqa2lspcvyhczv2x35x2uzu7lp3r3htg3hvf3r3jp4",
       "pages": 78,
       "kb": 1793
-     }
-    }
-   },
-   {
-    "title": "Hak Sewa — Perjanjian",
-    "what": "18 parts, schedules; the two forms of payment, the Council, the upgrade tracks",
-    "cid": "bafybeien3xtoeghxqgluojnhzwi3dlf7c7g57cpacznwk3d66pjs22enx4",
-    "thumb": "",
-    "pages": 26,
-    "kb": 1127,
-    "lang": "ID",
-    "url": "",
-    "cover": "/covers/signable-01-hak-sewa-agreement-id.jpg",
-    "key": "signable-01-hak-sewa-agreement",
-    "title_en": "Hak Sewa — Lease Agreement",
-    "langs": {
-     "id": {
-      "cid": "bafybeien3xtoeghxqgluojnhzwi3dlf7c7g57cpacznwk3d66pjs22enx4",
-      "pages": 26,
-      "kb": 1127
-     },
-     "en": {
-      "cid": "bafybeic2ikh56yetnj6lc5bofxclkpk3lz3lfo477m273aqhvpcaln32dy",
-      "pages": 41,
-      "kb": 1238
      }
     }
    },
