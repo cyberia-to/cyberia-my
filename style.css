@@ -4237,3 +4237,37 @@ button.city-card:hover {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* a second language beside the Indonesian */
+.lang-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 8px 8px;
+}
+.lang {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 3px 7px;
+    border: 1px solid #222;
+    border-radius: 2px;
+    color: #777;
+    text-decoration: none;
+}
+.lang.is-on {
+    color: #000;
+    background: var(--ink);
+    border-color: var(--ink);
+    font-weight: 700;
+}
+.lang.is-ready {
+    color: var(--ink);
+    border-color: var(--ink);
+}
+.lang.is-ask {
+    border-style: dashed;
+}
+.lang:hover {
+    color: #fff;
+    border-color: #fff;
+}

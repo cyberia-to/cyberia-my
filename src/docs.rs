@@ -49,7 +49,30 @@ pub struct Item {
     pub lang: String,
     #[serde(default)]
     pub note: String,
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub title_en: String,
+    /// second languages on the shelf: `en`, `ru`, … → the book beside the Indonesian
+    #[serde(default)]
+    pub langs: std::collections::BTreeMap<String, LangFile>,
 }
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct LangFile {
+    #[serde(default)]
+    pub cid: String,
+    #[serde(default)]
+    pub pages: u32,
+    #[serde(default)]
+    pub kb: u32,
+}
+
+/// Second languages a reader may ask for, in the order shown; the first two are on the shelf today.
+pub const LANGS: &[(&str, &str)] = &[
+    ("en", "EN"), ("ru", "RU"), ("zh", "中文"), ("de", "DE"), ("fr", "FR"), ("es", "ES"), ("ja", "日本語"),
+    ("ko", "한국어"), ("ar", "AR"), ("pt", "PT"), ("it", "IT"), ("tr", "TR"), ("uk", "UK"), ("hi", "HI"),
+];
 
 impl Item {
     /// Where the document opens: its IPFS address, or a graph page.
@@ -149,6 +172,7 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
                                         <span class="hash" title=it.cid.clone()>{it.hash_chip()}</span>
                                     </div>
                                 </a>
+                                {(!it.key.is_empty() && s.key == "sign").then(|| lang_row(it, support))}
                             }.into_any()
                         }
                         _ => {
@@ -166,6 +190,31 @@ fn dossier(s: &Section, support: &str) -> impl IntoView {
                 }).collect_view()}
             </div>
         </section>
+    }
+}
+
+/// Bahasa Indonesia is the text; a second language opens beside it, or is asked for.
+fn lang_row(it: &Item, support: &str) -> impl IntoView {
+    let title = if it.title_en.is_empty() { it.title.clone() } else { it.title_en.clone() };
+    let id_href = format!("{GATEWAY}{}", it.cid);
+    view! {
+        <div class="lang-row">
+            <a class="lang is-on" href=id_href target="_blank" rel="noopener" title="Bahasa Indonesia — the text that binds">"ID"</a>
+            {LANGS.iter().map(|(code, label)| {
+                match it.langs.get(*code) {
+                    Some(f) if !f.cid.is_empty() => view! {
+                        <a class="lang is-ready" href=format!("{GATEWAY}{}", f.cid) target="_blank" rel="noopener" title=format!("Bahasa Indonesia beside {label} · {} pages", f.pages)>{format!("+{label}")}</a>
+                    }.into_any(),
+                    _ => {
+                        let text = format!("GENERATE {title} — Bahasa Indonesia + {label}");
+                        let href = format!("{}?text={}", support, String::from(js_sys::encode_uri_component(&text)));
+                        view! {
+                            <a class="lang is-ask" href=href target="_blank" rel="noopener" title=format!("ask for the book beside {label} — made on request")>{format!("+{label}")}</a>
+                        }.into_any()
+                    }
+                }
+            }).collect_view()}
+        </div>
     }
 }
 

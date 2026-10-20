@@ -3,139 +3,307 @@
   "key": "sign",
   "section": "what you sign",
   "color": "#00fe00",
-  "line": "books on the Company's letterhead — cover, contents, numbered parts, Bahasa Indonesia beside English, footnotes on every page, a colophon with the source hash; Annexes A and B carry worked drawings · 19 October 2026",
+  "line": "the instruments in Bahasa Indonesia, the text that binds; pick a second language to read beside it — English and Russian are on the shelf, any other is made on request · 19 October 2026",
   "items": [
    {
-    "title": "The whole pack",
+    "title": "Hak Sewa — paket penandatanganan",
     "what": "cover, contents, the agreement, the akta, the notary's template, Annexes A–G · 85 pages",
-    "cid": "bafybeiffyvr2x5qofpgxgcwcvixwza6sdbunzdqc3hianrugnjlevxcy4a",
+    "cid": "bafybeiaxaawqr2llz2ikqeqlaeeumi2sclcasuhln2g3rgmojybrw3mkwu",
     "thumb": "",
-    "pages": 85,
-    "kb": 2685,
+    "pages": 66,
+    "kb": 2615,
     "lang": "ID / EN",
     "url": "",
-    "cover": "/covers/signable-pack-id-en.jpg"
+    "cover": "/covers/signable-pack-id.jpg",
+    "key": "signable-pack",
+    "title_en": "The whole pack",
+    "langs": {
+     "id": {
+      "cid": "bafybeiaxaawqr2llz2ikqeqlaeeumi2sclcasuhln2g3rgmojybrw3mkwu",
+      "pages": 66,
+      "kb": 2615
+     }
+    }
    },
    {
-    "title": "Hak Sewa — Lease Agreement",
+    "title": "Hak Sewa — Perjanjian",
     "what": "18 parts, schedules; the two forms of payment, the Council, the upgrade tracks",
-    "cid": "bafybeihiprg65xbthsul6qa7v6sfwn7vwtkum4jsgbfbu75d567jjkqamq",
+    "cid": "bafybeiha7oqsvxhvrj24oc2ppitqtolqxdp3rrpyezbipcz5ezan3fv7ey",
     "thumb": "",
-    "pages": 43,
-    "kb": 1258,
+    "pages": 27,
+    "kb": 1173,
     "lang": "ID / EN",
     "url": "",
-    "cover": "/covers/signable-01-hak-sewa-agreement.jpg"
+    "cover": "/covers/signable-01-hak-sewa-agreement-id.jpg",
+    "key": "signable-01-hak-sewa-agreement",
+    "title_en": "Hak Sewa — Lease Agreement",
+    "langs": {
+     "id": {
+      "cid": "bafybeiha7oqsvxhvrj24oc2ppitqtolqxdp3rrpyezbipcz5ezan3fv7ey",
+      "pages": 27,
+      "kb": 1173
+     },
+     "en": {
+      "cid": "bafybeifsfh2k5wueqjiugnsj6yfmpeodtkpzw3bfkht5surx3zyvui2hme",
+      "pages": 42,
+      "kb": 1285
+     }
+    }
    },
    {
-    "title": "Akta Sewa — Simple Form",
+    "title": "Akta Sewa — Bentuk Sederhana",
     "what": "the eight-clause notarial deed signed alongside the agreement",
-    "cid": "bafkreibc2ytieygdbra4eqiwutzyr3ti7jk73qocifu42se7yjfo2h7t5m",
+    "cid": "bafkreighuh2yuvzthm33inxeudwn6sjpxtqlkop3zeacbrocioq75khxby",
     "thumb": "",
     "pages": 4,
-    "kb": 66,
+    "kb": 64,
     "lang": "ID / EN",
     "url": "",
-    "cover": "/covers/signable-02-akta-sewa-simple.jpg"
+    "cover": "/covers/signable-02-akta-sewa-simple-id.jpg",
+    "key": "signable-02-akta-sewa-simple",
+    "title_en": "Akta Sewa — Simple Form",
+    "langs": {
+     "id": {
+      "cid": "bafkreighuh2yuvzthm33inxeudwn6sjpxtqlkop3zeacbrocioq75khxby",
+      "pages": 4,
+      "kb": 64
+     },
+     "en": {
+      "cid": "bafkreicwywxffjwi2dhmcyufhmv2oywhnt6e2gvjuranakc4h7ixss6rga",
+      "pages": 6,
+      "kb": 92
+     }
+    }
    },
    {
     "title": "Perjanjian Sewa Menyewa",
     "what": "the notary's long format the agreement maps onto",
-    "cid": "bafybeidmmhi2uzcmeyzfkz2gkngaxsfbo2oo3eehmvdrzf6prpbo23xnlu",
+    "cid": "bafybeibybc7b2phhumykrc6c6spzwfcnzbamyz2f4x52wcvb2krddnn5d4",
     "thumb": "",
-    "pages": 12,
-    "kb": 860,
+    "pages": 11,
+    "kb": 858,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/signable-03-perjanjian-sewa-menyewa.jpg"
+    "cover": "/covers/signable-03-perjanjian-sewa-menyewa-id.jpg",
+    "key": "signable-03-perjanjian-sewa-menyewa",
+    "title_en": "Perjanjian Sewa Menyewa",
+    "langs": {
+     "id": {
+      "cid": "bafybeibybc7b2phhumykrc6c6spzwfcnzbamyz2f4x52wcvb2krddnn5d4",
+      "pages": 11,
+      "kb": 858
+     }
+    }
    },
    {
-    "title": "Annex A — Estate Registry",
+    "title": "Lampiran A — Daftar Alas Hak",
     "what": "the Title the Plot sits on",
-    "cid": "bafkreigz3qv4kk3xwmq5c7kmefesqnupql7sk5fbrfnfjf2shhiq4otzm4",
+    "cid": "bafkreiefdhdq2gmikbm5mnkn4sqdka2oot5vwy76k4gezxce4uq37kuko4",
     "thumb": "",
     "pages": 4,
-    "kb": 87,
+    "kb": 86,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-04-annex-a.jpg"
+    "cover": "/covers/signable-04-annex-a-id.jpg",
+    "key": "signable-04-annex-a",
+    "title_en": "Annex A — Estate Registry",
+    "langs": {
+     "id": {
+      "cid": "bafkreiefdhdq2gmikbm5mnkn4sqdka2oot5vwy76k4gezxce4uq37kuko4",
+      "pages": 4,
+      "kb": 86
+     },
+     "en": {
+      "cid": "bafkreia4igxnmqbf2b4kvto5qe6stjpxwfz4d4mo6snyczhrc4sogn2hia",
+      "pages": 4,
+      "kb": 88
+     },
+     "ru": {
+      "cid": "bafkreidpcfvjb6irf3goj54ipdzr2no7alkrdusqlwme3hghnavktlcyiu",
+      "pages": 5,
+      "kb": 92
+     }
+    }
    },
    {
-    "title": "Annex B — Plot Boundary",
+    "title": "Lampiran B — Batas Bidang",
     "what": "corners, neighbours, access, the drawing · per Plot",
-    "cid": "bafkreid3br5spgtctgevmodpitqkbhgnmkxnypfjerl3jxe4cahvwxwesq",
+    "cid": "bafkreif36g2m5fh3446fanwzwoog67lpi7yl6epe444eihma2oy2ggkm24",
     "thumb": "",
     "pages": 5,
-    "kb": 106,
+    "kb": 108,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-05-annex-b.jpg"
+    "cover": "/covers/signable-05-annex-b-id.jpg",
+    "key": "signable-05-annex-b",
+    "title_en": "Annex B — Plot Boundary",
+    "langs": {
+     "id": {
+      "cid": "bafkreif36g2m5fh3446fanwzwoog67lpi7yl6epe444eihma2oy2ggkm24",
+      "pages": 5,
+      "kb": 108
+     },
+     "en": {
+      "cid": "bafkreiggztx4mhtru5gyurqsbbwmi7sofjhcphyfv27l4iic6s4lgmbqkm",
+      "pages": 6,
+      "kb": 114
+     },
+     "ru": {
+      "cid": "bafkreibdjpwgn3wnhafgzwzswtnq5wu6tn4zm75xmveulhdamm3ikq5nwe",
+      "pages": 6,
+      "kb": 118
+     }
+    }
    },
    {
-    "title": "Annex C — Due Diligence Pack",
+    "title": "Lampiran C — Paket Uji Tuntas",
     "what": "inventory and record of handover · per deal",
-    "cid": "bafkreiaoigeoa3injcgzou6qwrrwgnffqwgfnpxf4luwvnv5cozejulhjy",
+    "cid": "bafkreigttjkz2gf4tlde6twh7p25syurk4x5qu4xtanjlsyf4ck4xtcwma",
     "thumb": "",
-    "pages": 5,
-    "kb": 62,
+    "pages": 4,
+    "kb": 63,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-06-annex-c.jpg"
+    "cover": "/covers/signable-06-annex-c-id.jpg",
+    "key": "signable-06-annex-c",
+    "title_en": "Annex C — Due Diligence Pack",
+    "langs": {
+     "id": {
+      "cid": "bafkreigttjkz2gf4tlde6twh7p25syurk4x5qu4xtanjlsyf4ck4xtcwma",
+      "pages": 4,
+      "kb": 63
+     },
+     "en": {
+      "cid": "bafkreiaak5533my7lviotcghv2kptiglgl5zpt6esc4flx5oob5iwdyxae",
+      "pages": 6,
+      "kb": 71
+     },
+     "ru": {
+      "cid": "bafkreiadvhb4o56bv5hg2etcbggydyvlakjn6spu4gs3wgdozsjlwy4d3e",
+      "pages": 6,
+      "kb": 75
+     }
+    }
    },
    {
-    "title": "Annex D — Offer of Record",
+    "title": "Lampiran D — Penawaran Tercatat",
     "what": "the page and price shown to the Holder · per deal",
-    "cid": "bafkreiejliolun7x5ijyyxgt3ycrcjauv7sn7ptlca3iwfi5kb3kulvdjm",
+    "cid": "bafkreihvf2twgt5g6hnwaou6ah73xil4gx6q2pxam2zjqxrmredtf57sdu",
     "thumb": "",
     "pages": 3,
     "kb": 56,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-07-annex-d.jpg"
+    "cover": "/covers/signable-07-annex-d-id.jpg",
+    "key": "signable-07-annex-d",
+    "title_en": "Annex D — Offer of Record",
+    "langs": {
+     "id": {
+      "cid": "bafkreihvf2twgt5g6hnwaou6ah73xil4gx6q2pxam2zjqxrmredtf57sdu",
+      "pages": 3,
+      "kb": 56
+     },
+     "en": {
+      "cid": "bafkreidm2gxp2buckfz7brezsvwmpufsx6tsewwtdaoh7lwvhzuugvygl4",
+      "pages": 4,
+      "kb": 60
+     },
+     "ru": {
+      "cid": "bafkreiddijw5ozt562qdij5nrijbvedwawl7lxsf5hrgkjiqsrla3jawza",
+      "pages": 4,
+      "kb": 63
+     }
+    }
    },
    {
-    "title": "Annex E — Century Index",
+    "title": "Lampiran E — Century Index",
     "what": "terms, formulas, rules, quantities · per deal",
-    "cid": "bafkreia57aofka54wdtqxute3md4iqvja2dpd4zzcjklrt4c2lcztzcxv4",
+    "cid": "bafkreiczzbblkomlvrhr7amxkzj7go4zysf2acirrqn373o4t2inba253u",
     "thumb": "",
     "pages": 7,
-    "kb": 77,
+    "kb": 78,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-08-annex-e.jpg"
+    "cover": "/covers/signable-08-annex-e-id.jpg",
+    "key": "signable-08-annex-e",
+    "title_en": "Annex E — Century Index",
+    "langs": {
+     "id": {
+      "cid": "bafkreiczzbblkomlvrhr7amxkzj7go4zysf2acirrqn373o4t2inba253u",
+      "pages": 7,
+      "kb": 78
+     },
+     "en": {
+      "cid": "bafkreifbtrvrbdtzunrhv5rlbgeoippmqbdvuiiypsz7chwzmgg2ztvkne",
+      "pages": 11,
+      "kb": 95
+     },
+     "ru": {
+      "cid": "bafkreigbatq3rgrx3p3ezshulkpe4sbe6ed3szf6vr5coujvjqaempz44e",
+      "pages": 11,
+      "kb": 99
+     }
+    }
    },
    {
-    "title": "Annex F — Utilities, Access and Mobility",
+    "title": "Lampiran F — Utilitas, Akses dan Mobilitas",
     "what": "self-sufficiency norms per Plot",
-    "cid": "bafkreic2vlq4bnivcybijglvjgl75tdzeg72xml2snaptyh4m2j3igfouy",
+    "cid": "bafkreifquykfcldmw637vc55zolltzwxigoy6cdrjxhdkcskeudowxyy24",
     "thumb": "",
     "pages": 4,
-    "kb": 60,
+    "kb": 59,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-09-annex-f.jpg"
+    "cover": "/covers/signable-09-annex-f-id.jpg",
+    "key": "signable-09-annex-f",
+    "title_en": "Annex F — Utilities, Access and Mobility",
+    "langs": {
+     "id": {
+      "cid": "bafkreifquykfcldmw637vc55zolltzwxigoy6cdrjxhdkcskeudowxyy24",
+      "pages": 4,
+      "kb": 59
+     },
+     "en": {
+      "cid": "bafkreiadx3a5qzvtif7ppycazka7dzc6inb3eaw2edlliiwcwrcobaadh4",
+      "pages": 5,
+      "kb": 65
+     },
+     "ru": {
+      "cid": "bafkreien2w64qxn4zl2k2pwrn6upfzkiez4jib2reb3hyq3zjfcbu4gkji",
+      "pages": 5,
+      "kb": 69
+     }
+    }
    },
    {
-    "title": "Annex G — Handover Condition",
+    "title": "Lampiran G — Kondisi Serah Terima",
     "what": "record of handover of the Plot · per Plot",
-    "cid": "bafkreia4gixynve6imc7owspkaonhx3i5oiirnh3fx4s4fv6ykwae7g5uu",
+    "cid": "bafkreiakjnp42ciphpejkfytjq42cnw7bvppud2uhi4p2ad6gc7ng3mkky",
     "thumb": "",
-    "pages": 5,
+    "pages": 4,
     "kb": 62,
     "lang": "EN",
     "url": "",
-    "cover": "/covers/signable-10-annex-g.jpg"
-   },
-   {
-    "title": "Reading pack",
-    "what": "the whole pack to read first, English beside Russian, in the same books · 145 pages",
-    "cid": "bafybeiba5oe27ib6w74h2kzrqhvs42hhu7ad67qultn36qicz2cuvlo7aa",
-    "thumb": "",
-    "pages": 145,
-    "kb": 3431,
-    "lang": "EN / RU",
-    "url": "",
-    "cover": "/covers/hak-sewa-reading-pack-en-ru.jpg"
+    "cover": "/covers/signable-10-annex-g-id.jpg",
+    "key": "signable-10-annex-g",
+    "title_en": "Annex G — Handover Condition",
+    "langs": {
+     "id": {
+      "cid": "bafkreiakjnp42ciphpejkfytjq42cnw7bvppud2uhi4p2ad6gc7ng3mkky",
+      "pages": 4,
+      "kb": 62
+     },
+     "en": {
+      "cid": "bafkreigw67j6wjnrm4lhg7fp6vjm7qy2rnkf6vtpqkojyvr33l45wtlf3q",
+      "pages": 6,
+      "kb": 87
+     },
+     "ru": {
+      "cid": "bafkreigdukfskzeqtvifezrnn3eruqwqdxi4yda3mpbkck75g4pt4als6q",
+      "pages": 6,
+      "kb": 74
+     }
+    }
    }
   ]
  },
@@ -160,7 +328,8 @@
     "kb": 1394,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-ajb-81-2023.jpg"
+    "cover": "/covers/sinwood-ajb-81-2023.jpg",
+    "key": "sinwood-ajb-81-2023"
    },
    {
     "title": "PPJB",
@@ -171,7 +340,8 @@
     "kb": 1295,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-ppjb.jpg"
+    "cover": "/covers/sinwood-ppjb.jpg",
+    "key": "sinwood-ppjb"
    },
    {
     "title": "Land sale authorization",
@@ -182,7 +352,8 @@
     "kb": 1020,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-sale-authorization.jpg"
+    "cover": "/covers/sinwood-sale-authorization.jpg",
+    "key": "sinwood-sale-authorization"
    },
    {
     "title": "BPN technical consideration",
@@ -193,7 +364,8 @@
     "kb": 1124,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-land-assessment-2022.jpg"
+    "cover": "/covers/sinwood-land-assessment-2022.jpg",
+    "key": "sinwood-land-assessment-2022"
    },
    {
     "title": "PKKPR No. 10082310215108014",
@@ -204,7 +376,8 @@
     "kb": 170,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-pkkpr.jpg"
+    "cover": "/covers/sinwood-pkkpr.jpg",
+    "key": "sinwood-pkkpr"
    },
    {
     "title": "SPPT PBB 2023",
@@ -215,7 +388,8 @@
     "kb": 952,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-pbb-2023.jpg"
+    "cover": "/covers/sinwood-pbb-2023.jpg",
+    "key": "sinwood-pbb-2023"
    },
    {
     "title": "BPHTB",
@@ -226,7 +400,8 @@
     "kb": 704,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/sinwood-bphtb.jpg"
+    "cover": "/covers/sinwood-bphtb.jpg",
+    "key": "sinwood-bphtb"
    },
    {
     "title": "BPN non-encumbrance search",
@@ -251,7 +426,8 @@
     "kb": 519,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-nib.jpg"
+    "cover": "/covers/cve-nib.jpg",
+    "key": "cve-nib"
    },
    {
     "title": "NPWP 53.898.326.3-902.000",
@@ -262,7 +438,8 @@
     "kb": 226,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-npwp.jpg"
+    "cover": "/covers/cve-npwp.jpg",
+    "key": "cve-npwp"
    },
    {
     "title": "Akta Pendirian No. 01 / 2022",
@@ -273,7 +450,8 @@
     "kb": 4485,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-akta-pendirian-01-2022.jpg"
+    "cover": "/covers/cve-akta-pendirian-01-2022.jpg",
+    "key": "cve-akta-pendirian-01-2022"
    },
    {
     "title": "Anggaran Dasar — consolidated",
@@ -284,7 +462,8 @@
     "kb": 161,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-anggaran-dasar-2026-08.jpg"
+    "cover": "/covers/cve-anggaran-dasar-2026-08.jpg",
+    "key": "cve-anggaran-dasar-2026-08"
    },
    {
     "title": "Articles of Association",
@@ -295,7 +474,8 @@
     "kb": 274,
     "lang": "EN / ID",
     "url": "",
-    "cover": "/covers/cve-articles-en-id-2026-08.jpg"
+    "cover": "/covers/cve-articles-en-id-2026-08.jpg",
+    "key": "cve-articles-en-id-2026-08"
    },
    {
     "title": "Akta No. 13 / 2025",
@@ -306,7 +486,8 @@
     "kb": 1352,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-akta-13-2025-04-14.jpg"
+    "cover": "/covers/cve-akta-13-2025-04-14.jpg",
+    "key": "cve-akta-13-2025-04-14"
    },
    {
     "title": "Akta No. 14 / 2025",
@@ -317,7 +498,8 @@
     "kb": 1100,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-akta-14-2025-04-14.jpg"
+    "cover": "/covers/cve-akta-14-2025-04-14.jpg",
+    "key": "cve-akta-14-2025-04-14"
    },
    {
     "title": "AHU-AH.01.09-0196845",
@@ -328,7 +510,8 @@
     "kb": 86,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-ahu-2025-04-21.jpg"
+    "cover": "/covers/cve-ahu-2025-04-21.jpg",
+    "key": "cve-ahu-2025-04-21"
    },
    {
     "title": "AHU company detail",
@@ -339,7 +522,8 @@
     "kb": 1050,
     "lang": "ID",
     "url": "",
-    "cover": "/covers/cve-ahu-detail-2025-07.jpg"
+    "cover": "/covers/cve-ahu-detail-2025-07.jpg",
+    "key": "cve-ahu-detail-2025-07"
    },
    {
     "title": "Director appointment deed, 2026",
