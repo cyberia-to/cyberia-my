@@ -101,6 +101,8 @@ sits on the flat page of a real product — the user decides.
 - [ ] the post-registration deed (2026) and SK: not in Drive
 - [ ] ETH address of the Company; bracket values in the pack (table sent)
 - [x] languages 2026-10-20 — Bahasa Indonesia is the book; the choice lives on
-  `/docs/<key>`: OPEN where on the shelf (ID for all 10 instruments, ID+EN for all 10
-  incl. the notary's template, ID+RU for the annexes), ASK → Telegram DM for the
-  rest, generated on request. Open: RU for the agreement and the akta
+  `/docs/<key>`: OPEN where on the shelf (ID and ID+EN for the agreement and Annexes
+  A–G, ID+RU for the annexes), ASK → Telegram DM for the rest, generated on request.
+  Open: RU for the agreement
+- [x] one instrument 2026-10-20 — the agreement is the akta; «akta sewa simple» and the
+  notary's template retired from the graph, cve and the shelf; the pack = agreement + annexes
