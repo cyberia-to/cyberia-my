@@ -73,7 +73,8 @@ critical list is the spine of this plan; items are ordered by dependency.
 - [x] 1 seo  - [x] 2 survey/media  - [x] 3 cabinet  - [x] 4 docs
 - [x] 5 wallet  - [x] 6 nft metadata (contract waits for the chain answer)
 - [x] 7 bot written (`bot/`), runs once the token, group id and Pinata JWT exist
-- [ ] 8 pack — pin the PDF, fill CIDs in `src/docs_library.json`; company licences / office practice pages wait for the user's go
+- [x] 8 pack — pinned, CIDs in `src/docs_library.json` (written by `cve/tools/publish.py`);
+  company licences / office practice pages wait for the user's go
 
 Deployed to cyberia.my 2026-10-14 (commits f431f33…c32456d). Local check:
 `python3 scripts/serve-dist.py 8099` + `python3 scripts/cdp.py <url> --selectors <selectors…>`.
@@ -99,3 +100,7 @@ sits on the flat page of a real product — the user decides.
   refuses — the user drops the files; KEPMEN check waits on page 1
 - [ ] the post-registration deed (2026) and SK: not in Drive
 - [ ] ETH address of the Company; bracket values in the pack (table sent)
+- [x] languages 2026-10-20 — Bahasa Indonesia is the book; the choice lives on
+  `/docs/<key>`: OPEN where on the shelf (ID for all 10 instruments, ID+EN for all 10
+  incl. the notary's template, ID+RU for the annexes), ASK → Telegram DM for the
+  rest, generated on request. Open: RU for the agreement and the akta
