@@ -3,15 +3,8 @@
   "key": "pending",
   "section": "before signing",
   "color": "#fe0000",
-  "line": "what reaches the Holder before signing day and is pinned the moment it does — the Title's certificate and the BPN search dated within 30 days of signing",
+  "line": "what reaches the Holder before signing day and is pinned the moment it does — the BPN search dated within 30 days of signing",
   "items": [
-   {
-    "title": "Sertipikat HGB No. 00048/Gesing — Alas Hak",
-    "what": "with Surat Ukur No. 00086/2002 · parcel NIB 22040417.00276 · expiring 02-02-2053",
-    "cid": "",
-    "note": "scan arrives before signing",
-    "title_en": "HGB Certificate No. 00048/Gesing — the Title"
-   },
    {
     "title": "Surat Keterangan Pendaftaran Tanah BPN",
     "what": "ordered through the PPAT within 30 days of signing",
@@ -271,9 +264,22 @@
   "line": "40,000 m² of sinwood registered to PT Cyber Valley Estate — the Title and every paper behind it, each copy behind its own title page and colophon · identity numbers and home addresses of natural persons blacked out",
   "items": [
    {
+    "title": "Sertipikat HGB No. 00048/Gesing — Alas Hak",
+    "what": "the Title: 40,000 m², Surat Ukur No. 00086/2002, KEPMEN ATR/KBPN No. 1339/SK-HK.02/X/2022, issued 08-02-2023, expiring 02-02-2053 · with the BPN check of 24-03-2023",
+    "cid": "bafybeieu2iiij426htbtrb3upf6jca2skh7vm5znbchzlavny6dwyjuu5y",
+    "note": "",
+    "title_en": "HGB Certificate No. 00048/Gesing — the Title",
+    "key": "sinwood-hgb-certificate",
+    "cover": "/covers/sinwood-hgb-certificate.jpg",
+    "lang": "ID",
+    "pages": 14,
+    "kb": 10465,
+    "thumb": ""
+   },
+   {
     "title": "Akta Jual Beli No. 81/2023",
     "what": "the deed of sale by which the Company acquired the Title, 9 June 2023",
-    "cid": "bafybeiavjc5opojj6itcpzkzm4ystv5hn5fgupbo6j7cp5zraynfrtdumu",
+    "cid": "bafybeihctsbflepuvm4mfqyywhufrdsxumymvtwg66xeyvzeokfhqbzkfi",
     "thumb": "",
     "pages": 8,
     "kb": 1394,
@@ -286,7 +292,7 @@
    {
     "title": "Perjanjian Pengikatan Jual Beli",
     "what": "the binding sale and purchase agreement that preceded the AJB",
-    "cid": "bafybeigcx2nqufcckns4wzyungnkk6ed7r5wadstwselcouvw2lntjsp6a",
+    "cid": "bafybeiezx5yzfha732fd46wxy36oiskqkkfsr3ufq23hzhaz5m4oomwoxu",
     "thumb": "",
     "pages": 11,
     "kb": 1295,
@@ -299,7 +305,7 @@
    {
     "title": "Surat Kuasa Menjual",
     "what": "the seller's notarial authorization for the sale",
-    "cid": "bafybeifcgl6gvz3sripyksjsrdbkbupgbmexcsovlikzow4642n6wywulm",
+    "cid": "bafybeihm3ykx2ckinue3spkmhq3t5ndxccrfewbgikiwuopwkyvftq5mye",
     "thumb": "",
     "pages": 9,
     "kb": 1020,
@@ -312,7 +318,7 @@
    {
     "title": "Pertimbangan Teknis Pertanahan BPN",
     "what": "Pertimbangan Teknis Pertanahan No. 1108/2022 for the 40,000 m², 6 October 2022",
-    "cid": "bafybeigt4aaono6haswjgy425nuevbsphdyeh2qtooki4m4retpjjraxyq",
+    "cid": "bafybeiegq4vxyvuh2jtp6uduhsfk2vpby4n3ek66g6qrnmouf3apzdwr3m",
     "thumb": "",
     "pages": 6,
     "kb": 1124,
@@ -325,10 +331,10 @@
    {
     "title": "PKKPR No. 10082310215108014 — Kesesuaian Pemanfaatan Ruang",
     "what": "land-use conformity, OSS 09-08-2023, KBLI 68111",
-    "cid": "bafkreicgcubeevnlffo4r42rtnjjrej7xmn2ck7lqbv67s4xfqpncjqeuy",
+    "cid": "bafkreihouyf45emi5pgdkxj2356spz5fawrcqtssnd76da25i6gycmfu54",
     "thumb": "",
     "pages": 6,
-    "kb": 170,
+    "kb": 169,
     "lang": "ID",
     "url": "",
     "cover": "/covers/sinwood-pkkpr.jpg",
@@ -338,7 +344,7 @@
    {
     "title": "SPPT PBB 2023 — Pajak Bumi dan Bangunan",
     "what": "land and building tax notice of the parcel",
-    "cid": "bafybeic4rlgv4n2dlsh3djpmcm4ryyovfwfbvemfza7fchvcfxfdw2rqfe",
+    "cid": "bafybeifhjqdsae4dh7hoez2c2wtmocb4qlr3pwmrtllfb3boh6elxop3du",
     "thumb": "",
     "pages": 3,
     "kb": 952,
@@ -351,7 +357,7 @@
    {
     "title": "BPHTB — Bea Perolehan Hak atas Tanah dan Bangunan",
     "what": "duty on the acquisition of the Title, paid by the Company",
-    "cid": "bafybeialrbqczjnuzsi5re6h6whw7biplaj2tdqfojn2cmgsz3ajb3iyim",
+    "cid": "bafybeiat3aliiwg5eadewicbywyiuwgjg4dysctrdmyxticiu4szhb7pru",
     "thumb": "",
     "pages": 3,
     "kb": 704,
@@ -372,7 +378,7 @@
    {
     "title": "NIB 2504220016017 — Nomor Induk Berusaha",
     "what": "business registration with the KBLI list, printed 7 October 2025",
-    "cid": "bafybeic5zqkigew4u5nqm4uk5jkabo64gldvjw4uj4okdyxw5txrmvuzyq",
+    "cid": "bafybeihcwdzx3cxozwmfalxnjydizu5y4xssicgzmxomwrngldm4s3ab44",
     "thumb": "",
     "pages": 5,
     "kb": 519,
@@ -385,7 +391,7 @@
    {
     "title": "NPWP 53.898.326.3-902.000 — Nomor Pokok Wajib Pajak",
     "what": "the Company's tax registration",
-    "cid": "bafkreifae5tpty2iemh4u6zynafpq2w7qju7blbulumgy5x7ujs7g5us64",
+    "cid": "bafkreidimzdreu4yubninrrpqcze6ycchl2ivctl4s5lyena3y3lxhl74a",
     "thumb": "",
     "pages": 4,
     "kb": 226,
@@ -398,7 +404,7 @@
    {
     "title": "Akta Pendirian No. 01 / 2022",
     "what": "deed of establishment with the Anggaran Dasar · AHU-0001412-AH.01.01 of 07-01-2022",
-    "cid": "bafybeig4fxjeh7ur56uyjac64qfgidhmv6p2xenkzmcbukh5avv2v5ihsa",
+    "cid": "bafybeiguvfai5b7xgpvvsfjr5mwit2udsjjxrngxjigaehhpu5t72ockee",
     "thumb": "",
     "pages": 24,
     "kb": 4485,
@@ -411,7 +417,7 @@
    {
     "title": "Anggaran Dasar — konsolidasi",
     "what": "the articles as consolidated by the Company, 13 August 2026",
-    "cid": "bafkreicdgx2y5znyoywxyhbr6dy52eezafdtf3q4vyp7yli2ixgoejslhi",
+    "cid": "bafkreidpipir5usewj7t4dc27sskftsjmldrm5e25ovquztvvbncv2h3hq",
     "thumb": "",
     "pages": 10,
     "kb": 161,
@@ -424,7 +430,7 @@
    {
     "title": "Anggaran Dasar — Indonesia dan Inggris",
     "what": "the same articles, English beside Indonesian, 13 August 2026",
-    "cid": "bafybeiazu5i37hyesqypff3tv37jv3ersadn5bjeudqqyjs625rechmmv4",
+    "cid": "bafybeidy6vhxwrpe4jeuteupjkndbnpzwr3rhinnblujeb6gd4nq3hitga",
     "thumb": "",
     "pages": 15,
     "kb": 274,
@@ -437,7 +443,7 @@
    {
     "title": "Akta No. 13 / 2025 — Keputusan Pemegang Saham",
     "what": "shareholders' resolution: change of the board and share transfer, 14 April 2025",
-    "cid": "bafybeig5sapxjyzhvpu3tuoq7t2qka5ov7qmg4fsmcrgbzarm5zdiaixjy",
+    "cid": "bafybeifzh7lbdowcketplsgtm3ux5okngmsyraxyklekn2lgkeztgfyriu",
     "thumb": "",
     "pages": 11,
     "kb": 1352,
@@ -450,10 +456,10 @@
    {
     "title": "Akta No. 14 / 2025 — Penyimpanan Surat",
     "what": "deposit of documents (penyimpanan surat), 14 April 2025",
-    "cid": "bafybeihoygikflqfs4gffps2t4vilv6wfvpozjdkupaloiag6zzukpeqc4",
+    "cid": "bafybeida4xxrhtyw6qsfrwx7kk3a7hqq3bbatqyjhwa5w57intutxj4tdq",
     "thumb": "",
     "pages": 9,
-    "kb": 1100,
+    "kb": 1099,
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-akta-14-2025-04-14.jpg",
@@ -463,7 +469,7 @@
    {
     "title": "Surat Kemenkumham AHU-AH.01.09-0196845",
     "what": "the Ministry's acceptance of the change of board and the share transfer, 21 April 2025",
-    "cid": "bafkreig4bhdnprdwysso55x63tvd2d3psp6knf46e54x5mo6owujscfhqa",
+    "cid": "bafkreicqmplkg5whnzig5keqlmfa7davalegbvytzhph6ispcawlpo4pfe",
     "thumb": "",
     "pages": 3,
     "kb": 86,
@@ -476,10 +482,10 @@
    {
     "title": "Profil Perseroan AHU",
     "what": "the registry's record of the articles amendment, Akta No. 02 of 1 July 2025",
-    "cid": "bafybeigvsdeliuwl3uymcopsnffn5pvommusfft3f6pqze5rrtding5v3y",
+    "cid": "bafybeibcqsw35kldmm2d4drox5osmp42fqbelsd5rjzow6smodz5k3hx2e",
     "thumb": "",
     "pages": 5,
-    "kb": 1050,
+    "kb": 1049,
     "lang": "ID",
     "url": "",
     "cover": "/covers/cve-ahu-detail-2025-07.jpg",
