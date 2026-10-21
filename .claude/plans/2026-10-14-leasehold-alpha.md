@@ -96,10 +96,20 @@ sits on the flat page of a real product — the user decides.
   BPHTB; the reading pack), personal IDs and addresses blacked out
   (`cve/tools/redact.py`), CIDs in `cve/legal/signing/ipfs cids.json`
 - [x] wallet guide in the cabinet when no provider is injected
-- [ ] HGB 00048 certificate + KKPR spatial assessment: >10 MB, Drive MCP
-  refuses — the user drops the files; KEPMEN check waits on page 1
+- [x] HGB 00048 certificate (2026-10-21): the user dropped it; KEPMEN ATR/KBPN No. 1339/SK-HK.02/X/2022
+  confirmed on the BPN check page; birth dates blacked out (hand-placed boxes, `REDACT_BOXES`),
+  wrapped, pinned, first in THE LAND. The «KKPR» file was the PKKPR already on the shelf (same text)
 - [x] no 2026 deed exists — the Director's appointment is Akta No. 13/2025 + AHU-AH.01.09-0196845, both on the shelf; the «2026 deed» card was a placeholder of mine, removed 2026-10-21
-- [ ] ETH address of the Company; bracket values in the pack (table sent)
+- [ ] ETH address of the Company; bot token + group id — the user says wait
+- [ ] bracket values — the table re-sent 2026-10-21 (14 figures in the agreement, 6 in Annex F)
+- [x] hash on a document page is a QR of its IPFS address (`qrcode` crate, svg) 2026-10-21
+- [x] Annex B is a template: the sinwood-25 site plan left the pack 2026-10-21 («мы работаем с шаблонами»)
+- [x] 3.5 Guarantee Fund outflows «Director and one Commissioner» stay as they are (the user, 2026-10-21)
+- [ ] languages: RU for the agreement; UK and ZH for the agreement and the annexes — the user wants
+  all three («надо добавить везде и украинскую … и китайскую»). Pipeline ready (a69d9c4): tables
+  in `cve/legal/10 hak sewa/translations/hak sewa template.<lang>.json` keyed by the Indonesian
+  text (515 strings, ~8k words per language, skeleton via `langs.strings()`), annexes as
+  block-identical md in `cve/legal/annexes/{uk,zh}/`, Noto Sans CJK fetched per tools/README
 - [x] languages 2026-10-20 — Bahasa Indonesia is the book; the choice lives on
   `/docs/<key>`: OPEN where on the shelf (ID and ID+EN for the agreement and Annexes
   A–G, ID+RU for the annexes), ASK → Telegram DM for the rest, generated on request.
