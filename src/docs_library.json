@@ -23,10 +23,10 @@
    {
     "title": "Perjanjian Hak Sewa",
     "what": "the agreement with Annexes A–G in one file — the text the notary draws the akta from",
-    "cid": "bafybeifltcl6jhkmvrguql3odft7fsv5cp45bh55w7gl6hwyrghniyftye",
+    "cid": "bafybeicn423fhtg47co2kk5dspaiwqfbvrbg47n7s5zsk6dzypkzv4mv2q",
     "thumb": "",
-    "pages": 52,
-    "kb": 1660,
+    "pages": 51,
+    "kb": 1638,
     "lang": "ID",
     "url": "",
     "cover": "/covers/signable-pack-id.jpg",
@@ -34,14 +34,14 @@
     "title_en": "Lease Agreement",
     "langs": {
      "id": {
-      "cid": "bafybeifltcl6jhkmvrguql3odft7fsv5cp45bh55w7gl6hwyrghniyftye",
-      "pages": 52,
-      "kb": 1660
+      "cid": "bafybeicn423fhtg47co2kk5dspaiwqfbvrbg47n7s5zsk6dzypkzv4mv2q",
+      "pages": 51,
+      "kb": 1638
      },
      "en": {
-      "cid": "bafybeietyl6uigh7tfork6mv2s6guzjvxciksek4zfzsl5zkrgaew54cxm",
-      "pages": 78,
-      "kb": 1800
+      "cid": "bafybeibajrknkslmoyy5xbkp3djrgyiqmwb5skaebd3jkvgw4contoqsdu",
+      "pages": 77,
+      "kb": 1778
      }
     }
    },
@@ -78,10 +78,10 @@
    {
     "title": "Lampiran B — Batas Bidang",
     "what": "corners, neighbours, access, the drawing · per Plot",
-    "cid": "bafkreidndj5jl4qxddcpwrtg7hv4lsi5gb5s6vg7qv3lrvxei2inhp6wfm",
+    "cid": "bafkreid5rpuca4mwc64zwostfrnv2gxsr5gmpppde7f5tbrzy5gztcbopu",
     "thumb": "",
-    "pages": 5,
-    "kb": 108,
+    "pages": 4,
+    "kb": 62,
     "lang": "ID",
     "url": "",
     "cover": "/covers/signable-05-annex-b-id.jpg",
@@ -89,19 +89,19 @@
     "title_en": "Annex B — Plot Boundary",
     "langs": {
      "id": {
-      "cid": "bafkreidndj5jl4qxddcpwrtg7hv4lsi5gb5s6vg7qv3lrvxei2inhp6wfm",
-      "pages": 5,
-      "kb": 108
+      "cid": "bafkreid5rpuca4mwc64zwostfrnv2gxsr5gmpppde7f5tbrzy5gztcbopu",
+      "pages": 4,
+      "kb": 62
      },
      "en": {
-      "cid": "bafkreigxkw6pobfr5d7txli7mmx7h5vfpbg2nbt2mye5brea3oo3aw7wh4",
-      "pages": 6,
-      "kb": 114
+      "cid": "bafkreihj4ktbdmjifmzsqyahqxgp5tj2az6phm4avvvgwdcbdgdvg45ote",
+      "pages": 5,
+      "kb": 68
      },
      "ru": {
-      "cid": "bafkreicd7wom6npezmunfhjc7mb4bb6uammjoa5p4gvjbqo4252nwsqs7q",
-      "pages": 6,
-      "kb": 118
+      "cid": "bafkreificjg5pxq7xjhb6l77hbzfsssrl4jool7ddxzdcmece3o5yiki3m",
+      "pages": 5,
+      "kb": 72
      }
     }
    },
