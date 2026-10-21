@@ -15,7 +15,7 @@ pub const SUPPORT_HANDLE: &str = "st_joy";
 /// The community group newcomers join.
 pub const COMMUNITY_GROUP: &str = "cyberialand";
 /// The hard force bot, once it runs; orders go to it as `/start` payloads.
-pub const HARDFORCE_BOT: Option<&str> = None;
+pub const HARDFORCE_BOT: Option<&str> = Some("cybervalley_hardforce_bot");
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OrderKind {
