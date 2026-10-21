@@ -4389,6 +4389,21 @@ button.city-card:hover {
 .doc-lang.is-ask .doc-lang-act {
     color: #777;
 }
+.doc-qr {
+    display: block;
+    width: 96px;
+    height: 96px;
+    margin-left: auto;
+    opacity: .85;
+}
+.doc-qr:hover {
+    opacity: 1;
+}
+.doc-qr svg {
+    width: 96px;
+    height: 96px;
+    display: block;
+}
 .doc-facts {
     margin-top: 14px;
     display: flex;
@@ -4396,11 +4411,6 @@ button.city-card:hover {
     gap: 4px;
     font-size: 11px;
     color: #666;
-}
-.doc-hash {
-    font-family: "SF Mono", Menlo, monospace;
-    word-break: break-all;
-    color: #4b4b4d;
 }
 @media (max-width: 720px) {
     .doc-page {

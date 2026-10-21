@@ -278,7 +278,7 @@ pub fn DocPage() -> impl IntoView {
                         }}
                         <div class="doc-facts">
                             <span>{it.facts()}</span>
-                            <span class="doc-hash" title="the content hash · the file's name on IPFS, the same on every gateway">{format!("ipfs · {}", it.cid)}</span>
+                            <a class="doc-qr" href=id_href.clone() target="_blank" rel="noopener" title=format!("ipfs · {} · the content hash, the file's name on IPFS, the same on every gateway", it.cid) inner_html=qr_svg(&id_href)></a>
                         </div>
                     </div>
                 </div>
@@ -286,6 +286,21 @@ pub fn DocPage() -> impl IntoView {
         </div>
     }
     .into_any()
+}
+
+/// The URL as a QR, drawn as an SVG: dark modules on nothing, so the page's colour shows through.
+fn qr_svg(url: &str) -> String {
+    use qrcode::render::svg;
+    match qrcode::QrCode::new(url.as_bytes()) {
+        Ok(code) => code
+            .render::<svg::Color>()
+            .min_dimensions(96, 96)
+            .quiet_zone(false)
+            .dark_color(svg::Color("#fff"))
+            .light_color(svg::Color("transparent"))
+            .build(),
+        Err(_) => String::new(),
+    }
 }
 
 fn chips(s: &Section) -> impl IntoView {

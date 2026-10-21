@@ -13,6 +13,8 @@ console_error_panic_hook = "0.1"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
+# the content hash as a QR on the document page — the file's name on IPFS, scannable
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 
 # the real stack, not a simulation: particles are hemera (Poseidon2) hashes,
 # the neuron is a mudra domain-scoped key (same identity pipeline as the
