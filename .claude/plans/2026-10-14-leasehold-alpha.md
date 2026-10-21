@@ -105,11 +105,11 @@ sits on the flat page of a real product — the user decides.
 - [x] hash on a document page is a QR of its IPFS address (`qrcode` crate, svg) 2026-10-21
 - [x] Annex B is a template: the sinwood-25 site plan left the pack 2026-10-21 («мы работаем с шаблонами»)
 - [x] 3.5 Guarantee Fund outflows «Director and one Commissioner» stay as they are (the user, 2026-10-21)
-- [ ] languages: RU for the agreement; UK and ZH for the agreement and the annexes — the user wants
-  all three («надо добавить везде и украинскую … и китайскую»). Pipeline ready (a69d9c4): tables
-  in `cve/legal/10 hak sewa/translations/hak sewa template.<lang>.json` keyed by the Indonesian
-  text (515 strings, ~8k words per language, skeleton via `langs.strings()`), annexes as
-  block-identical md in `cve/legal/annexes/{uk,zh}/`, Noto Sans CJK fetched per tools/README
+- [x] languages 2026-10-21 — every signable page opens in ID, ID+EN, ID+RU, ID+UK, ID+ZH:
+  agreement via tables `cve/legal/10 hak sewa/translations/hak sewa template.{ru,uk,zh}.json`
+  (515 strings each), annexes as block-identical md in `cve/legal/annexes/{id,uk,zh}/` (RU in the
+  reading pack); packs 81/80/85 pages; links on the graph pages and on the shelf; other languages
+  stay ASK → generated on request the same way
 - [x] languages 2026-10-20 — Bahasa Indonesia is the book; the choice lives on
   `/docs/<key>`: OPEN where on the shelf (ID and ID+EN for the agreement and Annexes
   A–G, ID+RU for the annexes), ASK → Telegram DM for the rest, generated on request.
