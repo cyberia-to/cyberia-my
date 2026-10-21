@@ -263,6 +263,11 @@ pub fn DocPage() -> impl IntoView {
                                             }
                                         }
                                     }).collect_view()}
+                                    <a class="doc-lang is-ask" href=format!("{}?text={}", support, String::from(js_sys::encode_uri_component(&format!("GENERATE {gen_title} — Bahasa Indonesia + …")))) target="_blank" rel="noopener">
+                                        <span class="doc-lang-name">"another language"</span>
+                                        <span class="doc-lang-note">"made on request"</span>
+                                        <span class="doc-lang-act">"ASK"</span>
+                                    </a>
                                 </div>
                             }.into_any()
                         } else {
