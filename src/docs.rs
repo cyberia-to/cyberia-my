@@ -149,13 +149,13 @@ fn dossier(s: &Section, _support: &str) -> impl IntoView {
                         <a class=if ready { "cover-card" } else { "cover-card is-pending" } href=href>
                             <div class="cover">
                                 {match cover {
-                                    Some(t) => view! { <img src=t loading="lazy" alt=it.title.clone() /> }.into_any(),
+                                    Some(t) => view! { <img src=t loading="lazy" alt=it.title_en.clone() /> }.into_any(),
                                     None => view! { <div class="cover-blank"></div> }.into_any(),
                                 }}
                                 {(!ready).then(|| view! { <span class="cover-open">"BEFORE SIGNING"</span> })}
                             </div>
-                            <div class="cover-title">{it.title.clone()}</div>
-                            <div class="cover-title-en">{it.title_en.clone()}</div>
+                            <div class="cover-title">{it.title_en.clone()}</div>
+                            <div class="cover-title-id">{it.title.clone()}</div>
                         </a>
                     }
                 }).collect_view()}
@@ -192,10 +192,10 @@ pub fn DocPage() -> impl IntoView {
         }
         .into_any();
     };
-    document().set_title(&format!("Cyberia — {}", it.title));
+    document().set_title(&format!("Cyberia — {}", it.title_en));
     let color = if s.color.is_empty() { "#ffffff".to_string() } else { s.color.clone() };
     let cover = (!it.cover.is_empty()).then(|| format!("{}?v={}", it.cover, &it.cid[it.cid.len().saturating_sub(8)..]));
-    let title_en = if it.title_en.is_empty() || it.title_en == it.title { String::new() } else { it.title_en.clone() };
+    let title_id = if it.title == it.title_en { String::new() } else { it.title.clone() };
     let signable = s.key == "sign";
     let id_href = format!("{GATEWAY}{}", it.cid);
     let back = format!("/docs#{}", s.key);
@@ -222,14 +222,14 @@ pub fn DocPage() -> impl IntoView {
                 <div class="doc-page" style:--ink=color>
                     <div class="doc-cover">
                         {match cover {
-                            Some(t) => view! { <img src=t alt=it.title.clone() /> }.into_any(),
+                            Some(t) => view! { <img src=t alt=it.title_en.clone() /> }.into_any(),
                             None => view! { <div class="cover-blank"></div> }.into_any(),
                         }}
                     </div>
                     <div class="doc-side">
                         <a class="doc-back" href=back>{format!("← {}", s.section.split(" ·").next().unwrap_or("library"))}</a>
-                        <h2 class="doc-title">{it.title.clone()}</h2>
-                        {(!title_en.is_empty()).then(|| view! { <div class="doc-title-en">{title_en.clone()}</div> })}
+                        <h2 class="doc-title">{it.title_en.clone()}</h2>
+                        {(!title_id.is_empty()).then(|| view! { <div class="doc-title-id">{title_id.clone()}</div> })}
                         <p class="doc-what">{it.what.clone()}</p>
                         {if signable {
                             view! {
@@ -304,7 +304,7 @@ fn chips(s: &Section) -> impl IntoView {
                     let href = it.href().unwrap_or_default();
                     view! {
                         <a class="chip" href=href target="_blank" rel="noopener">
-                            <span class="chip-title">{it.title.clone()}</span>
+                            <span class="chip-title">{it.title_en.clone()}</span>
                             <span class="chip-what">{it.what.clone()}</span>
                         </a>
                     }
