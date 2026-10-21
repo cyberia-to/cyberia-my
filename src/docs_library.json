@@ -28,27 +28,27 @@
   "line": "the instruments in Bahasa Indonesia, the text that binds; pick a second language to read beside it — English and Russian are on the shelf, any other is made on request · 20 October 2026",
   "items": [
    {
-    "title": "Hak Sewa — Perjanjian",
+    "title": "Perjanjian Hak Sewa",
     "what": "the agreement with Annexes A–G in one file — the text the notary draws the akta from",
-    "cid": "bafybeigti47gnqrl7xcdq67s6fxllyqfbmpuct2ctpinss65hxgtaiulky",
+    "cid": "bafybeif62bhowzloohsenwcf52r563ypovenicqzkc4ore4l4wrsh5duoy",
     "thumb": "",
     "pages": 52,
-    "kb": 1662,
+    "kb": 1660,
     "lang": "ID",
     "url": "",
     "cover": "/covers/signable-pack-id.jpg",
     "key": "signable-pack",
-    "title_en": "Hak Sewa — Lease Agreement",
+    "title_en": "Lease Agreement",
     "langs": {
      "id": {
-      "cid": "bafybeigti47gnqrl7xcdq67s6fxllyqfbmpuct2ctpinss65hxgtaiulky",
+      "cid": "bafybeif62bhowzloohsenwcf52r563ypovenicqzkc4ore4l4wrsh5duoy",
       "pages": 52,
-      "kb": 1662
+      "kb": 1660
      },
      "en": {
-      "cid": "bafybeift23aotkeaj4s7ktesrijp5t5txge7c7xbfeckzws27tteb22yom",
+      "cid": "bafybeidcs36a3y4yuwz7o3at2oxifluyhzytrj2b5pwydlt3rlxec7m63e",
       "pages": 78,
-      "kb": 1803
+      "kb": 1800
      }
     }
    },
