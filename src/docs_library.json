@@ -3,7 +3,7 @@
   "key": "pending",
   "section": "before signing",
   "color": "#fe0000",
-  "line": "what reaches the Holder before signing day and is pinned the moment it does — the Title's certificate, the BPN search dated within 30 days of signing, the deed of the Director who signs",
+  "line": "what reaches the Holder before signing day and is pinned the moment it does — the Title's certificate and the BPN search dated within 30 days of signing",
   "items": [
    {
     "title": "Sertipikat HGB No. 00048/Gesing — Alas Hak",
@@ -18,13 +18,6 @@
     "cid": "",
     "note": "per deal",
     "title_en": "BPN Non-encumbrance Statement"
-   },
-   {
-    "title": "Akta Pengangkatan Direktur 2026",
-    "what": "the deed that shows the Director who signs the lease — the post-registration edition",
-    "cid": "",
-    "note": "arrives before signing",
-    "title_en": "Director Appointment Deed 2026"
    }
   ]
  },

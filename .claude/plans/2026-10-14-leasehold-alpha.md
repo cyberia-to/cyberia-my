@@ -98,7 +98,7 @@ sits on the flat page of a real product — the user decides.
 - [x] wallet guide in the cabinet when no provider is injected
 - [ ] HGB 00048 certificate + KKPR spatial assessment: >10 MB, Drive MCP
   refuses — the user drops the files; KEPMEN check waits on page 1
-- [ ] the post-registration deed (2026) and SK: not in Drive
+- [x] no 2026 deed exists — the Director's appointment is Akta No. 13/2025 + AHU-AH.01.09-0196845, both on the shelf; the «2026 deed» card was a placeholder of mine, removed 2026-10-21
 - [ ] ETH address of the Company; bracket values in the pack (table sent)
 - [x] languages 2026-10-20 — Bahasa Indonesia is the book; the choice lives on
   `/docs/<key>`: OPEN where on the shelf (ID and ID+EN for the agreement and Annexes
