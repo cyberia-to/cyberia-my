@@ -136,7 +136,7 @@ fn dossier(s: &Section, _support: &str) -> impl IntoView {
                     <div class="dossier-line">{s.line.clone()}</div>
                 </div>
                 <div class="dossier-count">
-                    <span>{format!("{pinned} on IPFS")}</span>
+                    {(pinned > 0).then(|| view! { <span>{format!("{pinned} on IPFS")}</span> })}
                     {(pending > 0).then(|| view! { <span class="dossier-pending">{format!("{pending} before signing")}</span> })}
                 </div>
             </div>

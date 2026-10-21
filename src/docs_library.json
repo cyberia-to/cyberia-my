@@ -1,5 +1,34 @@
 [
  {
+  "key": "pending",
+  "section": "before signing",
+  "color": "#fe0000",
+  "line": "what reaches the Holder before signing day and is pinned the moment it does — the Title's certificate, the BPN search dated within 30 days of signing, the deed of the Director who signs",
+  "items": [
+   {
+    "title": "Sertipikat HGB No. 00048/Gesing — Alas Hak",
+    "what": "with Surat Ukur No. 00086/2002 · parcel NIB 22040417.00276 · expiring 02-02-2053",
+    "cid": "",
+    "note": "scan arrives before signing",
+    "title_en": "HGB Certificate No. 00048/Gesing — the Title"
+   },
+   {
+    "title": "Surat Keterangan Pendaftaran Tanah BPN",
+    "what": "ordered through the PPAT within 30 days of signing",
+    "cid": "",
+    "note": "per deal",
+    "title_en": "BPN Non-encumbrance Statement"
+   },
+   {
+    "title": "Akta Pengangkatan Direktur 2026",
+    "what": "the deed that shows the Director who signs the lease — the post-registration edition",
+    "cid": "",
+    "note": "arrives before signing",
+    "title_en": "Director Appointment Deed 2026"
+   }
+  ]
+ },
+ {
   "key": "sign",
   "section": "what you sign",
   "color": "#00fe00",
@@ -249,13 +278,6 @@
   "line": "40,000 m² of sinwood registered to PT Cyber Valley Estate — the Title and every paper behind it, each copy behind its own title page and colophon · identity numbers and home addresses of natural persons blacked out",
   "items": [
    {
-    "title": "Sertipikat HGB No. 00048/Gesing — Alas Hak",
-    "what": "with Surat Ukur No. 00086/2002 · parcel NIB 22040417.00276 · expiring 02-02-2053",
-    "cid": "",
-    "note": "scan arrives before signing",
-    "title_en": "HGB Certificate No. 00048/Gesing — the Title"
-   },
-   {
     "title": "Akta Jual Beli No. 81/2023",
     "what": "the deed of sale by which the Company acquired the Title, 9 June 2023",
     "cid": "bafybeiavjc5opojj6itcpzkzm4ystv5hn5fgupbo6j7cp5zraynfrtdumu",
@@ -345,13 +367,6 @@
     "cover": "/covers/sinwood-bphtb.jpg",
     "key": "sinwood-bphtb",
     "title_en": "Duty on the Acquisition of the Title"
-   },
-   {
-    "title": "Surat Keterangan Pendaftaran Tanah BPN",
-    "what": "ordered through the PPAT within 30 days of signing",
-    "cid": "",
-    "note": "per deal",
-    "title_en": "BPN Non-encumbrance Statement"
    }
   ]
  },
@@ -477,13 +492,6 @@
     "cover": "/covers/cve-ahu-detail-2025-07.jpg",
     "key": "cve-ahu-detail-2025-07",
     "title_en": "AHU Company Record"
-   },
-   {
-    "title": "Akta Pengangkatan Direktur 2026",
-    "what": "the deed that shows the Director who signs the lease — the post-registration edition",
-    "cid": "",
-    "note": "arrives before signing",
-    "title_en": "Director Appointment Deed 2026"
    }
   ]
  },
