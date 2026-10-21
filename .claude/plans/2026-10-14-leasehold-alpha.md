@@ -100,7 +100,13 @@ sits on the flat page of a real product — the user decides.
   confirmed on the BPN check page; birth dates blacked out (hand-placed boxes, `REDACT_BOXES`),
   wrapped, pinned, first in THE LAND. The «KKPR» file was the PKKPR already on the shelf (same text)
 - [x] no 2026 deed exists — the Director's appointment is Akta No. 13/2025 + AHU-AH.01.09-0196845, both on the shelf; the «2026 deed» card was a placeholder of mine, removed 2026-10-21
-- [ ] ETH address of the Company; bot token + group id — the user says wait
+- [ ] ETH address of the Company — the user says wait
+- [~] bot 2026-10-21: @cybervalley_hardforce_bot registered by the user; token in `~/.config/cyber/env`
+  (HARDFORCE_BOT_TOKEN) and in `/etc/hardforce.env` on cyberproxy; service installed, stopped until
+  HARDFORCE_CHAT_ID is known (the bot has seen no update from the group yet — `/id` in the group);
+  the ORDER buttons already deep-link to the bot (`?start=survey_<plot>`)
+- [ ] ten more languages (de, fr, es, ja, ko, pt, it, tr, ar, hi) pre-generated the same way — the
+  user: next stage, not now; until then ASK → made on request
 - [ ] bracket values — the table re-sent 2026-10-21 (14 figures in the agreement, 6 in Annex F)
 - [x] hash on a document page is a QR of its IPFS address (`qrcode` crate, svg) 2026-10-21
 - [x] Annex B is a template: the sinwood-25 site plan left the pack 2026-10-21 («мы работаем с шаблонами»)
