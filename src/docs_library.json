@@ -8,10 +8,10 @@
    {
     "title": "Hak Sewa — Perjanjian",
     "what": "the agreement with Annexes A–G in one file — the text the notary draws the akta from",
-    "cid": "bafybeigzg4g5ngq36g4bhmcjikpdyg4gj2ila7epxx7uozoo7z6rx7h4ci",
+    "cid": "bafybeidnp3vkaibfmyzdj7xe4azn2pu2efoul7b6jyg4r2azwcini5d4ge",
     "thumb": "",
     "pages": 52,
-    "kb": 1655,
+    "kb": 1662,
     "lang": "ID",
     "url": "",
     "cover": "/covers/signable-pack-id.jpg",
@@ -19,21 +19,21 @@
     "title_en": "Hak Sewa — Lease Agreement",
     "langs": {
      "id": {
-      "cid": "bafybeigzg4g5ngq36g4bhmcjikpdyg4gj2ila7epxx7uozoo7z6rx7h4ci",
+      "cid": "bafybeidnp3vkaibfmyzdj7xe4azn2pu2efoul7b6jyg4r2azwcini5d4ge",
       "pages": 52,
-      "kb": 1655
+      "kb": 1662
      },
      "en": {
-      "cid": "bafybeidmldgnzzteuqa2lspcvyhczv2x35x2uzu7lp3r3htg3hvf3r3jp4",
+      "cid": "bafybeifdfy3224vtvedjjlwvfvp4bbx3k3fasfcy464dcdpctlh36txjdq",
       "pages": 78,
-      "kb": 1793
+      "kb": 1803
      }
     }
    },
    {
     "title": "Lampiran A — Daftar Alas Hak",
     "what": "the Title the Plot sits on",
-    "cid": "bafkreihsz2yxjas2zc232wgzg7kjcefxf2gid2xuisqayljsmdinemd3ee",
+    "cid": "bafkreibu52hexczxr5oobai2lvyjybagaomcfmivbbtcdgohffvw4ezlaq",
     "thumb": "",
     "pages": 4,
     "kb": 86,
@@ -44,17 +44,17 @@
     "title_en": "Annex A — Estate Registry",
     "langs": {
      "id": {
-      "cid": "bafkreihsz2yxjas2zc232wgzg7kjcefxf2gid2xuisqayljsmdinemd3ee",
+      "cid": "bafkreibu52hexczxr5oobai2lvyjybagaomcfmivbbtcdgohffvw4ezlaq",
       "pages": 4,
       "kb": 86
      },
      "en": {
-      "cid": "bafkreidvrkat2mkuaip4fe6gfvpgwbcgffo4y2jqpen3et6xl7erf2ygsa",
+      "cid": "bafkreicwwjiavdgoe6jylx57yye3nbeinnd5cpceqwc57rv4juz6ed7qbu",
       "pages": 4,
       "kb": 88
      },
      "ru": {
-      "cid": "bafkreiggd72sy2glofoivrzlpenhgzo7s6hs2oghgshrloxwrwbl5l2cvm",
+      "cid": "bafkreif3kmmof3udvuii3hi2qluwtaoovp2xszvmjqukjezazsakpvascy",
       "pages": 5,
       "kb": 92
      }
@@ -63,7 +63,7 @@
    {
     "title": "Lampiran B — Batas Bidang",
     "what": "corners, neighbours, access, the drawing · per Plot",
-    "cid": "bafkreibc7vhenhlzf5tngbruiym7dbi4x6uajznwmgk52spsq6tf32nkvm",
+    "cid": "bafkreidndj5jl4qxddcpwrtg7hv4lsi5gb5s6vg7qv3lrvxei2inhp6wfm",
     "thumb": "",
     "pages": 5,
     "kb": 108,
@@ -74,17 +74,17 @@
     "title_en": "Annex B — Plot Boundary",
     "langs": {
      "id": {
-      "cid": "bafkreibc7vhenhlzf5tngbruiym7dbi4x6uajznwmgk52spsq6tf32nkvm",
+      "cid": "bafkreidndj5jl4qxddcpwrtg7hv4lsi5gb5s6vg7qv3lrvxei2inhp6wfm",
       "pages": 5,
       "kb": 108
      },
      "en": {
-      "cid": "bafkreidorhhepf6set7dir7n2lnwtn4qn7fivobinwf44c7tpimqqiq7de",
+      "cid": "bafkreigxkw6pobfr5d7txli7mmx7h5vfpbg2nbt2mye5brea3oo3aw7wh4",
       "pages": 6,
       "kb": 114
      },
      "ru": {
-      "cid": "bafkreie3frmglq7phc7czh3lw2bnt5blxwd6fiafb4g4a5xhsordsb4dp4",
+      "cid": "bafkreicd7wom6npezmunfhjc7mb4bb6uammjoa5p4gvjbqo4252nwsqs7q",
       "pages": 6,
       "kb": 118
      }
@@ -93,7 +93,7 @@
    {
     "title": "Lampiran C — Paket Uji Tuntas",
     "what": "inventory and record of handover · per deal",
-    "cid": "bafkreiddw6kxlzekqalimooes5hucpperbmc5e3ebvebxaa4n4rhq2dqnq",
+    "cid": "bafkreibak7keeh7dvd63bdcfnon2hnxxdsxuor4wstuciwabbquo5kh2py",
     "thumb": "",
     "pages": 4,
     "kb": 63,
@@ -104,17 +104,17 @@
     "title_en": "Annex C — Due Diligence Pack",
     "langs": {
      "id": {
-      "cid": "bafkreiddw6kxlzekqalimooes5hucpperbmc5e3ebvebxaa4n4rhq2dqnq",
+      "cid": "bafkreibak7keeh7dvd63bdcfnon2hnxxdsxuor4wstuciwabbquo5kh2py",
       "pages": 4,
       "kb": 63
      },
      "en": {
-      "cid": "bafkreies6z4gwwf5z6woh6eo7p6hmsggwmlh6nnrkcu2orhk4qldbjickq",
+      "cid": "bafkreib5pxjlgxife4jcpb7evpmueuv6n5dd4do72jeuzzzcinh6ajzwna",
       "pages": 6,
       "kb": 71
      },
      "ru": {
-      "cid": "bafkreieulrrddop57nnc3q5nrisx5tzs22pxx7t3ajwrj36dswir2kqtwi",
+      "cid": "bafkreieu73sgx4dr4gccmo7kxp4xtjrx3syl6hajmbnjiwy4nkrolshqzy",
       "pages": 6,
       "kb": 75
      }
@@ -123,7 +123,7 @@
    {
     "title": "Lampiran D — Penawaran Tercatat",
     "what": "the page and price shown to the Holder · per deal",
-    "cid": "bafkreibw4orz5ljevupmbkv2gpbqcqdceo4vjcpunmyurrgiihvv2zwkxa",
+    "cid": "bafkreiftqbvgigi655l4546dmtox7stvfoynj5s33r3653dhx53uhziscu",
     "thumb": "",
     "pages": 3,
     "kb": 56,
@@ -134,17 +134,17 @@
     "title_en": "Annex D — Offer of Record",
     "langs": {
      "id": {
-      "cid": "bafkreibw4orz5ljevupmbkv2gpbqcqdceo4vjcpunmyurrgiihvv2zwkxa",
+      "cid": "bafkreiftqbvgigi655l4546dmtox7stvfoynj5s33r3653dhx53uhziscu",
       "pages": 3,
       "kb": 56
      },
      "en": {
-      "cid": "bafkreia6eqbmp46kx5atfdqounhbrtkjyvvg32cwfhyjrpyoe52c6r6ms4",
+      "cid": "bafkreif7k3kvsjwikfdkfoougrtztfnja4cfeyxz6roosulsaruybi52iq",
       "pages": 4,
       "kb": 60
      },
      "ru": {
-      "cid": "bafkreifbk56cnvvmerrdqormet2b7j3gzgviezgbdipkmxifhjxlsnl3ge",
+      "cid": "bafkreidelzh6o3zvf4ifemzcxgmwb26vfigxpjggynkwxzmqk3fhr4o2oi",
       "pages": 4,
       "kb": 63
      }
@@ -153,7 +153,7 @@
    {
     "title": "Lampiran E — Century Index",
     "what": "terms, formulas, rules, quantities · per deal",
-    "cid": "bafkreiemapaehmruttumxylpchmkvgzckhxwghdfclkfino2lgjj5cvioe",
+    "cid": "bafkreicojyybfrwn6qzrxtls7rnpzqe3um5w7blqmg3lf7tttswjvzziaa",
     "thumb": "",
     "pages": 7,
     "kb": 78,
@@ -164,17 +164,17 @@
     "title_en": "Annex E — Century Index",
     "langs": {
      "id": {
-      "cid": "bafkreiemapaehmruttumxylpchmkvgzckhxwghdfclkfino2lgjj5cvioe",
+      "cid": "bafkreicojyybfrwn6qzrxtls7rnpzqe3um5w7blqmg3lf7tttswjvzziaa",
       "pages": 7,
       "kb": 78
      },
      "en": {
-      "cid": "bafkreidhfopoexur5wn4sim3m3arxjxblkintjafsw2pfmegtuyyhoyaqi",
+      "cid": "bafkreif2ont4rndn3bciqsbs4ye3k3r6xago4nz4g4eq4n2qrzl3zn2qwm",
       "pages": 11,
       "kb": 95
      },
      "ru": {
-      "cid": "bafkreifbje7azswzoj2vb232m63epal2tgyq5hdpym5kjporuzil3kgmem",
+      "cid": "bafkreidyvvqi74m2l2heqh4rk4fb2d5zlccixewite37xcqyi3b6xeyxr4",
       "pages": 11,
       "kb": 99
      }
@@ -183,7 +183,7 @@
    {
     "title": "Lampiran F — Utilitas, Akses dan Mobilitas",
     "what": "self-sufficiency norms per Plot",
-    "cid": "bafkreif6upknvkzurgvtxils4hizr3glffda2imsaafgpoi5svnjmv57iq",
+    "cid": "bafkreidmj54fi6r7ivlkntzer326nye7r7e3af4lhpn3um4l5wsf7yo2rq",
     "thumb": "",
     "pages": 4,
     "kb": 59,
@@ -194,17 +194,17 @@
     "title_en": "Annex F — Utilities, Access and Mobility",
     "langs": {
      "id": {
-      "cid": "bafkreif6upknvkzurgvtxils4hizr3glffda2imsaafgpoi5svnjmv57iq",
+      "cid": "bafkreidmj54fi6r7ivlkntzer326nye7r7e3af4lhpn3um4l5wsf7yo2rq",
       "pages": 4,
       "kb": 59
      },
      "en": {
-      "cid": "bafkreigxe47mcwolehesfi4lf3l6w2f355clawj3ycmwn2kxlj4hhdcmsu",
+      "cid": "bafkreic35l4nuly7p7saar2acd6rzd357j7oejkfjie57uo7mvdommyw6y",
       "pages": 5,
       "kb": 65
      },
      "ru": {
-      "cid": "bafkreidu7g2c72lncm3ejt5qdzgrovsbfph2ijpd6xaw6gxsjj7sviwoza",
+      "cid": "bafkreifwe6lfss2yht6nzmqcbimx4an3namhoe2z4zjtsjo6jbrbg6gc6i",
       "pages": 5,
       "kb": 69
      }
@@ -213,10 +213,10 @@
    {
     "title": "Lampiran G — Kondisi Serah Terima",
     "what": "record of handover of the Plot · per Plot",
-    "cid": "bafkreic6y4unz4ilaznbud22l6ghucpvlh5m5n5kzs3c53s5ervlcnkbxa",
+    "cid": "bafkreiah2a7piary2t5tguoawvnn6owiyb64msshcqq2zluufvoiki2dke",
     "thumb": "",
     "pages": 4,
-    "kb": 62,
+    "kb": 63,
     "lang": "ID",
     "url": "",
     "cover": "/covers/signable-10-annex-g-id.jpg",
@@ -224,17 +224,17 @@
     "title_en": "Annex G — Handover Condition",
     "langs": {
      "id": {
-      "cid": "bafkreic6y4unz4ilaznbud22l6ghucpvlh5m5n5kzs3c53s5ervlcnkbxa",
+      "cid": "bafkreiah2a7piary2t5tguoawvnn6owiyb64msshcqq2zluufvoiki2dke",
       "pages": 4,
-      "kb": 62
+      "kb": 63
      },
      "en": {
-      "cid": "bafkreie7xupecp2azsrwjsug7tncpkhu4qi7v5nyq4t327j2vs3hh2e3je",
+      "cid": "bafkreibd4ojglfqzfsyj2wctlbfxo5bkvjv77bj7e3ygpy6w6nbggk33oe",
       "pages": 6,
-      "kb": 87
+      "kb": 88
      },
      "ru": {
-      "cid": "bafkreiftkfy3cbfirgzogs4dq67rvqfpes5b4akzyhjh4ebppnibfbmaau",
+      "cid": "bafkreifsy5x3eoctpv2lpatum2kr6zu4bk4vvdyj34c3xsd4diwz5jhrcm",
       "pages": 6,
       "kb": 74
      }
