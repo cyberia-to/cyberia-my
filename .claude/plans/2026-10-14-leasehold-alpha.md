@@ -101,10 +101,9 @@ sits on the flat page of a real product — the user decides.
   wrapped, pinned, first in THE LAND. The «KKPR» file was the PKKPR already on the shelf (same text)
 - [x] no 2026 deed exists — the Director's appointment is Akta No. 13/2025 + AHU-AH.01.09-0196845, both on the shelf; the «2026 deed» card was a placeholder of mine, removed 2026-10-21
 - [ ] ETH address of the Company — the user says wait
-- [~] bot 2026-10-21: @cybervalley_hardforce_bot registered by the user; token in `~/.config/cyber/env`
-  (HARDFORCE_BOT_TOKEN) and in `/etc/hardforce.env` on cyberproxy; service installed, stopped until
-  HARDFORCE_CHAT_ID is known (the bot has seen no update from the group yet — `/id` in the group);
-  the ORDER buttons already deep-link to the bot (`?start=survey_<plot>`)
+- [x] bot 2026-10-21 — @cybervalley_hardforce_bot live on cyberproxy (`/opt/hardforce`, service `hardforce`,
+  secrets in `/etc/hardforce.env`, runs as www-data, owns `/opt/hardforce` and `docroot/plot-data`);
+  group «cyber valley» id -1002245058785; ORDER buttons deep-link `?start=survey_<plot>|media_<plot>`
 - [ ] ten more languages (de, fr, es, ja, ko, pt, it, tr, ar, hi) pre-generated the same way — the
   user: next stage, not now; until then ASK → made on request
 - [ ] bracket values — the table re-sent 2026-10-21 (14 figures in the agreement, 6 in Annex F)
