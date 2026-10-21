@@ -104,8 +104,9 @@ sits on the flat page of a real product — the user decides.
 - [x] bot 2026-10-21 — @cybervalley_hardforce_bot live on cyberproxy (`/opt/hardforce`, service `hardforce`,
   secrets in `/etc/hardforce.env`, runs as www-data, owns `/opt/hardforce` and `docroot/plot-data`);
   group «cyber valley» id -1002245058785; ORDER buttons deep-link `?start=survey_<plot>|media_<plot>`
-- [ ] ten more languages (de, fr, es, ja, ko, pt, it, tr, ar, hi) pre-generated the same way — the
-  user: next stage, not now; until then ASK → made on request
+- [x] ten more languages 2026-10-21 (de, fr, es, ja, ko, pt, it, tr, ar, hi) — every signable page and the
+  bound agreement open in 14 second languages beside Indonesian; ja/ko/ar/hi set in Noto Sans (fetch per
+  tools/README, not committed), Arabic column right-to-left; one ASK row left for any other language
 - [ ] bracket values — the table re-sent 2026-10-21 (14 figures in the agreement, 6 in Annex F)
 - [x] hash on a document page is a QR of its IPFS address (`qrcode` crate, svg) 2026-10-21
 - [x] Annex B is a template: the sinwood-25 site plan left the pack 2026-10-21 («мы работаем с шаблонами»)
@@ -121,3 +122,13 @@ sits on the flat page of a real product — the user decides.
   Open: RU for the agreement
 - [x] one instrument 2026-10-20 — the agreement is the akta; «akta sewa simple» and the
   notary's template retired from the graph, cve and the shelf; the pack = agreement + annexes
+
+## after the contracts — open questions (the user, 2026-10-21: «ост вопросы в список на после договоров»)
+
+1. Bracket values — 17 figures, sheet `cve/legal/notes/bracket values.md`: «ок» or another number each.
+2. ETH address of the Company — the user says wait.
+3. Hash on the document cards — the QR sits on the document page; none on the cards. Keep so?
+4. RU / UK / ZH (and the next ten) are my translations, unreviewed by a native lawyer; the Indonesian binds —
+   a native review before buyers read them, or the note «translation for reading» on the page?
+5. Test the bot end to end with a real ORDER (survey / media) and a crew reply.
+6. Company page `company licences`, `office practice` — the shelf links to them; wait for the user's go.
