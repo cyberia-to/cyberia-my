@@ -22,12 +22,30 @@ pub struct FriendSale {
 }
 
 impl FriendSale {
+    /// The listing's address: the name, and a counter from the second
+    /// listing of the same name on — gede, daniel, daniel-2, daniel-3.
     pub fn slug(&self) -> String {
-        self.name
+        let me: *const FriendSale = self;
+        let mut nth = 0;
+        for f in friend_sales() {
+            if f.name == self.name {
+                nth += 1;
+            }
+            if std::ptr::eq(f, me) {
+                break;
+            }
+        }
+        let base: String = self
+            .name
             .to_lowercase()
             .chars()
             .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
-            .collect()
+            .collect();
+        if nth > 1 {
+            format!("{base}-{nth}")
+        } else {
+            base
+        }
     }
 }
 
