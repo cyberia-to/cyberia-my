@@ -100,7 +100,8 @@ sits on the flat page of a real product — the user decides.
   confirmed on the BPN check page; birth dates blacked out (hand-placed boxes, `REDACT_BOXES`),
   wrapped, pinned, first in THE LAND. The «KKPR» file was the PKKPR already on the shelf (same text)
 - [x] no 2026 deed exists — the Director's appointment is Akta No. 13/2025 + AHU-AH.01.09-0196845, both on the shelf; the «2026 deed» card was a placeholder of mine, removed 2026-10-21
-- [ ] ETH address of the Company — the user says wait
+- [x] ETH address 2026-10-22 — 0x15534f1875977148EBe5FFb8A3D51C9F996bD0ac on the ETH rail
+  (EIP-55 casing verified by keccak); ETH or USDT on mainnet, reference to support after sending
 - [x] bot 2026-10-21 — @cybervalley_hardforce_bot live on cyberproxy (`/opt/hardforce`, service `hardforce`,
   secrets in `/etc/hardforce.env`, runs as www-data, owns `/opt/hardforce` and `docroot/plot-data`);
   group «cyber valley» id -1002245058785; ORDER buttons deep-link `?start=survey_<plot>|media_<plot>`
@@ -126,7 +127,6 @@ sits on the flat page of a real product — the user decides.
 ## after the contracts — open questions (the user, 2026-10-21: «ост вопросы в список на после договоров»)
 
 1. Bracket values — 17 figures, sheet `cve/legal/notes/bracket values.md`: «ок» or another number each.
-2. ETH address of the Company — the user says wait.
 3. Hash on the document cards — the QR sits on the document page; none on the cards. Keep so?
 4. RU / UK / ZH (and the next ten) are my translations, unreviewed by a native lawyer; the Indonesian binds —
    a native review before buyers read them, or the note «translation for reading» on the page?
