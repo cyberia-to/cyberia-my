@@ -269,6 +269,7 @@ pub fn DocPage() -> impl IntoView {
                                         <span class="doc-lang-act">"ASK"</span>
                                     </a>
                                 </div>
+                                <p class="docs-note">"every second language is a reading translation — the Bahasa Indonesia text is the one that binds"</p>
                             }.into_any()
                         } else {
                             view! {
