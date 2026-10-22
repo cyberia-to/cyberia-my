@@ -28,9 +28,9 @@ pub const BANK: BankAccount = BankAccount {
     swift: "BBBAIDJA",
 };
 
-/// The Company's Ethereum address for the lease — published once the
-/// Company names it; until then the ETH rail asks support.
-pub const ETH_ADDRESS: Option<&str> = None;
+/// The Company's Ethereum address for the lease — named by the Company
+/// on 2026-10-22; EIP-55 casing verified.
+pub const ETH_ADDRESS: Option<&str> = Some("0x15534f1875977148EBe5FFb8A3D51C9F996bD0ac");
 
 /// Premium shares the holder can pick below the upfront 100%.
 pub const PREMIUM_STEPS: &[u32] = &[10, 20, 30, 40, 50, 60, 70, 80, 90];
