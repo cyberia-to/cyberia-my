@@ -132,9 +132,6 @@ sits on the flat page of a real product — the user decides.
    a native review before buyers read them, or the note «translation for reading» on the page?
 5. Test the bot end to end with a real ORDER (survey / media) and a crew reply.
 6. Company page `company licences`, `office practice` — the shelf links to them; wait for the user's go.
-7. Provenance page for buyers (the user, 2026-10-22): publish where every figure of the agreement comes
-   from — benchmark, law, or Company decision — so a buyer sees the numbers' origin; the private sheet
-   `cve/legal/notes/bracket values.md` is the seed.
-8. Early-phase initiative scheme for 11.3: the 10% district-weight threshold is accepted for the steady
-   state, but a scheme is wanted for the start, before large holders exist.
-9. 12.1.9 processing fee: recommendation on 2.0% given; awaiting the user's word.
+7. [done 2026-10-22] Provenance page — `products/leasehold/value provenance.md` on the graph.
+8. [done 2026-10-22] 11.3 settled: 10% + «while a district counts fewer than ten Holders, the Board answers any Holder».
+9. [done 2026-10-22] 12.1.9 settled at 2.0%.
