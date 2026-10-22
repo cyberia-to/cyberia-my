@@ -128,10 +128,11 @@ sits on the flat page of a real product — the user decides.
 
 1. [done 2026-10-22] Bracket values — all settled; stay fee [20]% provisional by the user's word.
 3. Hash on the document cards — the QR sits on the document page; none on the cards. Keep so?
-4. RU / UK / ZH (and the next ten) are my translations, unreviewed by a native lawyer; the Indonesian binds —
-   a native review before buyers read them, or the note «translation for reading» on the page?
-5. Test the bot end to end with a real ORDER (survey / media) and a crew reply.
-6. Company page `company licences`, `office practice` — the shelf links to them; wait for the user's go.
+4. [done 2026-10-22] the reading-translation note sits under every document's language list; native review
+   stays open for later if ever wanted.
+5. Test the bot end to end with a real ORDER (survey / media) and a crew reply — the user: later.
+6. [done 2026-10-22] `legal/company licences.md` and `legal/office practice.md` live on the graph; the eight
+   office-practice answers await the lawyers' thread (separate, later — the user).
 7. [done 2026-10-22] Provenance page — `products/leasehold/value provenance.md` on the graph.
 8. [done 2026-10-22] 11.3 settled: 10% + «while a district counts fewer than ten Holders, the Board answers any Holder».
 9. [done 2026-10-22] 12.1.9 settled at 2.0%.
