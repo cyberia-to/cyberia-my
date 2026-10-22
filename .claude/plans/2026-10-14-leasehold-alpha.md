@@ -108,7 +108,7 @@ sits on the flat page of a real product — the user decides.
 - [x] ten more languages 2026-10-21 (de, fr, es, ja, ko, pt, it, tr, ar, hi) — every signable page and the
   bound agreement open in 14 second languages beside Indonesian; ja/ko/ar/hi set in Noto Sans (fetch per
   tools/README, not committed), Arabic column right-to-left; one ASK row left for any other language
-- [ ] bracket values — the table re-sent 2026-10-21 (14 figures in the agreement, 6 in Annex F)
+- [x] bracket values settled 2026-10-22 — all rows closed; only the stay fee stands at [20]% by the user's «пусть стоит пока 20»
 - [x] hash on a document page is a QR of its IPFS address (`qrcode` crate, svg) 2026-10-21
 - [x] Annex B is a template: the sinwood-25 site plan left the pack 2026-10-21 («мы работаем с шаблонами»)
 - [x] 3.5 Guarantee Fund outflows «Director and one Commissioner» stay as they are (the user, 2026-10-21)
@@ -126,7 +126,7 @@ sits on the flat page of a real product — the user decides.
 
 ## after the contracts — open questions (the user, 2026-10-21: «ост вопросы в список на после договоров»)
 
-1. Bracket values — 17 figures, sheet `cve/legal/notes/bracket values.md`: «ок» or another number each.
+1. [done 2026-10-22] Bracket values — all settled; stay fee [20]% provisional by the user's word.
 3. Hash on the document cards — the QR sits on the document page; none on the cards. Keep so?
 4. RU / UK / ZH (and the next ten) are my translations, unreviewed by a native lawyer; the Indonesian binds —
    a native review before buyers read them, or the note «translation for reading» on the page?
