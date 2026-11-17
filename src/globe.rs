@@ -98,12 +98,16 @@ fn turn(axis: V3, ang: f64, v: V3) -> V3 {
     let (x, k) = (cross(axis, v), dot(axis, v) * (1.0 - cs));
     [v[0] * cs + x[0] * sn + axis[0] * k, v[1] * cs + x[1] * sn + axis[1] * k, v[2] * cs + x[2] * sn + axis[2] * k]
 }
-/// The globe is a ball in the hand: below this zoom it keeps any heading it is given.
-const FREE_Z: f64 = 8.5;
+/// A thrown ball keeps turning only over the planet; at a city a drag stops where it is let go.
+const SPIN_Z: f64 = 8.5;
+/// Held keys and buttons move the camera at these speeds, eased in and out.
+const HOLD_PAN: f64 = 620.0; // css px per second
+const HOLD_ZOOM: f64 = 1.7; // zoom levels per second
+const HOLD_TWIST: f64 = 1.5; // radians per second
+const HOLD_EASE: f64 = 110.0; // ms to reach two thirds of the speed
+const HOLD_MIN: f64 = 170.0; // ms a tap keeps moving, so a tap is a nudge
 /// The sketch lines of the world (coast, borders, provinces) are gone from this zoom.
 const WORLD_LINES_Z: f64 = 6.5;
-/// From this zoom the map is north-up: a city's plan is drawn that way.
-const LEVEL_Z: f64 = 11.0;
 fn merc_lat(y: f64) -> f64 {
     (PI * (1.0 - 2.0 * y)).sinh().atan().to_degrees()
 }
@@ -405,6 +409,10 @@ struct Engine {
     lat: f64,
     hd: f64, // heading, radians from north-up
     spin: Option<(V3, f64)>,      // the ball keeps turning: axis, radians per ms
+    hold: [f64; 4],       // what is held: pan x, pan y, zoom, twist, each −1…1 (pan up to ±3)
+    vel: [f64; 4],        // the eased speed on the same axes
+    hold_until: [f64; 4], // a tap moves at least until then
+    hold_off: [bool; 4],  // released, waiting for hold_until
     drag_spin: Option<(V3, f64)>, // the last move of the hand
     drag_t: f64,
     z: f64,
@@ -475,7 +483,7 @@ impl Engine {
             self.lon = up2[0].atan2(up2[2]).to_degrees();
         }
         let (e_t, n_t) = tangent(self.lon, self.lat);
-        self.hd = if self.z >= LEVEL_Z { 0.0 } else { (-dot(n2, e_t)).atan2(dot(n2, n_t)) };
+        self.hd = (-dot(n2, e_t)).atan2(dot(n2, n_t));
     }
 
     /// Put the camera over another point of the sphere, carrying the screen's
@@ -519,7 +527,7 @@ impl Engine {
     /// The hand lets go: a ball that was moving keeps turning and slows down.
     fn release(&mut self) {
         if let Some(s) = self.drag_spin.take() {
-            if now() - self.drag_t < 70.0 && self.z < FREE_Z && s.1 > 3e-5 {
+            if now() - self.drag_t < 70.0 && self.z < SPIN_Z && s.1 > 3e-5 {
                 self.spin = Some(s);
                 self.dirty = true;
             }
@@ -528,9 +536,6 @@ impl Engine {
 
     /// Turn the view about the point under the camera, at once.
     fn twist(&mut self, da: f64) {
-        if self.z >= LEVEL_Z {
-            return;
-        }
         self.hd = (self.hd + da + PI).rem_euclid(2.0 * PI) - PI;
         self.fly = None;
         self.spin = None;
@@ -699,18 +704,37 @@ impl Engine {
                 let v = self.view();
                 self.set_frame(turn(axis, rate * dt, v.up), turn(axis, rate * dt, v.north));
                 let rate = rate * (-dt / 900.0).exp();
-                self.spin = (rate > 4e-6 && self.z < FREE_Z).then_some((axis, rate));
+                self.spin = (rate > 4e-6 && self.z < SPIN_Z).then_some((axis, rate));
                 self.clamp();
                 self.touch();
             }
-            // coming down to a city the map levels: its plan is drawn north-up
-            if self.hd != 0.0 && self.z > FREE_Z {
-                let w = smooth((self.z - FREE_Z) / (LEVEL_Z - FREE_Z));
-                self.hd *= (-dt / 1000.0 * 10.0 * w).exp();
-                if self.z >= LEVEL_Z || self.hd.abs() < 0.0005 {
-                    self.hd = 0.0;
+            // keys and buttons held down: the camera moves at a speed that eases in and out
+            for i in 0..4 {
+                if self.hold[i] != 0.0 && self.hold_off[i] && t >= self.hold_until[i] {
+                    self.hold[i] = 0.0;
                 }
-                self.dirty = true;
+            }
+            let moving = self.hold.iter().chain(self.vel.iter()).any(|v| v.abs() > 1e-3);
+            if moving {
+                let k = 1.0 - (-dt / HOLD_EASE).exp();
+                for i in 0..4 {
+                    self.vel[i] += (self.hold[i] - self.vel[i]) * k;
+                    if self.hold[i] == 0.0 && self.vel[i].abs() < 1e-3 {
+                        self.vel[i] = 0.0;
+                    }
+                }
+                let s = dt / 1000.0;
+                let v = self.vel;
+                if v[0] != 0.0 || v[1] != 0.0 {
+                    self.pan_px(v[0] * HOLD_PAN * s, v[1] * HOLD_PAN * s);
+                }
+                if v[2] != 0.0 {
+                    self.z = (self.z + v[2] * HOLD_ZOOM * s).clamp(self.z_min, Z_MAX);
+                }
+                if v[3] != 0.0 {
+                    self.hd = (self.hd + v[3] * HOLD_TWIST * s + PI).rem_euclid(2.0 * PI) - PI;
+                }
+                self.touch();
             }
         }
         self.last_t = t;
@@ -975,8 +999,8 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
     fn fly_to(&mut self, lon: f64, lat: f64, z: f64, dur: f64) {
         self.fly = Some(Fly {
             from: (unit(self.lon, self.lat), self.z, self.hd),
-            // a flight to a city lands north-up; one over the planet keeps the heading
-            to: (unit(lon, lat), z.clamp(self.z_min, Z_MAX), if z > FREE_Z { 0.0 } else { self.hd }),
+            // a flight keeps the heading the view has
+            to: (unit(lon, lat), z.clamp(self.z_min, Z_MAX), self.hd),
             t0: now(),
             dur,
         });
@@ -1299,6 +1323,10 @@ fn start(
         lat,
         hd,
         spin: None,
+        hold: [0.0; 4],
+        vel: [0.0; 4],
+        hold_until: [0.0; 4],
+        hold_off: [false; 4],
         drag_spin: None,
         drag_t: 0.0,
         z,
@@ -1473,18 +1501,29 @@ pub fn cam_stop() {
     });
 }
 
+/// Hold an axis of the camera: 0 pan x, 1 pan y (css px of ground motion, as a drag),
+/// 2 zoom, 3 twist. `v` is the direction and strength (0 lets go). The camera eases
+/// to the speed and out of it; a tap still moves a little.
+pub fn cam_hold(axis: usize, v: f64) {
+    with_engine(|e| {
+        if v != 0.0 {
+            if e.hold[axis] == 0.0 {
+                e.hold_until[axis] = now() + HOLD_MIN;
+            }
+            e.hold[axis] = v;
+            e.hold_off[axis] = false;
+            e.fly = None;
+            e.spin = None;
+            e.dirty = true;
+        } else if e.hold[axis] != 0.0 {
+            e.hold_off[axis] = true;
+        }
+    });
+}
+
 /// Turn the view about its centre by an angle (radians, clockwise), at once.
 pub fn cam_twist(da: f64) {
     with_engine(|e| e.twist(da));
-}
-
-/// Turn the view about its centre by an angle, smoothly.
-pub fn cam_turn(delta: f64) {
-    with_engine(|e| {
-        if e.z < LEVEL_Z {
-            e.turn_by(delta, 420.0);
-        }
-    });
 }
 
 /// North up again, the short way round.
