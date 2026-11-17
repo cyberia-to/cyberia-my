@@ -26,10 +26,14 @@ Without --region the region ranges of an existing manifest are kept.
 Light work — network and disk only — and memory stays small: jobs go to the
 pool in batches.
 """
-import argparse, json, math, os, sys, time, urllib.request
-from concurrent.futures import ThreadPoolExecutor
+import argparse, http.client, json, math, os, ssl, sys, threading, time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
-URL = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"
+HOST = "tiles.maps.eox.at"
+PATH = "/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"
+LOCAL = threading.local()  # one kept connection per thread
+TLS = ssl.create_default_context()  # one for all: each context holds the whole CA store
+THREADS = None  # the pool of a worker process
 UA = "cyberia.my imagery mirror (one-time fetch; contact: cyberia.to)"
 BATCH = 20000
 BLANK = 200  # set from --blank-bytes
@@ -78,13 +82,17 @@ def fetch(job):
     except OSError:
         pass
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    url = URL.format(z=z, x=x, y=y)
     err = None
     for attempt in range(5):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                data = r.read()
+            conn = getattr(LOCAL, "conn", None)
+            if conn is None:
+                conn = LOCAL.conn = http.client.HTTPSConnection(HOST, timeout=30, context=TLS)
+            conn.request("GET", PATH.format(z=z, x=x, y=y), headers={"User-Agent": UA})
+            r = conn.getresponse()
+            data = r.read()
+            if r.status != 200:
+                raise OSError(f"http {r.status}")
             if len(data) <= BLANK and z > WORLD:
                 return len(data)
             tmp = path + ".part"
@@ -92,16 +100,30 @@ def fetch(job):
                 f.write(data)
             os.replace(tmp, path)
             return len(data)
-        except Exception as e:  # noqa: BLE001 — retry any network error
+        except Exception as e:  # noqa: BLE001 — retry any network error, on a new connection
+            if getattr(LOCAL, "conn", None) is not None:
+                LOCAL.conn.close()
+                LOCAL.conn = None
             time.sleep(1.5 * (attempt + 1))
             err = e
     print(f"FAILED {z}/{x}/{y}: {err}", file=sys.stderr)
     return -1
 
 
+def fetch_chunk(arg):
+    """A chunk of jobs in a worker process, over its own threads."""
+    global THREADS, BLANK, WORLD
+    jobs, threads, BLANK, WORLD = arg
+    if THREADS is None:
+        THREADS = ThreadPoolExecutor(threads)
+    return list(THREADS.map(fetch, jobs))
+
+
 class Run:
-    def __init__(self, out, threads):
-        self.out, self.pool = out, ThreadPoolExecutor(threads)
+    """Python runs one thread at a time, so the threads are spread over processes."""
+
+    def __init__(self, out, threads, procs):
+        self.out, self.threads, self.pool = out, threads, ProcessPoolExecutor(procs)
         self.done = self.failed = self.size = 0
 
     def fetch(self, jobs, label):
@@ -109,7 +131,10 @@ class Run:
         batch = []
 
         def flush():
-            for job, n in zip(batch, self.pool.map(fetch, [(self.out, *j) for j in batch])):
+            jobs = [(self.out, *j) for j in batch]
+            chunks = [(jobs[i:i + 250], self.threads, BLANK, WORLD) for i in range(0, len(jobs), 250)]
+            sizes = (n for chunk in self.pool.map(fetch_chunk, chunks) for n in chunk)
+            for job, n in zip(batch, sizes):
                 self.done += 1
                 if n < 0:
                     self.failed += 1
@@ -137,12 +162,13 @@ def main():
     ap.add_argument("--blank-bytes", type=int, default=200)
     ap.add_argument("--region-zoom", type=int, default=14)
     ap.add_argument("--region", action="append", default=[])
-    ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--threads", type=int, default=8, help="per process")
+    ap.add_argument("--procs", type=int, default=1)
     a = ap.parse_args()
 
     global BLANK, WORLD
     BLANK, WORLD = a.blank_bytes, a.world_zoom
-    run = Run(a.out, a.threads)
+    run = Run(a.out, a.threads, a.procs)
     ranges = []
     sizes = {}  # (x, y) -> bytes, of the zoom just fetched
     for z in range(a.world_zoom + 1):
