@@ -351,6 +351,8 @@ pub struct Unit {
     /// the state's three-letter code
     pub code: String,
     pub franchise: bool,
+    /// the land inside the outline, km² (outer rings on the sphere; lakes and enclaves count)
+    pub area_km2: f64,
 }
 
 /// A unit's file.
@@ -1580,6 +1582,51 @@ fn inside(rings: &[Vec<f64>], lon: f64, lat: f64) -> bool {
     })
 }
 
+/// The area of rings on the sphere, km²: Σ (λ₂ − λ₁)(2 + sin φ₁ + sin φ₂) · R²/2 per ring.
+fn area_km2(rings: &[Vec<f64>]) -> f64 {
+    const R_KM: f64 = 6371.0088;
+    let mut total = 0.0;
+    for r in rings {
+        let n = r.len() / 2;
+        let mut sum = 0.0;
+        for a in 0..n {
+            let b = (a + 1) % n;
+            let mut dl = (r[2 * b] - r[2 * a]).to_radians();
+            // a step across the date line is the short way round
+            if dl > PI {
+                dl -= 2.0 * PI;
+            } else if dl < -PI {
+                dl += 2.0 * PI;
+            }
+            sum += dl * (2.0 + r[2 * a + 1].to_radians().sin() + r[2 * b + 1].to_radians().sin());
+        }
+        total += (sum * R_KM * R_KM / 2.0).abs();
+    }
+    total
+}
+
+fn fmt_area(km2: f64) -> String {
+    // thousands apart, so a state and a village both read at a glance
+    let group = |v: f64| {
+        let s = format!("{:.0}", v);
+        let mut out = String::new();
+        for (i, ch) in s.chars().enumerate() {
+            if i > 0 && (s.len() - i) % 3 == 0 {
+                out.push(' ');
+            }
+            out.push(ch);
+        }
+        out
+    };
+    if km2 >= 100.0 {
+        format!("{} km²", group(km2))
+    } else if km2 >= 1.0 {
+        format!("{km2:.1} km²")
+    } else {
+        format!("{:.1} ha", km2 * 100.0)
+    }
+}
+
 fn outline(rings: &[Vec<f64>]) -> Vec<V3> {
     let mut out = Vec::new();
     for r in rings {
@@ -1637,6 +1684,7 @@ pub async fn locate(lon: f64, lat: f64, found: impl Fn(Unit)) {
                     kind: u.t.clone(),
                     code: u.c.clone(),
                     franchise: FRANCHISE_OPEN.contains(&u.c.as_str()),
+                    area_km2: area_km2(&u.p),
                 });
                 break;
             }
@@ -1932,6 +1980,7 @@ pub fn DivisionPanel(
                                     <span style="color:#ffd400">{level_name(u.level)}</span>
                                     {if u.kind.is_empty() { String::new() } else { format!(" · {}", u.kind.to_lowercase()) }}
                                 </div>
+                                <div class="prism-area">{fmt_area(u.area_km2)}</div>
                             </div>
                         </div>
                     }.into_any(),
@@ -1972,6 +2021,7 @@ pub fn DivisionPanel(
                                         }
                                     >
                                         <span class="gl-kind">{level_name(u.level)}</span>
+                                        <span class="gl-area">{fmt_area(u.area_km2)}</span>
                                         <span class="gl-name">{u.name.clone()}</span>
                                     </button>
                                 }
@@ -1992,6 +2042,17 @@ pub fn DivisionPanel(
                         <div class="intent-row">
                             <span class="intent-k">"level"</span>
                             <span class="intent-v dim">{cur.as_ref().map(|u| format!("{} · {} of {}", level_name(u.level).to_lowercase(), u.level as usize + 1, list.len())).unwrap_or_else(|| "—".into())}</span>
+                        </div>
+                        <div class="intent-row">
+                            <span class="intent-k">"area"</span>
+                            <span class="intent-v">{cur.as_ref().map(|u| fmt_area(u.area_km2)).unwrap_or_else(|| "—".into())}</span>
+                        </div>
+                        <div class="intent-row">
+                            <span class="intent-k">"share of the level above"</span>
+                            <span class="intent-v dim">{cur.as_ref().and_then(|u| {
+                                let parent = list.iter().filter(|p| p.level < u.level).next_back()?;
+                                (parent.area_km2 > 0.0).then(|| format!("{:.2}% of {}", (u.area_km2 / parent.area_km2 * 100.0).min(100.0), parent.name))
+                            }).unwrap_or_else(|| "—".into())}</span>
                         </div>
                         <div class="intent-row">
                             <span class="intent-k">"franchise"</span>

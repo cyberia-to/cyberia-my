@@ -4546,3 +4546,11 @@ button.city-card:hover {
 .globe-host:not(.globe-far) .globe-hint { display: none; }
 @media (max-width: 900px) { .globe-hint { display: none; } }
 @media (max-width: 640px) { .globe-zoom button { width: 36px; height: 36px; } .globe-zoom { top: 30%; } }
+
+/* the area of a division: on its row, under its render */
+.gr-level { grid-template-columns: 1fr auto; }
+.gl-kind { grid-column: 1; }
+.gl-area { grid-column: 2; grid-row: 1 / span 2; align-self: center; font: 11px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #9a9a9a; white-space: nowrap; }
+.gr-level.on .gl-area { color: #ffd400; }
+.gl-name { grid-column: 1; }
+.prism-area { margin-top: 4px; font: 12px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #cfcfcf; }
