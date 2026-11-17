@@ -1,7 +1,11 @@
-# Build + rsync fleets&flats console to cyberproxy for cyberia.my
+# Build + rsync the map (the globe and the land console) to the front for cyberia.my
 #
 #   nu scripts/deploy.nu
 #   nu scripts/deploy.nu --skip-build
+#
+# The host and the ssh command come from the environment, so no machine's path
+# lives here:  CYBERIA_DEPLOY_HOST (default front-primary),
+#              CYBERIA_DEPLOY_SSH  (default ssh; e.g. "ssh -F <ssh_config>")
 
 def main [--skip-build] {
   let root = (
@@ -25,15 +29,22 @@ def main [--skip-build] {
   print "→ render plot pages"
   ^python3 $"($root)/scripts/render-plot-pages.py"
 
-  print "→ rsync dist/ → cyberproxy:/var/www/html/cyberia.my/"
-  ^ssh cyberproxy "mkdir -p /var/www/html/cyberia.my/plot /var/www/html/cyberia.my/covers"
+  let host = ($env.CYBERIA_DEPLOY_HOST? | default "front-primary")
+  let ssh = ($env.CYBERIA_DEPLOY_SSH? | default "ssh")
+  let dest = $"($host):/var/www/html/cyberia.my/"
+  print $"→ rsync dist/ → ($dest)"
+  ^sh -c $"($ssh) ($host) 'mkdir -p /var/www/html/cyberia.my/plot /var/www/html/cyberia.my/covers /var/www/html/cyberia.my/globe'"
   # the build is flat files at the root; every top-level directory in the
   # docroot (cx, hackathon, music, fonts — synced from the pages repo) is
   # left alone, except plot/, which this build owns
-  ^rsync -az --delete --exclude "/*/" $"($root)/dist/" "cyberproxy:/var/www/html/cyberia.my/"
-  ^rsync -az --delete $"($root)/dist/plot/" "cyberproxy:/var/www/html/cyberia.my/plot/"
+  # the directories go first and the root (index.html, wasm) last, so a page
+  # never asks for a file that is not there yet
+  ^rsync -az --delete -e $ssh $"($root)/dist/plot/" $"($dest)plot/"
+  # the globe's line layers and the states' names
+  ^rsync -az --delete -e $ssh $"($root)/dist/globe/" $"($dest)globe/"
   # the documents' first pages, beside the library
-  ^rsync -az --delete $"($root)/dist/covers/" "cyberproxy:/var/www/html/cyberia.my/covers/"
+  ^rsync -az --delete -e $ssh $"($root)/dist/covers/" $"($dest)covers/"
+  ^rsync -az --delete --exclude "/*/" -e $ssh $"($root)/dist/" $dest
 
   print ""
   print "✓ deployed → https://cyberia.my/  (after DNS + TLS)"
