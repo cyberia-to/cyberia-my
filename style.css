@@ -4466,7 +4466,7 @@ button.city-card:hover {
 .globe-far .cyberia-stage,
 .globe-far .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding: 0; gap: 0; overflow: hidden; }
 .globe-far .cyberia-stage .cyberia-flats { grid-column: 1; grid-row: 1; border: 0; border-radius: 0; box-shadow: none; }
-.globe-far .cyberia-right,
+.globe-far .cyberia-right:not(.division-panel),
 .globe-far .cyberia-fleets,
 .globe-far .cyberia-flats > .cyberia-panel-h,
 .globe-far .flat-legend,
@@ -4521,3 +4521,19 @@ button.city-card:hover {
 .gl-kind { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: #8a8a8a; }
 .gr-level.on .gl-kind { color: #ffd400; }
 .gl-name { font-size: 14px; font-weight: 700; }
+
+/* a tapped point over the planet opens the right panel, as a plot does at a city */
+.globe-far.globe-picked .cyberia-stage,
+.globe-far.globe-picked .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr) 324px; padding: 8px 10px; gap: 8px; }
+.globe-far.globe-picked .cyberia-stage .division-panel { grid-column: 2; grid-row: 1; overflow-y: auto; }
+.division-panel .gr-levels { margin-bottom: 10px; }
+.division-panel .division-note { font-size: 11px; color: #9a9a9a; margin-top: 6px; }
+.division-panel .division-cta { width: 100%; margin-top: 12px; }
+@media (max-width: 1100px) {
+  .globe-far.globe-picked .cyberia-stage,
+  .globe-far.globe-picked .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(220px, 44vh); padding: 0; gap: 0; }
+  .globe-far.globe-picked .cyberia-stage .division-panel { grid-column: 1; grid-row: 2; }
+}
+/* a division reads as a map: north up and still, where a plot's slab spins */
+.division-panel .plot-slab { transform: none; animation: none; }
+.division-panel .plot-slab-path { stroke-width: 1.4; }

@@ -13,7 +13,7 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_fit, cam_pan, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
+    cam_fit, cam_pan, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
@@ -583,7 +583,11 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let map_bbox_drag = map_bbox.clone();
 
     view! {
-        <div class=move || if near.get() { "page-shell cyberia-shell globe-host" } else { "page-shell cyberia-shell globe-host globe-far" }>
+        <div class=move || match (near.get(), point.get().is_some()) {
+            (true, _) => "page-shell cyberia-shell globe-host",
+            (false, false) => "page-shell cyberia-shell globe-host globe-far",
+            (false, true) => "page-shell cyberia-shell globe-host globe-far globe-picked",
+        }>
             <div class="site-chrome cyberia-chrome">
             <div class="chrome-inner">
             <div class="header-row1">
@@ -1038,7 +1042,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                     >
                         // the globe: imagery and the world's lines, under everything
                         <GlobeLayer cam=cam picked=picked home=home />
-                        <GlobeFar cam=cam picked=picked point=point chain=chain selected=unit_sel />
+                        <GlobeFar cam=cam picked=picked />
                         <GlobeAttrib />
 
                         // left zoom rail (game-style) — deep zoom for cm-scale tile planning
@@ -1517,6 +1521,11 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         </div>
                     </div>
                 </section>
+
+                // RIGHT, over the planet — the tapped point's divisions, on the plot panel's plan
+                {move || (!near.get() && point.get().is_some()).then(|| view! {
+                    <DivisionPanel point=point chain=chain selected=unit_sel />
+                })}
 
                 // RIGHT — 3D + INTENT
                 <section class="cyberia-panel cyberia-right">

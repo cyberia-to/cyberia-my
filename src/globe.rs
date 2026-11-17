@@ -1628,14 +1628,7 @@ pub fn GlobeLayer(
 /// What the layer shows over the planet: the cities, the way to found one,
 /// the zoom buttons and the readout. The host hides it once the land console is on.
 #[component]
-pub fn GlobeFar(
-    cam: RwSignal<Cam>,
-    picked: RwSignal<Option<usize>>,
-    /// the tapped point (lat, lon), the divisions it is in from the state down, the selected one
-    point: RwSignal<Option<(f64, f64)>>,
-    chain: RwSignal<Vec<Unit>>,
-    selected: RwSignal<Option<u64>>,
-) -> impl IntoView {
+pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl IntoView {
     let founding = RwSignal::new(false);
     let name = RwSignal::new(String::new());
 
@@ -1710,40 +1703,126 @@ pub fn GlobeFar(
 
         {move || founding.get().then(|| view! { <div class="globe-cross"></div> })}
 
-        {move || point.get().map(|(lat, lon)| view! {
-            <div class="globe-ui globe-region">
-                <div class="gr-h">
-                    <span class="gr-kicker">"POINT"</span>
-                    <span class="gr-coord">{format!("{}  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'))}</span>
-                    <button type="button" class="gr-x" title="deselect (Esc)" on:click=move |_| {
-                        clear_region();
-                        point.set(None);
-                        chain.set(Vec::new());
-                        selected.set(None);
-                    }>"✕"</button>
-                </div>
+        <div class="globe-ui globe-hud">
+            {move || {
+                let (lat, lon, z, ..) = cam.get();
+                format!("{}  {}  ·  z {:.1}  ·  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'), z, ground_scale(z))
+            }}
+        </div>
+    }
+}
+
+fn level_name(level: u8) -> String {
+    // one plain name per level: the sources' own words for a level are uneven
+    match level {
+        0 => "STATE".to_string(),
+        1 => "REGION".to_string(),
+        2 => "SUBREGION".to_string(),
+        n => format!("LEVEL {n}"),
+    }
+}
+
+/// A unit's outline as an SVG path fitted into a w × h box (north up, true proportions).
+fn unit_path(id: u64, w: f64, h: f64, pad: f64) -> String {
+    let Some(u) = UNITS.with(|m| m.borrow().get(&id).cloned()) else { return String::new() };
+    let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+    for r in &u.p {
+        for c in r.chunks_exact(2) {
+            x0 = x0.min(c[0]);
+            x1 = x1.max(c[0]);
+            y0 = y0.min(c[1]);
+            y1 = y1.max(c[1]);
+        }
+    }
+    if x0 > x1 {
+        return String::new();
+    }
+    // a degree of longitude is shorter away from the equator
+    let kx = ((y0 + y1) * 0.5).to_radians().cos().max(0.05);
+    let (sw, sh) = (((x1 - x0) * kx).max(1e-9), (y1 - y0).max(1e-9));
+    let k = ((w - 2.0 * pad) / sw).min((h - 2.0 * pad) / sh);
+    let (ox, oy) = ((w - sw * k) * 0.5, (h - sh * k) * 0.5);
+    let mut d = String::new();
+    for r in &u.p {
+        for (i, c) in r.chunks_exact(2).enumerate() {
+            let (x, y) = (ox + (c[0] - x0) * kx * k, oy + (y1 - c[1]) * k);
+            d.push_str(&format!("{}{x:.1},{y:.1}", if i == 0 { "M" } else { "L" }));
+        }
+        d.push('Z');
+    }
+    d
+}
+
+/// The right panel of a tapped point, on the plan of a plot's panel: the render of
+/// the selected division, every level the point is in, the facts and the action.
+#[component]
+pub fn DivisionPanel(
+    /// the tapped point (lat, lon), the divisions it is in from the state down, the selected one
+    point: RwSignal<Option<(f64, f64)>>,
+    chain: RwSignal<Vec<Unit>>,
+    selected: RwSignal<Option<u64>>,
+) -> impl IntoView {
+    let close = move || {
+        clear_region();
+        point.set(None);
+        chain.set(Vec::new());
+        selected.set(None);
+    };
+    // the division the panel is about: the selected one, else the deepest found
+    let current = move || {
+        let list = chain.get();
+        let sel = selected.get();
+        list.iter().find(|u| Some(u.id) == sel).or(list.last()).cloned()
+    };
+    view! {
+        <section class="cyberia-panel cyberia-right division-panel">
+            <div class="cyberia-panel-h">
+                <span class="panel-kicker">"RENDER"</span>
+                <span class="panel-sub">"division · outline"</span>
+            </div>
+            <div class="render-3d">
+                {move || match current() {
+                    Some(u) => view! {
+                        <div class="render-stage">
+                            <div class="plot-slab" style:--prism-color="#ffd400">
+                                <svg class="plot-slab-svg" viewBox="0 0 120 120">
+                                    <path d=unit_path(u.id, 120.0, 120.0, 14.0) class="plot-slab-path" />
+                                </svg>
+                            </div>
+                            <div class="prism-meta">
+                                <div class="prism-name">{u.name.clone()}</div>
+                                <div class="prism-sub">
+                                    <span style="color:#ffd400">{level_name(u.level)}</span>
+                                    {if u.kind.is_empty() { String::new() } else { format!(" · {}", u.kind.to_lowercase()) }}
+                                </div>
+                            </div>
+                        </div>
+                    }.into_any(),
+                    None => view! { <div class="intent-empty">"looking up the divisions here…"</div> }.into_any(),
+                }}
+            </div>
+
+            <div class="cyberia-panel-h" style="margin-top: 24px;">
+                <span class="panel-kicker">"DIVISION"</span>
+                <span class="panel-sub">"tap the globe · pick a level"</span>
+                <button class="panel-x" type="button" title="deselect (Esc)" on:click=move |_| close()>"✕"</button>
+            </div>
+            <div class="intent-form">
                 {move || {
                     let list = chain.get();
-                    if list.is_empty() {
-                        return view! { <div class="gr-note">"looking up the divisions here…"</div> }.into_any();
-                    }
-                    let franchise = list.first().map(|u| u.franchise).unwrap_or(false);
+                    let (lat, lon) = point.get().unwrap_or((0.0, 0.0));
+                    let state = list.first().cloned();
+                    let franchise = state.as_ref().map(|u| u.franchise).unwrap_or(false);
+                    let cur = current();
                     view! {
                         <div class="gr-levels">
-                            {list.into_iter().map(|u| {
+                            {list.iter().cloned().map(|u| {
                                 let id = u.id;
-                                // one plain name per level: the sources' own words for a level are uneven
-                                let label = match u.level {
-                                    0 => "STATE".to_string(),
-                                    1 => "REGION".to_string(),
-                                    2 => "SUBREGION".to_string(),
-                                    n => format!("LEVEL {n}"),
-                                };
                                 view! {
                                     <button
                                         type="button"
                                         class=move || if selected.get() == Some(id) { "gr-level on" } else { "gr-level" }
-                                        style=format!("padding-left:{}px", 10 + 10 * u.level as u32)
+                                        style=format!("margin-left:{}px", 10 * u.level as u32)
                                         on:click=move |_| {
                                             // a second tap on the selected level lets it go
                                             if selected.get_untracked() == Some(id) {
@@ -1755,29 +1834,44 @@ pub fn GlobeFar(
                                             }
                                         }
                                     >
-                                        <span class="gl-kind">{label}</span>
+                                        <span class="gl-kind">{level_name(u.level)}</span>
                                         <span class="gl-name">{u.name.clone()}</span>
                                     </button>
                                 }
                             }).collect_view()}
                         </div>
-                        <div class=if franchise { "gr-status open" } else { "gr-status" }>
-                            {if franchise { "FRANCHISE · OPEN" } else { "FRANCHISE · NOT OPEN YET" }}
+                        <div class="intent-row">
+                            <span class="intent-k">"point"</span>
+                            <span class="intent-v dim">{format!("{} {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'))}</span>
                         </div>
-                        <div class="gr-note">
+                        <div class="intent-row">
+                            <span class="intent-k">"state"</span>
+                            <span class="intent-v">{state.as_ref().map(|u| u.name.clone()).unwrap_or_else(|| "—".into())}</span>
+                        </div>
+                        <div class="intent-row">
+                            <span class="intent-k">"division"</span>
+                            <span class="intent-v">{cur.as_ref().map(|u| u.name.clone()).unwrap_or_else(|| "—".into())}</span>
+                        </div>
+                        <div class="intent-row">
+                            <span class="intent-k">"level"</span>
+                            <span class="intent-v dim">{cur.as_ref().map(|u| format!("{} · {} of {}", level_name(u.level).to_lowercase(), u.level as usize + 1, list.len())).unwrap_or_else(|| "—".into())}</span>
+                        </div>
+                        <div class="intent-row">
+                            <span class="intent-k">"franchise"</span>
+                            <span class="intent-v" style=if franchise { "color:#00ff41" } else { "color:#8a8a8a" }>
+                                {if franchise { "OPEN" } else { "NOT OPEN YET" }}
+                            </span>
+                        </div>
+                        <div class="deal-note division-note">
                             {if franchise { "cities of cyberia can be founded here" } else { "today the franchise is open in Indonesia only" }}
                         </div>
-                    }.into_any()
+                        <button type="button" class="gf-commit division-cta" disabled=true title="founding is not open yet">
+                            {if franchise { "FOUND CITY HERE — SOON" } else { "FRANCHISE NOT OPEN HERE" }}
+                        </button>
+                    }
                 }}
             </div>
-        })}
-
-        <div class="globe-ui globe-hud">
-            {move || {
-                let (lat, lon, z, ..) = cam.get();
-                format!("{}  {}  ·  z {:.1}  ·  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'), z, ground_scale(z))
-            }}
-        </div>
+        </section>
     }
 }
 
