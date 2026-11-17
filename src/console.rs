@@ -13,7 +13,7 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_drag, cam_fit, cam_hold, cam_north, cam_pan, cam_release, cam_stop, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Place, Unit, BASE,
+    cam_drag, layer, layers_saved, set_layers, LayersPanel, cam_fit, cam_hold, cam_north, cam_pan, cam_release, cam_stop, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Place, Unit, BASE,
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
@@ -529,6 +529,10 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
         unit_sel.set(None);
     };
     let near = RwSignal::new(!planet);
+    // what the map shows: the visitor's last choice, kept by the engine's side
+    let layers = RwSignal::new(layers_saved());
+    let layers_open = RwSignal::new(false);
+    Effect::new(move |_| set_layers(layers.get()));
     // the plan comes in before the console does: it fades in over the last zoom level of the approach
     let plan_on = RwSignal::new(!planet);
     // on a phone the panel of what is selected is a sheet at the bottom: closed it is one line
@@ -671,6 +675,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                 cam_world();
             }
             "KeyH" => reset_cam(),
+            "KeyL" => layers_open.update(|o| *o = !*o),
             // nothing selected: the division, the city and the plot let go
             "Escape" => {
                 drop_point();
@@ -1220,7 +1225,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             >"+"<kbd>"+"</kbd></button>
                             <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯"<span class="np-label">" EARTH"</span><kbd>"0"</kbd></button>
                             <button type="button" class="np-wide2" title="Cyber Valley · H" on:click=move |_| reset_cam()>"⌂"<kbd>"H"</kbd></button>
+                            <button type="button" class="np-layers" class:on=move || layers_open.get() title="layers · L" on:click=move |_| layers_open.update(|o| *o = !*o)>"▤"<span class="np-label">" LAYERS"</span><kbd>"L"</kbd></button>
                         </div>
+                        <LayersPanel layers=layers open=layers_open />
 
                         {
                             let m = map_for_svg.clone();
@@ -1233,7 +1240,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             const H: f64 = 720.0;
                             const PAD: f64 = 20.0;
                             view! {
-                                <div class="map-world" style=move || format!("transform: rotate({:.4}rad); opacity: {:.3}", cam.get().5, plan_alpha.get())>
+                                <div class="map-world" class:layer-off=move || layers.get() & layer::PLOTS == 0 style=move || format!("transform: rotate({:.4}rad); opacity: {:.3}", cam.get().5, plan_alpha.get())>
                                 <svg
                                     class="flat-map"
                                     viewBox=move || map_view_box(map_center.get(), map_zoom.get(), W, H)

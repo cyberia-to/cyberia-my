@@ -4772,3 +4772,34 @@ button.city-card:hover {
   .cab-btn { width: 100%; padding: 13px 16px; box-sizing: border-box; }
   .cab-card-h .panel-sub { display: none; }
 }
+
+/* ─── layers: the tree of what the map shows ─────────────────────────── */
+.nav-pad .np-layers { grid-column: 1 / span 3; font-size: 11px; letter-spacing: .1em; padding-bottom: 0; }
+.nav-pad .np-layers.on { border-color: #00ff41; color: #00ff41; }
+.layers { position: absolute; left: 160px; top: 50%; transform: translateY(-50%); z-index: 6; width: 236px; padding: 8px; border-radius: 12px; background: rgba(0,0,0,.78); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); display: none; }
+.layers.open { display: block; animation: layers-in .16s ease-out; }
+@keyframes layers-in { from { opacity: 0; transform: translateY(-50%) translateX(-6px); } to { opacity: 1; transform: translateY(-50%); } }
+.ly-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; font: 700 11px/1 'Play', sans-serif; letter-spacing: .16em; color: #fff; }
+.ly-head span { flex: 1; }
+.ly-head button { background: none; border: 0; color: #8a8a8a; cursor: pointer; font: 700 10px/1 'Play', sans-serif; letter-spacing: .1em; padding: 4px; }
+.ly-head .ly-x { font-size: 16px; }
+.ly-head button:hover { color: #00ff41; }
+.ly-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 4px; background: none; border: 0; border-radius: 6px; color: #9a9a9a; cursor: pointer; text-align: left; font: 400 12px/1.1 'Play', sans-serif; }
+.ly-row:hover { background: rgba(255,255,255,.07); }
+.ly-row.on, .ly-row.some { color: #fff; }
+.ly-group { margin-top: 4px; font-weight: 700; font-size: 10px; letter-spacing: .16em; }
+.ly-leaf { padding-left: 22px; }
+.ly-box { flex: none; width: 12px; height: 12px; border-radius: 3px; border: 1px solid #6a6a6a; position: relative; }
+.ly-row.on .ly-box { background: #00ff41; border-color: #00ff41; }
+.ly-row.some .ly-box { border-color: #00ff41; }
+.ly-row.some .ly-box::after { content: ""; position: absolute; left: 2px; right: 2px; top: 4px; height: 2px; background: #00ff41; }
+.ly-name { flex: none; }
+.ly-what { flex: 1; text-align: right; font-size: 10px; color: #6a6a6a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.map-world.layer-off { visibility: hidden; }
+@media (max-width: 1100px) { .layers { left: 126px; } }
+@media (max-width: 720px) {
+  .nav-pad .np-layers { grid-column: auto; font-size: 16px; }
+  .layers { left: 62px; top: 8px; transform: none; width: min(236px, calc(100vw - 72px)); }
+  .layers.open { animation: none; }
+  .ly-row { padding: 9px 4px; font-size: 13px; }
+}
