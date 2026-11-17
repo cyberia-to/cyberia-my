@@ -13,7 +13,7 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_drag, cam_fit, cam_north, cam_pan, cam_release, cam_stop, cam_turn, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
+    cam_drag, cam_fit, cam_hold, cam_north, cam_pan, cam_release, cam_stop, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
@@ -251,15 +251,6 @@ fn project(lon: f64, lat: f64, bbox: &BBox, w: f64, h: f64, pad: f64) -> (f64, f
     (w * 0.5 + (lon - lon0) * me * k, h * 0.5 - (lat - lat0) * mn * k)
 }
 
-/// Inverse of `project` — SVG/world → lon/lat (for domain drag).
-fn unproject(x: f64, y: f64, bbox: &BBox, w: f64, h: f64, pad: f64) -> (f64, f64) {
-    let k = svg_per_m(bbox, w, h, pad);
-    let (me, mn) = m_per_deg(bbox);
-    let lon0 = (bbox.min_lon + bbox.max_lon) * 0.5;
-    let lat0 = (bbox.min_lat + bbox.max_lat) * 0.5;
-    (lon0 + (x - w * 0.5) / (me * k), lat0 - (y - h * 0.5) / (mn * k))
-}
-
 fn poly_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> String {
     if coords.is_empty() {
         return String::new();
@@ -308,7 +299,14 @@ fn trails() -> &'static [Trail] {
 /// Anchor at (x,y) in SVG/world units.
 fn screen_stable_tf(x: f64, y: f64, zoom: f64) -> String {
     let s = 1.0 / zoom.max(1e-9);
-    format!("translate({x:.2},{y:.2}) scale({s:.4})")
+    // the plan turns with the globe; its words stay level on the screen
+    let turn = -PLAN_TURN.with(|t| t.get());
+    format!("translate({x:.2},{y:.2}) rotate({turn:.2}) scale({s:.4})")
+}
+
+thread_local! {
+    /// How far the plan is turned on the screen, degrees clockwise (the camera's heading).
+    static PLAN_TURN: std::cell::Cell<f64> = const { std::cell::Cell::new(0.0) };
 }
 
 /// SVG camera: viewBox centered at `center` with size (W/z)×(H/z).
@@ -540,7 +538,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     {
         let bbox = map_bbox.clone();
         Effect::new(move |_| {
-            let (lat, lon, z, w, h, _) = cam.get();
+            let (lat, lon, z, w, h, hd) = cam.get();
             if w < 2.0 || h < 2.0 {
                 return;
             }
@@ -549,6 +547,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                 near.set(n);
             }
             if n {
+                PLAN_TURN.with(|t| t.set(hd.to_degrees()));
                 map_center.set(project(lon, lat, &bbox, MAP_W, MAP_H, MAP_PAD));
                 map_zoom.set(px_per_m(z) / (svg_k * (w / MAP_W).min(h / MAP_H)));
             }
@@ -565,10 +564,25 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let reset_cam = move || cam_fit(site_lon, site_lat, site_fit_m, 900.0);
     let home = (!planet).then_some((site_lon, site_lat, site_fit_m));
 
-    // the keyboard steers the map from anywhere on the page, not only when the map
-    // has the focus; every key is written on its button in the pad
-    const TURN: f64 = std::f64::consts::PI / 8.0;
-    let keys = window_event_listener(leptos::ev::keydown, move |ev| {
+    // the keyboard steers the map from anywhere on the page. Keys are read by their
+    // place on the keyboard (code), so every layout steers; held keys move the
+    // camera smoothly, and every key is written on its button in the pad
+    let held = StoredValue::new(std::collections::HashSet::<String>::new());
+    let apply_held = move || {
+        held.with_value(|h| {
+            let on = |a: &str, b: &str| (h.contains(a) || h.contains(b)) as i32 as f64;
+            let far = if h.contains("ShiftLeft") || h.contains("ShiftRight") { 3.0 } else { 1.0 };
+            cam_hold(0, (on("ArrowLeft", "KeyA") - on("ArrowRight", "KeyD")) * far);
+            cam_hold(1, (on("ArrowUp", "KeyW") - on("ArrowDown", "KeyS")) * far);
+            cam_hold(2, on("Equal", "NumpadAdd") - on("Minus", "NumpadSubtract"));
+            cam_hold(3, on("KeyE", "KeyE") - on("KeyQ", "KeyQ"));
+        });
+    };
+    const STEER: [&str; 15] = [
+        "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "KeyW", "KeyS", "Equal", "Minus", "NumpadAdd", "NumpadSubtract", "KeyQ",
+        "KeyE", "ShiftLeft",
+    ];
+    let key_down = window_event_listener(leptos::ev::keydown, move |ev| {
         if ev.ctrl_key() || ev.meta_key() || ev.alt_key() {
             return;
         }
@@ -584,23 +598,28 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
         if typing {
             return;
         }
-        let step = if ev.shift_key() { 240.0 } else { 60.0 };
+        let code = ev.code();
+        if STEER.contains(&code.as_str()) || code == "ShiftRight" {
+            if code != "ShiftLeft" && code != "ShiftRight" {
+                ev.prevent_default();
+            }
+            held.update_value(|h| {
+                h.insert(code);
+            });
+            apply_held();
+            return;
+        }
+        if ev.repeat() {
+            return;
+        }
         let mut used = true;
-        match ev.key().as_str() {
-            "ArrowLeft" | "a" | "A" => pan_by(step, 0.0),
-            "ArrowRight" | "d" | "D" => pan_by(-step, 0.0),
-            "ArrowUp" | "w" | "W" => pan_by(0.0, step),
-            "ArrowDown" | "s" | "S" => pan_by(0.0, -step),
-            "+" | "=" => zoom_by(1.25),
-            "-" | "_" => zoom_by(1.0 / 1.25),
-            "q" | "Q" => cam_turn(-TURN),
-            "e" | "E" => cam_turn(TURN),
-            "n" | "N" => cam_north(),
-            "0" => {
+        match code.as_str() {
+            "KeyN" => cam_north(),
+            "Digit0" | "Numpad0" => {
                 picked.set(None);
                 cam_world();
             }
-            "h" | "H" => reset_cam(),
+            "KeyH" => reset_cam(),
             // nothing selected: the division, the city and the plot let go
             "Escape" => {
                 drop_point();
@@ -613,7 +632,23 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
             ev.prevent_default();
         }
     });
-    on_cleanup(move || keys.remove());
+    let key_up = window_event_listener(leptos::ev::keyup, move |ev| {
+        let code = ev.code();
+        held.update_value(|h| {
+            h.remove(&code);
+        });
+        apply_held();
+    });
+    // a window that loses the focus never sends the key's release
+    let blur = window_event_listener(leptos::ev::blur, move |_| {
+        held.update_value(|h| h.clear());
+        apply_held();
+    });
+    on_cleanup(move || {
+        key_down.remove();
+        key_up.remove();
+        blur.remove();
+    });
 
     Effect::new(move |_| {
         let title = if domains_board {
@@ -630,7 +665,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let base_domains_rail = base_domains.clone();
     let base_domains_map = base_domains.clone();
     let map_bbox_rail = map_bbox.clone();
-    let map_bbox_drag = map_bbox.clone();
 
     view! {
         <div class=move || match (near.get(), point.get().is_some()) {
@@ -914,17 +948,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     }
                                     domain_did_drag.set(true);
                                 }
-                                let (wx, wy) = client_to_world(
-                                    cx,
-                                    cy,
-                                    ww,
-                                    wh,
-                                    map_center.get_untracked(),
-                                    map_zoom.get_untracked(),
-                                    MAP_W,
-                                    MAP_H,
-                                );
-                                let (lon, lat) = unproject(wx, wy, &map_bbox_drag, MAP_W, MAP_H, MAP_PAD);
+                                let _ = (ww, wh);
+                                let Some((lon, lat)) = point_at(cx, cy) else { return };
                                 domains.update(|list| {
                                     if let Some(d) = list.iter_mut().find(|d| d.id == dom_id) {
                                         d.coords = vec![[lon, lat]];
@@ -1088,18 +1113,58 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
 
                         // the pad: every way to move the camera, each button with its key
                         <div class="nav-pad globe-ui" aria-label="map navigation">
-                            <button type="button" title="turn the view left · Q" on:click=move |_| cam_turn(-TURN)>"⟲"<kbd>"Q"</kbd></button>
-                            <button type="button" title="up · W or ↑ (shift: far)" on:click=move |_| pan_by(0.0, 120.0)>"↑"<kbd>"W"</kbd></button>
-                            <button type="button" title="turn the view right · E" on:click=move |_| cam_turn(TURN)>"⟳"<kbd>"E"</kbd></button>
-                            <button type="button" title="left · A or ← (shift: far)" on:click=move |_| pan_by(120.0, 0.0)>"←"<kbd>"A"</kbd></button>
+                            <button type="button" title="turn the view left · hold Q"
+                                on:pointerdown=move |_| cam_hold(3, -1.0)
+                                on:pointerup=move |_| cam_hold(3, 0.0)
+                                on:pointerleave=move |_| cam_hold(3, 0.0)
+                                on:pointercancel=move |_| cam_hold(3, 0.0)
+                            >"⟲"<kbd>"Q"</kbd></button>
+                            <button type="button" title="up · hold W or ↑ (shift: fast)"
+                                on:pointerdown=move |_| cam_hold(1, 1.0)
+                                on:pointerup=move |_| cam_hold(1, 0.0)
+                                on:pointerleave=move |_| cam_hold(1, 0.0)
+                                on:pointercancel=move |_| cam_hold(1, 0.0)
+                            >"↑"<kbd>"W"</kbd></button>
+                            <button type="button" title="turn the view right · hold E"
+                                on:pointerdown=move |_| cam_hold(3, 1.0)
+                                on:pointerup=move |_| cam_hold(3, 0.0)
+                                on:pointerleave=move |_| cam_hold(3, 0.0)
+                                on:pointercancel=move |_| cam_hold(3, 0.0)
+                            >"⟳"<kbd>"E"</kbd></button>
+                            <button type="button" title="left · hold A or ← (shift: fast)"
+                                on:pointerdown=move |_| cam_hold(0, 1.0)
+                                on:pointerup=move |_| cam_hold(0, 0.0)
+                                on:pointerleave=move |_| cam_hold(0, 0.0)
+                                on:pointercancel=move |_| cam_hold(0, 0.0)
+                            >"←"<kbd>"A"</kbd></button>
                             <button type="button" class="np-north" title="north up · N" on:click=move |_| cam_north()>
                                 <span class="np-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
                                 <kbd>"N"</kbd>
                             </button>
-                            <button type="button" title="right · D or → (shift: far)" on:click=move |_| pan_by(-120.0, 0.0)>"→"<kbd>"D"</kbd></button>
-                            <button type="button" title="zoom out · −" on:click=move |_| zoom_by(1.0 / 1.6)>"−"<kbd>"−"</kbd></button>
-                            <button type="button" title="down · S or ↓ (shift: far)" on:click=move |_| pan_by(0.0, -120.0)>"↓"<kbd>"S"</kbd></button>
-                            <button type="button" title="zoom in · +" on:click=move |_| zoom_by(1.6)>"+"<kbd>"+"</kbd></button>
+                            <button type="button" title="right · hold D or → (shift: fast)"
+                                on:pointerdown=move |_| cam_hold(0, -1.0)
+                                on:pointerup=move |_| cam_hold(0, 0.0)
+                                on:pointerleave=move |_| cam_hold(0, 0.0)
+                                on:pointercancel=move |_| cam_hold(0, 0.0)
+                            >"→"<kbd>"D"</kbd></button>
+                            <button type="button" title="zoom out · hold −"
+                                on:pointerdown=move |_| cam_hold(2, -1.0)
+                                on:pointerup=move |_| cam_hold(2, 0.0)
+                                on:pointerleave=move |_| cam_hold(2, 0.0)
+                                on:pointercancel=move |_| cam_hold(2, 0.0)
+                            >"−"<kbd>"−"</kbd></button>
+                            <button type="button" title="down · hold S or ↓ (shift: fast)"
+                                on:pointerdown=move |_| cam_hold(1, -1.0)
+                                on:pointerup=move |_| cam_hold(1, 0.0)
+                                on:pointerleave=move |_| cam_hold(1, 0.0)
+                                on:pointercancel=move |_| cam_hold(1, 0.0)
+                            >"↓"<kbd>"S"</kbd></button>
+                            <button type="button" title="zoom in · hold +"
+                                on:pointerdown=move |_| cam_hold(2, 1.0)
+                                on:pointerup=move |_| cam_hold(2, 0.0)
+                                on:pointerleave=move |_| cam_hold(2, 0.0)
+                                on:pointercancel=move |_| cam_hold(2, 0.0)
+                            >"+"<kbd>"+"</kbd></button>
                             <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯ EARTH"<kbd>"0"</kbd></button>
                             <button type="button" class="np-wide2" title="Cyber Valley · H" on:click=move |_| reset_cam()>"⌂"<kbd>"H"</kbd></button>
                         </div>
@@ -1115,7 +1180,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             const H: f64 = 720.0;
                             const PAD: f64 = 20.0;
                             view! {
-                                <div class="map-world">
+                                <div class="map-world" style=move || format!("transform: rotate({:.4}rad)", cam.get().5)>
                                 <svg
                                     class="flat-map"
                                     viewBox=move || map_view_box(map_center.get(), map_zoom.get(), W, H)

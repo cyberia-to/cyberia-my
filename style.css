@@ -4572,3 +4572,6 @@ button.city-card:hover {
   .nav-pad kbd { display: none; }
   .nav-pad .np-wide { font-size: 9px; }
 }
+
+/* the pad says how to move; the old hint under the plan would sit on the imagery's credit */
+.globe-host .map-hud-hint { display: none; }
