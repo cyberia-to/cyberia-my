@@ -383,6 +383,8 @@ struct Country {
 struct Fly {
     from: (V3, f64, f64), // the point under the camera, zoom, heading
     to: (V3, f64, f64),
+    /// the flight ends on the whole earth: its zoom is the floor of the moment, not of the start
+    earth: bool,
     t0: f64,
     dur: f64,
 }
@@ -550,7 +552,7 @@ impl Engine {
     fn turn_by(&mut self, delta: f64, dur: f64) {
         let q = unit(self.lon, self.lat);
         self.spin = None;
-        self.fly = Some(Fly { from: (q, self.z, self.hd), to: (q, self.z, self.hd + delta), t0: now(), dur });
+        self.fly = Some(Fly { from: (q, self.z, self.hd), to: (q, self.z, self.hd + delta), earth: false, t0: now(), dur });
         self.dirty = true;
     }
 
@@ -688,12 +690,13 @@ impl Engine {
                 norm([a[0] * wa + b[0] * wb, a[1] * wa + b[1] * wb, a[2] * wa + b[2] * wb])
             };
             let dist = (ang.to_degrees() / 40.0).min(1.0);
-            let dip = (PI * k).sin() * dist * (fl.from.1.min(fl.to.1) - self.z_min).clamp(0.0, 6.0);
+            let to_z = if fl.earth { self.z_min } else { fl.to.1 };
+            let dip = (PI * k).sin() * dist * (fl.from.1.min(to_z) - self.z_min).clamp(0.0, 6.0);
             self.lat = q[1].clamp(-1.0, 1.0).asin().to_degrees();
             if q[0].abs() + q[2].abs() > 1e-12 {
                 self.lon = q[0].atan2(q[2]).to_degrees();
             }
-            self.z = fl.from.1 + (fl.to.1 - fl.from.1) * s - dip;
+            self.z = fl.from.1 + (to_z - fl.from.1) * s - dip;
             self.hd = fl.from.2 + (fl.to.2 - fl.from.2) * s;
             if k >= 1.0 {
                 self.fly = None;
@@ -747,15 +750,25 @@ impl Engine {
         let (w, h) = self.size();
         let dpr = web_sys::window().map(|w| w.device_pixel_ratio()).unwrap_or(1.0).min(2.0);
         let (pw, ph) = ((w * dpr) as u32, (h * dpr) as u32);
-        if self.canvas.width() != pw || self.canvas.height() != ph {
-            self.canvas.set_width(pw);
-            self.canvas.set_height(ph);
-            // the smallest zoom keeps the whole globe on the screen
+        // the smallest zoom keeps the whole globe on the screen. It is measured on
+        // every frame, never remembered: the layer changes size with the page's layout
+        {
             let radius = 0.40 * w.min(h);
             let fpx = h / 2.0 / (FOV_Y / 2.0).tan();
             // radius = fpx / sqrt(d² − 1) → d, then ppr = fpx / (d − 1)
             let d = ((fpx / radius).powi(2) + 1.0).sqrt();
-            self.z_min = ((fpx / (d - 1.0)) * 2.0 * PI / 256.0).log2();
+            let z_min = ((fpx / (d - 1.0)) * 2.0 * PI / 256.0).log2();
+            if (z_min - self.z_min).abs() > 1e-9 {
+                self.z_min = z_min;
+                if self.z < z_min {
+                    self.z = z_min;
+                    self.dirty = true;
+                }
+            }
+        }
+        if self.canvas.width() != pw || self.canvas.height() != ph {
+            self.canvas.set_width(pw);
+            self.canvas.set_height(ph);
             if let Some(m) = self.fit.take() {
                 self.z = (M_PER_PX_Z0 * w.min(h) / m).log2();
             }
@@ -1080,6 +1093,7 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
             from: (unit(self.lon, self.lat), self.z, self.hd),
             // a flight keeps the heading the view has
             to: (unit(lon, lat), z.clamp(self.z_min, Z_MAX), self.hd),
+            earth: false,
             t0: now(),
             dur,
         });
@@ -1634,8 +1648,12 @@ pub fn cam_fit(lon: f64, lat: f64, metres: f64, dur: f64) {
 /// Back out to the whole earth.
 pub fn cam_world() {
     with_engine(|e| {
-        let (lon, lat, z) = (e.lon, e.lat.clamp(-30.0, 30.0), e.z_min + 0.9);
-        e.fly_to(lon, lat, z, 1600.0);
+        // the whole globe on the screen, whatever the layout becomes on the way
+        let (lon, lat, z) = (e.lon, e.lat, e.z_min);
+        e.fly_to(lon, lat, z, 1400.0);
+        if let Some(f) = e.fly.as_mut() {
+            f.earth = true;
+        }
     });
 }
 
