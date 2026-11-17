@@ -13,7 +13,8 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_fit, cam_pan, cam_zoom, clear_region, pick_region, px_per_m, GlobeAttrib, GlobeFar, GlobeLayer, RegionInfo, BASE, CITIES, SVG_Z,
+    cam_fit, cam_pan, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
+    CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
 use crate::wallet::{load_intents, load_leases, push_intent};
@@ -516,8 +517,19 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     // plane follows it exactly, far from it the console steps aside.
     let cam = RwSignal::new((0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64));
     let picked = RwSignal::new(None::<usize>);
-    // the region selected on the globe (a country today)
-    let region = RwSignal::new(None::<RegionInfo>);
+    // a tap on the globe: the point (lat, lon), every division it is in from the
+    // state down, and the one that is selected and outlined
+    let point = RwSignal::new(None::<(f64, f64)>);
+    let chain = RwSignal::new(Vec::<Unit>::new());
+    let unit_sel = RwSignal::new(None::<u64>);
+    let tap_no = StoredValue::new(0u32);
+    let drop_point = move || {
+        tap_no.update_value(|n| *n += 1);
+        clear_region();
+        point.set(None);
+        chain.set(Vec::new());
+        unit_sel.set(None);
+    };
     let near = RwSignal::new(!planet);
     let site_lon = (map.bbox.min_lon + map.bbox.max_lon) * 0.5;
     let site_lat = (map.bbox.min_lat + map.bbox.max_lat) * 0.5;
@@ -809,8 +821,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 "0" => { ev.prevent_default(); reset_cam(); }
                                 // nothing selected: the region, the city and the plot let go
                                 "Escape" => {
-                                    clear_region();
-                                    region.set(None);
+                                    drop_point();
                                     picked.set(None);
                                     selected_flat.set(None);
                                 }
@@ -996,13 +1007,38 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             }
                             let Some(el) = map_wrap_ref.get_untracked() else { return };
                             let r = el.get_bounding_client_rect();
-                            // a region under the tap is selected; open water or space clears
-                            region.set(pick_region(ev.client_x() as f64 - r.left(), ev.client_y() as f64 - r.top()));
+                            // the point under the tap, then every division it is in; space clears
+                            let Some((lon, lat)) = point_at(ev.client_x() as f64 - r.left(), ev.client_y() as f64 - r.top()) else {
+                                drop_point();
+                                return;
+                            };
+                            drop_point();
+                            let tap = tap_no.get_value();
+                            point.set(Some((lat, lon)));
+                            // the level the tap selects follows the zoom: the state from afar
+                            let want = level_for_zoom(cam.get_untracked().2);
+                            wasm_bindgen_futures::spawn_local(async move {
+                                locate(lon, lat, move |u: Unit| {
+                                    if tap_no.try_get_value() != Some(tap) {
+                                        return; // a later tap took over
+                                    }
+                                    if u.level <= want {
+                                        unit_sel.set(Some(u.id));
+                                        show_unit(u.id);
+                                    }
+                                    chain.update(|c| c.push(u));
+                                })
+                                .await;
+                                // open water: nothing to select
+                                if tap_no.try_get_value() == Some(tap) && chain.get_untracked().is_empty() {
+                                    drop_point();
+                                }
+                            });
                         }
                     >
                         // the globe: imagery and the world's lines, under everything
                         <GlobeLayer cam=cam picked=picked home=home />
-                        <GlobeFar cam=cam picked=picked region=region />
+                        <GlobeFar cam=cam picked=picked point=point chain=chain selected=unit_sel />
                         <GlobeAttrib />
 
                         // left zoom rail (game-style) — deep zoom for cm-scale tile planning

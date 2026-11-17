@@ -47,7 +47,14 @@ const NORTH_ZOOM: u8 = 6;
 const SOUTH_ZOOM: u8 = 7;
 const NORTH_FROM: f64 = 84.375;
 const SOUTH_FROM: f64 = -60.0;
-/// Regions whose franchise is open, by three-letter code.
+/// The divisions of the earth, level by level (scripts/build-divisions.py).
+const DIV: &str = match option_env!("CYBERIA_DIVISIONS") {
+    Some(t) => t,
+    None => "/tiles/divisions",
+};
+/// The grid zoom of each level's index: a cell is 360/2^z degrees (level 0 has a list).
+const DIV_GRID: [u32; 6] = [0, 4, 6, 7, 8, 9];
+/// States whose franchise is open, by three-letter code.
 const FRANCHISE_OPEN: &[&str] = &["IDN"];
 const WORLD_ZOOM: u8 = 7; // the whole earth is present to this zoom
 const MAX_TILE_ZOOM: u8 = 14;
@@ -323,25 +330,35 @@ struct Marker {
     el: HtmlElement,
 }
 
-/// A region the globe can select: a country today.
-#[derive(Deserialize)]
-struct Land {
-    #[serde(rename = "n")]
-    name: String,
-    #[serde(rename = "i")]
-    code: String,
-    #[serde(rename = "b")]
-    bbox: [f64; 4],
-    #[serde(rename = "p")]
-    rings: Vec<Vec<f64>>, // lon, lat, lon, lat, …
-}
-
-/// What the page shows about a selected region.
-#[derive(Clone, PartialEq)]
-pub struct RegionInfo {
+/// A division of the earth as the page shows it: a state (level 0) or a unit inside it.
+#[derive(Clone, PartialEq, Debug)]
+pub struct Unit {
+    pub id: u64,
+    pub level: u8,
     pub name: String,
+    /// what the source calls this level here: province, regency, …
+    pub kind: String,
+    /// the state's three-letter code
     pub code: String,
     pub franchise: bool,
+}
+
+/// A unit's file.
+#[derive(Deserialize)]
+struct UnitFile {
+    n: String,
+    l: u8,
+    #[serde(default)]
+    t: String,
+    c: String,
+    p: Vec<Vec<f64>>, // rings: lon, lat, lon, lat, …
+}
+
+#[derive(Deserialize)]
+struct Country {
+    id: u64,
+    c: String,
+    b: [f64; 4],
 }
 
 struct Fly {
@@ -378,9 +395,8 @@ struct Engine {
     z: f64,
     z_min: f64,
     last_t: f64,
-    lands: Vec<Land>,
-    highlight: Vec<V3>, // the selected region's outline
-    open: Vec<V3>,      // the outlines of the regions whose franchise is open
+    highlight: Vec<V3>, // the selected unit's outline
+    open: Vec<V3>,      // the outlines of the states whose franchise is open
     dirty: bool,
     frame: u32,
     fly: Option<Fly>,
@@ -749,7 +765,7 @@ impl Engine {
             gl.draw_arrays(GL::LINES, 0, l.pts.len() as i32);
         }
         let open_a = (1.0 - smooth((self.z - 6.5) / 2.0)) as f32 * 0.7;
-        let px = (2.0 / v.w as f32, 2.0 / v.h as f32);
+        let px = (2.0 / (v.w * dpr) as f32, 2.0 / (v.h * dpr) as f32);
         for (pts, color, bold) in [(&self.open, [0.0f32, 1.0, 0.25, open_a], false), (&self.highlight, [1.0f32, 0.84, 0.0, 1.0], true)] {
             if pts.is_empty() || color[3] <= 0.0 {
                 continue;
@@ -763,7 +779,11 @@ impl Engine {
             gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &js_sys::Float32Array::from(scratch.as_slice()), GL::DYNAMIC_DRAW);
             gl.uniform4f(self.vline_prog.loc("u_color"), color[0], color[1], color[2], color[3]);
             // a line of one pixel drawn five times, one pixel apart, reads as a bold one
-            let passes: &[(f32, f32)] = if bold { &[(0.0, 0.0), (1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0)] } else { &[(0.0, 0.0)] };
+            let passes: &[(f32, f32)] = if bold {
+                &[(0.0, 0.0), (1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0), (1.0, 1.0), (-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0)]
+            } else {
+                &[(0.0, 0.0)]
+            };
             for (ox, oy) in passes {
                 gl.uniform2f(self.vline_prog.loc("u_off"), ox * px.0, oy * px.1);
                 gl.draw_arrays(GL::LINES, 0, pts.len() as i32);
@@ -907,53 +927,6 @@ impl Engine {
         self.fly = None;
         self.clamp();
         self.touch();
-    }
-
-    /// The region under a point of the earth: the smallest one that contains it.
-    fn land_at(&self, lon: f64, lat: f64) -> Option<usize> {
-        let mut best: Option<(usize, f64)> = None;
-        for (i, l) in self.lands.iter().enumerate() {
-            let b = l.bbox;
-            if lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3] {
-                continue;
-            }
-            let inside = l.rings.iter().any(|r| {
-                let n = r.len() / 2;
-                let mut c = false;
-                let mut j = n - 1;
-                for i in 0..n {
-                    let (xi, yi, xj, yj) = (r[2 * i], r[2 * i + 1], r[2 * j], r[2 * j + 1]);
-                    if (yi > lat) != (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi {
-                        c = !c;
-                    }
-                    j = i;
-                }
-                c
-            });
-            let area = (b[2] - b[0]) * (b[3] - b[1]);
-            if inside && best.map(|x| area < x.1).unwrap_or(true) {
-                best = Some((i, area));
-            }
-        }
-        best.map(|b| b.0)
-    }
-
-    fn outline(&self, i: usize) -> Vec<V3> {
-        let mut out = Vec::new();
-        for r in &self.lands[i].rings {
-            let n = r.len() / 2;
-            for a in 0..n {
-                let b = (a + 1) % n;
-                let (x1, y1, x2, y2) = (r[2 * a], r[2 * a + 1], r[2 * b], r[2 * b + 1]);
-                // not the seams the source cuts along the date line and at the pole
-                if (x1.abs() > 179.99 && x2.abs() > 179.99) || (y1 < -89.9 && y2 < -89.9) {
-                    continue;
-                }
-                out.push(unit(x1, y1));
-                out.push(unit(x2, y2));
-            }
-        }
-        out
     }
 
     /// The polar tiles the screen needs: (north cap, south cap).
@@ -1241,7 +1214,6 @@ fn start(
         z,
         z_min: 0.0,
         last_t: 0.0,
-        lands: Vec::new(),
         highlight: Vec::new(),
         open: Vec::new(),
         dirty: true,
@@ -1316,18 +1288,20 @@ fn start(
         });
     }
 
-    {
-        let eng = engine.clone();
-        wasm_bindgen_futures::spawn_local(async move {
-            let Some(text) = fetch_text(format!("{BASE}/globe/regions.json")).await else { return };
-            let Ok(lands) = serde_json::from_str::<Vec<Land>>(&text) else { return };
-            let mut e = eng.borrow_mut();
-            e.lands = lands;
-            let open: Vec<usize> = (0..e.lands.len()).filter(|i| FRANCHISE_OPEN.contains(&e.lands[*i].code.as_str())).collect();
-            e.open = open.into_iter().flat_map(|i| e.outline(i)).collect();
+    // the states whose franchise is open are outlined from the start
+    wasm_bindgen_futures::spawn_local(async move {
+        let ids: Vec<u64> = countries().await.iter().filter(|c| FRANCHISE_OPEN.contains(&c.c.as_str())).map(|c| c.id).collect();
+        let mut open = Vec::new();
+        for id in ids {
+            if let Some(u) = unit_file(id).await {
+                open.extend(outline(&u.p));
+            }
+        }
+        with_engine(|e| {
+            e.open = open;
             e.dirty = true;
         });
-    }
+    });
 
     // the frame loop
     let cb: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>> = Rc::new(RefCell::new(None));
@@ -1412,29 +1386,163 @@ pub fn cam_world() {
     });
 }
 
-/// Select the region under a point of the layer (css px) and outline it;
-/// a tap on open water or on space clears the selection.
-pub fn pick_region(sx: f64, sy: f64) -> Option<RegionInfo> {
-    ENGINE.with(|g| {
-        let g = g.borrow();
-        let mut e = g.as_ref()?.borrow_mut();
-        let hit = e.view().unproject(sx, sy).and_then(|(lon, lat)| e.land_at(lon, lat));
-        e.highlight = hit.map(|i| e.outline(i)).unwrap_or_default();
-        e.dirty = true;
-        hit.map(|i| RegionInfo {
-            name: e.lands[i].name.clone(),
-            code: e.lands[i].code.clone(),
-            franchise: FRANCHISE_OPEN.contains(&e.lands[i].code.as_str()),
-        })
+// ─── divisions: the unit under a point, level by level ────────────────
+
+thread_local! {
+    static UNITS: RefCell<HashMap<u64, Rc<UnitFile>>> = RefCell::new(HashMap::new());
+    static CELLS: RefCell<HashMap<(u8, u32, u32), Rc<Vec<f64>>>> = RefCell::new(HashMap::new());
+    static COUNTRIES: RefCell<Option<Rc<Vec<Country>>>> = const { RefCell::new(None) };
+}
+
+async fn countries() -> Rc<Vec<Country>> {
+    if let Some(c) = COUNTRIES.with(|c| c.borrow().clone()) {
+        return c;
+    }
+    let list: Vec<Country> = match fetch_text(format!("{DIV}/countries.json")).await {
+        Some(t) => serde_json::from_str(&t).unwrap_or_default(),
+        None => Vec::new(),
+    };
+    let list = Rc::new(list);
+    if !list.is_empty() {
+        COUNTRIES.with(|c| *c.borrow_mut() = Some(list.clone()));
+    }
+    list
+}
+
+async fn unit_file(id: u64) -> Option<Rc<UnitFile>> {
+    if let Some(u) = UNITS.with(|m| m.borrow().get(&id).cloned()) {
+        return Some(u);
+    }
+    let text = fetch_text(format!("{DIV}/u/{}/{}/{id}.json", id / 1_000_000, (id % 1_000_000) / 1000)).await?;
+    let u = Rc::new(serde_json::from_str::<UnitFile>(&text).ok()?);
+    UNITS.with(|m| m.borrow_mut().insert(id, u.clone()));
+    Some(u)
+}
+
+/// A cell of a level's index: flat [id, min_lon, min_lat, max_lon, max_lat, …].
+async fn cell(level: u8, x: u32, y: u32) -> Rc<Vec<f64>> {
+    if let Some(c) = CELLS.with(|m| m.borrow().get(&(level, x, y)).cloned()) {
+        return c;
+    }
+    let flat: Vec<f64> = match fetch_text(format!("{DIV}/t/{level}/{x}/{y}.json")).await {
+        Some(t) => serde_json::from_str(&t).unwrap_or_default(),
+        None => Vec::new(), // no unit of this level here
+    };
+    let flat = Rc::new(flat);
+    CELLS.with(|m| m.borrow_mut().insert((level, x, y), flat.clone()));
+    flat
+}
+
+fn inside(rings: &[Vec<f64>], lon: f64, lat: f64) -> bool {
+    rings.iter().any(|r| {
+        let n = r.len() / 2;
+        if n < 3 {
+            return false;
+        }
+        let mut c = false;
+        let mut j = n - 1;
+        for i in 0..n {
+            let (xi, yi, xj, yj) = (r[2 * i], r[2 * i + 1], r[2 * j], r[2 * j + 1]);
+            if (yi > lat) != (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi {
+                c = !c;
+            }
+            j = i;
+        }
+        c
     })
 }
 
-/// Drop the selected region.
+fn outline(rings: &[Vec<f64>]) -> Vec<V3> {
+    let mut out = Vec::new();
+    for r in rings {
+        let n = r.len() / 2;
+        for a in 0..n {
+            let b = (a + 1) % n;
+            let (x1, y1, x2, y2) = (r[2 * a], r[2 * a + 1], r[2 * b], r[2 * b + 1]);
+            // not the seams a source cuts along the date line and at the pole
+            if (x1.abs() > 179.99 && x2.abs() > 179.99) || (y1 < -89.9 && y2 < -89.9) {
+                continue;
+            }
+            out.push(unit(x1, y1));
+            out.push(unit(x2, y2));
+        }
+    }
+    out
+}
+
+/// The point of the earth under a point of the layer (css px): (lon, lat).
+pub fn point_at(sx: f64, sy: f64) -> Option<(f64, f64)> {
+    ENGINE.with(|g| g.borrow().as_ref().and_then(|e| e.borrow().view().unproject(sx, sy)))
+}
+
+/// Every division the point is in, from the state down: `found` is called once per
+/// level that has a unit there, in order. Nothing is stored about parents — each
+/// level is asked for the unit under the point.
+pub async fn locate(lon: f64, lat: f64, found: impl Fn(Unit)) {
+    for level in 0u8..6 {
+        // candidates: (id, box) whose box holds the point
+        let mut cand: Vec<(u64, f64)> = Vec::new();
+        if level == 0 {
+            for c in countries().await.iter() {
+                if lon >= c.b[0] && lon <= c.b[2] && lat >= c.b[1] && lat <= c.b[3] {
+                    cand.push((c.id, (c.b[2] - c.b[0]) * (c.b[3] - c.b[1])));
+                }
+            }
+        } else {
+            let size = 360.0 / (1u32 << DIV_GRID[level as usize]) as f64;
+            let flat = cell(level, ((lon + 180.0) / size) as u32, ((90.0 - lat) / size) as u32).await;
+            for u in flat.chunks_exact(5) {
+                if lon >= u[1] && lon <= u[3] && lat >= u[2] && lat <= u[4] {
+                    cand.push((u[0] as u64, (u[3] - u[1]) * (u[4] - u[2])));
+                }
+            }
+        }
+        // the smallest box first: an enclave wins over what surrounds it
+        cand.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+        for (id, _) in cand {
+            let Some(u) = unit_file(id).await else { continue };
+            if inside(&u.p, lon, lat) {
+                found(Unit {
+                    id,
+                    level: u.l,
+                    name: u.n.clone(),
+                    kind: u.t.clone(),
+                    code: u.c.clone(),
+                    franchise: FRANCHISE_OPEN.contains(&u.c.as_str()),
+                });
+                break;
+            }
+        }
+    }
+}
+
+/// Outline a unit the page already holds (it came from `locate`).
+pub fn show_unit(id: u64) {
+    let Some(u) = UNITS.with(|m| m.borrow().get(&id).cloned()) else { return };
+    with_engine(|e| {
+        e.highlight = outline(&u.p);
+        e.dirty = true;
+    });
+}
+
+/// Drop the outline of the selected unit.
 pub fn clear_region() {
     with_engine(|e| {
         e.highlight.clear();
         e.dirty = true;
     });
+}
+
+/// The level a tap selects at a zoom: the state from afar, deeper as the camera comes down.
+pub fn level_for_zoom(z: f64) -> u8 {
+    match z {
+        z if z < 4.6 => 0,
+        z if z < 6.6 => 1,
+        z if z < 8.6 => 2,
+        z if z < 10.0 => 3,
+        z if z < 11.5 => 4,
+        _ => 5,
+    }
 }
 
 /// Css px per metre on the ground at a zoom.
@@ -1520,7 +1628,14 @@ pub fn GlobeLayer(
 /// What the layer shows over the planet: the cities, the way to found one,
 /// the zoom buttons and the readout. The host hides it once the land console is on.
 #[component]
-pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>, region: RwSignal<Option<RegionInfo>>) -> impl IntoView {
+pub fn GlobeFar(
+    cam: RwSignal<Cam>,
+    picked: RwSignal<Option<usize>>,
+    /// the tapped point (lat, lon), the divisions it is in from the state down, the selected one
+    point: RwSignal<Option<(f64, f64)>>,
+    chain: RwSignal<Vec<Unit>>,
+    selected: RwSignal<Option<u64>>,
+) -> impl IntoView {
     let founding = RwSignal::new(false);
     let name = RwSignal::new(String::new());
 
@@ -1595,23 +1710,65 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>, region: RwS
 
         {move || founding.get().then(|| view! { <div class="globe-cross"></div> })}
 
-        {move || region.get().map(|r| view! {
+        {move || point.get().map(|(lat, lon)| view! {
             <div class="globe-ui globe-region">
                 <div class="gr-h">
-                    <span class="gr-kicker">"REGION"</span>
-                    <button type="button" class="gr-x" title="deselect (Esc)" on:click=move |_| { clear_region(); region.set(None); }>"✕"</button>
+                    <span class="gr-kicker">"POINT"</span>
+                    <span class="gr-coord">{format!("{}  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'))}</span>
+                    <button type="button" class="gr-x" title="deselect (Esc)" on:click=move |_| {
+                        clear_region();
+                        point.set(None);
+                        chain.set(Vec::new());
+                        selected.set(None);
+                    }>"✕"</button>
                 </div>
-                <div class="gr-name">{r.name.clone()}</div>
-                <div class=if r.franchise { "gr-status open" } else { "gr-status" }>
-                    {if r.franchise { "FRANCHISE · OPEN" } else { "FRANCHISE · NOT OPEN YET" }}
-                </div>
-                <div class="gr-note">
-                    {if r.franchise {
-                        "cities of cyberia can be founded here"
-                    } else {
-                        "today the franchise is open in Indonesia only"
-                    }}
-                </div>
+                {move || {
+                    let list = chain.get();
+                    if list.is_empty() {
+                        return view! { <div class="gr-note">"looking up the divisions here…"</div> }.into_any();
+                    }
+                    let franchise = list.first().map(|u| u.franchise).unwrap_or(false);
+                    view! {
+                        <div class="gr-levels">
+                            {list.into_iter().map(|u| {
+                                let id = u.id;
+                                // one plain name per level: the sources' own words for a level are uneven
+                                let label = match u.level {
+                                    0 => "STATE".to_string(),
+                                    1 => "REGION".to_string(),
+                                    2 => "SUBREGION".to_string(),
+                                    n => format!("LEVEL {n}"),
+                                };
+                                view! {
+                                    <button
+                                        type="button"
+                                        class=move || if selected.get() == Some(id) { "gr-level on" } else { "gr-level" }
+                                        style=format!("padding-left:{}px", 10 + 10 * u.level as u32)
+                                        on:click=move |_| {
+                                            // a second tap on the selected level lets it go
+                                            if selected.get_untracked() == Some(id) {
+                                                selected.set(None);
+                                                clear_region();
+                                            } else {
+                                                selected.set(Some(id));
+                                                show_unit(id);
+                                            }
+                                        }
+                                    >
+                                        <span class="gl-kind">{label}</span>
+                                        <span class="gl-name">{u.name.clone()}</span>
+                                    </button>
+                                }
+                            }).collect_view()}
+                        </div>
+                        <div class=if franchise { "gr-status open" } else { "gr-status" }>
+                            {if franchise { "FRANCHISE · OPEN" } else { "FRANCHISE · NOT OPEN YET" }}
+                        </div>
+                        <div class="gr-note">
+                            {if franchise { "cities of cyberia can be founded here" } else { "today the franchise is open in Indonesia only" }}
+                        </div>
+                    }.into_any()
+                }}
             </div>
         })}
 
@@ -1631,7 +1788,9 @@ pub fn GlobeAttrib() -> impl IntoView {
         <div class="globe-ui globe-attrib">
             "imagery: Sentinel-2 cloudless 2016 by "
             <a href="https://s2maps.eu" target="_blank" rel="noopener">"EOX"</a>
-            " (CC BY 4.0) · Antarctica: Blue Marble by NASA · lines: Natural Earth · served by cyberia"
+            " (CC BY 4.0) · Antarctica: Blue Marble by NASA · divisions: "
+            <a href="https://www.geoboundaries.org" target="_blank" rel="noopener">"geoBoundaries"</a>
+            " · lines: Natural Earth · served by cyberia"
         </div>
     }
 }
