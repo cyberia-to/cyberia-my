@@ -531,6 +531,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let near = RwSignal::new(!planet);
     // the plan comes in before the console does: it fades in over the last zoom level of the approach
     let plan_on = RwSignal::new(!planet);
+    // on a phone the panel of what is selected is a sheet at the bottom: closed it is one line
+    let sheet = RwSignal::new(false);
     let plan_alpha = RwSignal::new(if planet { 0.0 } else { 1.0 });
     let site_lon = (map.bbox.min_lon + map.bbox.max_lon) * 0.5;
     let site_lat = (map.bbox.min_lat + map.bbox.max_lat) * 0.5;
@@ -726,6 +728,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
             }
             if !plan_on.get() {
                 c.push_str(" plan-off");
+            }
+            if sheet.get() {
+                c.push_str(" sheet-open");
             }
             c
         }>
@@ -1161,25 +1166,25 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
 
                         // the pad: every way to move the camera, each button with its key
                         <div class="nav-pad globe-ui" aria-label="map navigation">
-                            <button type="button" title="turn the view left · hold Q"
+                            <button type="button" class="np-key" title="turn the view left · hold Q"
                                 on:pointerdown=move |_| cam_hold(3, -1.0)
                                 on:pointerup=move |_| cam_hold(3, 0.0)
                                 on:pointerleave=move |_| cam_hold(3, 0.0)
                                 on:pointercancel=move |_| cam_hold(3, 0.0)
                             >"⟲"<kbd>"Q"</kbd></button>
-                            <button type="button" title="up · hold W or ↑ (shift: fast)"
+                            <button type="button" class="np-key" title="up · hold W or ↑ (shift: fast)"
                                 on:pointerdown=move |_| cam_hold(1, 1.0)
                                 on:pointerup=move |_| cam_hold(1, 0.0)
                                 on:pointerleave=move |_| cam_hold(1, 0.0)
                                 on:pointercancel=move |_| cam_hold(1, 0.0)
                             >"↑"<kbd>"W"</kbd></button>
-                            <button type="button" title="turn the view right · hold E"
+                            <button type="button" class="np-key" title="turn the view right · hold E"
                                 on:pointerdown=move |_| cam_hold(3, 1.0)
                                 on:pointerup=move |_| cam_hold(3, 0.0)
                                 on:pointerleave=move |_| cam_hold(3, 0.0)
                                 on:pointercancel=move |_| cam_hold(3, 0.0)
                             >"⟳"<kbd>"E"</kbd></button>
-                            <button type="button" title="left · hold A or ← (shift: fast)"
+                            <button type="button" class="np-key" title="left · hold A or ← (shift: fast)"
                                 on:pointerdown=move |_| cam_hold(0, 1.0)
                                 on:pointerup=move |_| cam_hold(0, 0.0)
                                 on:pointerleave=move |_| cam_hold(0, 0.0)
@@ -1189,31 +1194,31 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 <span class="np-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
                                 <kbd>"N"</kbd>
                             </button>
-                            <button type="button" title="right · hold D or → (shift: fast)"
+                            <button type="button" class="np-key" title="right · hold D or → (shift: fast)"
                                 on:pointerdown=move |_| cam_hold(0, -1.0)
                                 on:pointerup=move |_| cam_hold(0, 0.0)
                                 on:pointerleave=move |_| cam_hold(0, 0.0)
                                 on:pointercancel=move |_| cam_hold(0, 0.0)
                             >"→"<kbd>"D"</kbd></button>
-                            <button type="button" title="zoom out · hold −"
+                            <button type="button" class="np-key" title="zoom out · hold −"
                                 on:pointerdown=move |_| cam_hold(2, -1.0)
                                 on:pointerup=move |_| cam_hold(2, 0.0)
                                 on:pointerleave=move |_| cam_hold(2, 0.0)
                                 on:pointercancel=move |_| cam_hold(2, 0.0)
                             >"−"<kbd>"−"</kbd></button>
-                            <button type="button" title="down · hold S or ↓ (shift: fast)"
+                            <button type="button" class="np-key" title="down · hold S or ↓ (shift: fast)"
                                 on:pointerdown=move |_| cam_hold(1, -1.0)
                                 on:pointerup=move |_| cam_hold(1, 0.0)
                                 on:pointerleave=move |_| cam_hold(1, 0.0)
                                 on:pointercancel=move |_| cam_hold(1, 0.0)
                             >"↓"<kbd>"S"</kbd></button>
-                            <button type="button" title="zoom in · hold +"
+                            <button type="button" class="np-key" title="zoom in · hold +"
                                 on:pointerdown=move |_| cam_hold(2, 1.0)
                                 on:pointerup=move |_| cam_hold(2, 0.0)
                                 on:pointerleave=move |_| cam_hold(2, 0.0)
                                 on:pointercancel=move |_| cam_hold(2, 0.0)
                             >"+"<kbd>"+"</kbd></button>
-                            <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯ EARTH"<kbd>"0"</kbd></button>
+                            <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯"<span class="np-label">" EARTH"</span><kbd>"0"</kbd></button>
                             <button type="button" class="np-wide2" title="Cyber Valley · H" on:click=move |_| reset_cam()>"⌂"<kbd>"H"</kbd></button>
                         </div>
 
@@ -1670,11 +1675,36 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
 
                 // RIGHT, over the planet — the tapped point's divisions, on the plot panel's plan
                 {move || (!near.get() && point.get().is_some()).then(|| view! {
-                    <DivisionPanel point=point chain=chain selected=unit_sel />
+                    <DivisionPanel point=point chain=chain selected=unit_sel sheet=sheet />
                 })}
 
                 // RIGHT — 3D + INTENT
                 <section class="cyberia-panel cyberia-right">
+                    // a phone's sheet: one line says what is selected, a tap opens the rest
+                    <button type="button" class="sheet-handle" on:click=move |_| sheet.update(|o| *o = !*o)>
+                        <span class="sh-copy">
+                            {move || match selected_flat.get() {
+                                Some(fid) => {
+                                    let name = flats.get().iter().find(|x| x.id == fid).map(|x| bare_name(&x.name)).unwrap_or_else(|| fid.to_uppercase());
+                                    let lu = land_use(&fid);
+                                    let line = match flat_status(&fid, &deals.get()) {
+                                        FlatStatus::Available => match terms(&fid).and_then(|t| t.price()) {
+                                            Some(p) => fmt_usd(p),
+                                            None => "price on request".to_string(),
+                                        },
+                                        FlatStatus::OnRequest => "on request".to_string(),
+                                        other => other.label().to_lowercase(),
+                                    };
+                                    view! {
+                                        <span class="sh-name">{name}</span>
+                                        <span class="sh-sub"><span style:color=lu.color()>{lu.label()}</span>{format!(" · {line}")}</span>
+                                    }.into_any()
+                                }
+                                None => view! { <span class="sh-name dim">"tap a flat on the map"</span> }.into_any(),
+                            }}
+                        </span>
+                        <span class="sh-chev">{move || if sheet.get() { "▾" } else { "▴" }}</span>
+                    </button>
                     <div class="cyberia-panel-h">
                         <span class="panel-kicker">"RENDER"</span>
                         <span class="panel-sub">"flat · 3d"</span>
