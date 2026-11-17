@@ -4472,7 +4472,7 @@ button.city-card:hover {
 .globe-far .flat-legend,
 .globe-far .map-hud-hint,
 .globe-far .map-zoom-rail,
-.globe-far .map-world,
+.plan-off .map-world,
 .globe-far .map-tooltip,
 .globe-far .cyberia-dock { display: none; }
 /* at a city: the land console is on, the planet's controls are off */
@@ -4622,3 +4622,22 @@ button.city-card:hover {
 }
 /* the corner button is gone: the phone's city list takes the full width again */
 @media (max-width: 640px) { .globe-cities { right: 10px; } }
+
+/* ─── coming down to a city: nothing cuts ────────────────────────────────
+   the plan fades in over the last zoom level of the approach (it is drawn but
+   not yet touched); the console's column opens beside the map instead of
+   appearing; its header, legend and dock grow in. */
+.globe-far .map-world { pointer-events: none; }
+@keyframes console-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes console-grow { from { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; } to { max-height: 140px; opacity: 1; } }
+.globe-host:not(.globe-far) .cyberia-flats > .cyberia-panel-h,
+.globe-host:not(.globe-far) .flat-legend,
+.globe-host:not(.globe-far) .cyberia-dock { overflow: hidden; animation: console-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.division-panel { animation: console-in 0.4s ease both; }
+.globe-cities, .globe-hud, .globe-hint { animation: console-in 0.4s ease both; }
+@media (min-width: 1101px) {
+  .globe-host .cyberia-stage.no-rail { transition: grid-template-columns 0.5s cubic-bezier(0.2, 0.7, 0.2, 1), padding 0.5s ease, gap 0.5s ease; }
+  .globe-far .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr) 0px; }
+  .globe-far:not(.globe-picked) .cyberia-right:not(.division-panel) { display: flex; opacity: 0; pointer-events: none; min-width: 0; border-color: transparent; }
+  .globe-host .cyberia-right { transition: opacity 0.4s ease 0.12s; }
+}

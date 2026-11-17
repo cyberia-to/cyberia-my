@@ -529,6 +529,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
         unit_sel.set(None);
     };
     let near = RwSignal::new(!planet);
+    // the plan comes in before the console does: it fades in over the last zoom level of the approach
+    let plan_on = RwSignal::new(!planet);
+    let plan_alpha = RwSignal::new(if planet { 0.0 } else { 1.0 });
     let site_lon = (map.bbox.min_lon + map.bbox.max_lon) * 0.5;
     let site_lat = (map.bbox.min_lat + map.bbox.max_lat) * 0.5;
     let site_fit_m = {
@@ -542,11 +545,24 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
             if w < 2.0 || h < 2.0 {
                 return;
             }
-            let n = z >= SVG_Z && (lat - site_lat).abs() < 0.2 && (lon - site_lon).abs() < 0.2;
+            let at_site = (lat - site_lat).abs() < 0.2 && (lon - site_lon).abs() < 0.2;
+            // the console comes on at SVG_Z and stays until a little below it, so a hand
+            // resting at the threshold does not flip the page back and forth
+            let n = at_site && z >= if near.get_untracked() { SVG_Z - 0.35 } else { SVG_Z };
             if near.get_untracked() != n {
                 near.set(n);
             }
-            if n {
+            let from = SVG_Z - 0.9;
+            let p = at_site && z >= from;
+            if plan_on.get_untracked() != p {
+                plan_on.set(p);
+            }
+            if p {
+                let t = ((z - from) / 0.9).clamp(0.0, 1.0);
+                let a = t * t * (3.0 - 2.0 * t);
+                if (plan_alpha.get_untracked() - a).abs() > 0.004 {
+                    plan_alpha.set(a);
+                }
                 PLAN_TURN.with(|t| t.set(hd.to_degrees()));
                 map_center.set(project(lon, lat, &bbox, MAP_W, MAP_H, MAP_PAD));
                 map_zoom.set(px_per_m(z) / (svg_k * (w / MAP_W).min(h / MAP_H)));
@@ -700,10 +716,18 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let map_bbox_rail = map_bbox.clone();
 
     view! {
-        <div class=move || match (near.get(), point.get().is_some()) {
-            (true, _) => "page-shell cyberia-shell globe-host",
-            (false, false) => "page-shell cyberia-shell globe-host globe-far",
-            (false, true) => "page-shell cyberia-shell globe-host globe-far globe-picked",
+        <div class=move || {
+            let mut c = String::from("page-shell cyberia-shell globe-host");
+            if !near.get() {
+                c.push_str(" globe-far");
+                if point.get().is_some() {
+                    c.push_str(" globe-picked");
+                }
+            }
+            if !plan_on.get() {
+                c.push_str(" plan-off");
+            }
+            c
         }>
             <div class="site-chrome cyberia-chrome">
             <div class="chrome-inner">
@@ -1204,7 +1228,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             const H: f64 = 720.0;
                             const PAD: f64 = 20.0;
                             view! {
-                                <div class="map-world" style=move || format!("transform: rotate({:.4}rad)", cam.get().5)>
+                                <div class="map-world" style=move || format!("transform: rotate({:.4}rad); opacity: {:.3}", cam.get().5, plan_alpha.get())>
                                 <svg
                                     class="flat-map"
                                     viewBox=move || map_view_box(map_center.get(), map_zoom.get(), W, H)

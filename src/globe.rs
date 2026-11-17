@@ -920,7 +920,9 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
                 &js_sys::Float32Array::from(scratch.as_slice()),
                 GL::DYNAMIC_DRAW,
             );
-            gl.uniform4f(self.vline_prog.loc("u_color"), l.color[0], l.color[1], l.color[2], l.color[3] * fade);
+            // towards its last zoom a layer hands over to what replaces it, without a cut
+            let out = (1.0 - smooth((self.z - (l.max_z - 0.9)) / 0.9)) as f32;
+            gl.uniform4f(self.vline_prog.loc("u_color"), l.color[0], l.color[1], l.color[2], l.color[3] * fade * out);
             gl.draw_arrays(GL::LINES, 0, l.pts.len() as i32);
         }
         let open_a = (1.0 - smooth((self.z - 6.5) / 2.0)) as f32 * 0.7;
