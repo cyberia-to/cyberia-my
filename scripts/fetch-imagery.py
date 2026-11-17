@@ -26,10 +26,12 @@ Without --region the region ranges of an existing manifest are kept.
 Light work — network and disk only — and memory stays small: jobs go to the
 pool in batches.
 """
-import argparse, json, math, os, sys, time, urllib.request
+import argparse, http.client, json, math, os, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
 
-URL = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"
+HOST = "tiles.maps.eox.at"
+PATH = "/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"
+LOCAL = threading.local()  # one kept connection per thread
 UA = "cyberia.my imagery mirror (one-time fetch; contact: cyberia.to)"
 BATCH = 20000
 BLANK = 200  # set from --blank-bytes
@@ -78,13 +80,17 @@ def fetch(job):
     except OSError:
         pass
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    url = URL.format(z=z, x=x, y=y)
     err = None
     for attempt in range(5):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                data = r.read()
+            conn = getattr(LOCAL, "conn", None)
+            if conn is None:
+                conn = LOCAL.conn = http.client.HTTPSConnection(HOST, timeout=30)
+            conn.request("GET", PATH.format(z=z, x=x, y=y), headers={"User-Agent": UA})
+            r = conn.getresponse()
+            data = r.read()
+            if r.status != 200:
+                raise OSError(f"http {r.status}")
             if len(data) <= BLANK and z > WORLD:
                 return len(data)
             tmp = path + ".part"
@@ -92,7 +98,10 @@ def fetch(job):
                 f.write(data)
             os.replace(tmp, path)
             return len(data)
-        except Exception as e:  # noqa: BLE001 — retry any network error
+        except Exception as e:  # noqa: BLE001 — retry any network error, on a new connection
+            if getattr(LOCAL, "conn", None) is not None:
+                LOCAL.conn.close()
+                LOCAL.conn = None
             time.sleep(1.5 * (attempt + 1))
             err = e
     print(f"FAILED {z}/{x}/{y}: {err}", file=sys.stderr)
