@@ -150,7 +150,7 @@ fn CityStub() -> impl IntoView {
                                 <a href=format!("{BASE}/") style="color: var(--cyber-green); text-decoration:none;">"cyber•ia"</a>
                             </h1>
                         </div>
-                        <CyberiaNav active="cities" />
+                        <CyberiaNav active="earth" />
                     </div>
                 </div>
             </div>

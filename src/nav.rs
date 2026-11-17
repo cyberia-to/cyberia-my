@@ -1,6 +1,6 @@
 //! Shared top nav for cyberia.my catalog surfaces.
 //!
-//! Only CITIES · MAP · CABINET stay in view. Every other surface is parked under
+//! Only EARTH · CYBER VALLEY · CABINET stay in view. Every other surface is parked under
 //! `/menu/<name>` — still routed, no longer competing for the eye.
 
 use crate::globe::BASE;
@@ -25,14 +25,24 @@ pub const HIDDEN: &[(&str, &str, &str)] = &[
     ("states", "STATES", "earth states by capital"),
 ];
 
-/// `active`: cities | map | cabinet
+/// The top bar: two places of the one map, and the cabinet.
+/// `active`: earth | map | cabinet. On the map itself `on_go` is given: EARTH and
+/// CYBER VALLEY then fly the camera ("earth" / "map") instead of loading a page.
 #[component]
-pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
+pub fn CyberiaNav(#[prop(into)] active: String, #[prop(optional, into)] on_go: Option<Callback<&'static str>>) -> impl IntoView {
     let a = active;
+    let go = move |place: &'static str| {
+        move |ev: leptos::ev::MouseEvent| {
+            if let Some(cb) = on_go {
+                ev.prevent_default();
+                cb.run(place);
+            }
+        }
+    };
     view! {
         <div class="map-zone cyberia-nav">
-            <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/")>"CITIES"</a>
-            <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/map")>"MAP"</a>
+            <a class=if a == "earth" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/") title="the whole earth" on:click=go("earth")>"EARTH"</a>
+            <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/map") title="the land of Cyber Valley" on:click=go("map")>"CYBER VALLEY"</a>
             <a class=if a == "cabinet" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/cabinet")>"CABINET"</a>
         </div>
     }
