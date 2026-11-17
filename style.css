@@ -4450,11 +4450,11 @@ button.city-card:hover {
 .globe-attrib a { color: #9c9c9c; }
 .globe-error { position: absolute; inset: 40% 10% auto; text-align: center; color: #ff5a4a; font: 700 16px 'Play', sans-serif; z-index: 6; }
 @media (max-width: 640px) {
-  .globe-cities { top: auto; bottom: 86px; right: 10px; left: 10px; width: auto; grid-template-columns: 1fr 1fr; }
+  .globe-cities { top: auto; bottom: 150px; right: 10px; left: 10px; width: auto; grid-template-columns: 1fr 1fr; }
   .globe-cities-h, .gc-sub { display: none; }
   .globe-open { grid-column: 1 / -1; }
   .globe-zoom { top: 40%; left: 8px; }
   .globe-hud { bottom: 46px; left: 10px; font-size: 10px; }
   .globe-attrib { left: 10px; right: 10px; bottom: 6px; font-size: 9px; }
-  .globe-enter { bottom: 170px; }
+  .globe-enter { bottom: 236px; }
 }

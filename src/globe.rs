@@ -503,7 +503,7 @@ impl Engine {
             self.canvas.set_width(pw);
             self.canvas.set_height(ph);
             // the smallest zoom keeps the whole globe on the screen
-            let radius = 0.30 * w.min(h);
+            let radius = 0.40 * w.min(h);
             let fpx = h / 2.0 / (FOV_Y / 2.0).tan();
             // radius = fpx / sqrt(d² − 1) → d, then ppr = fpx / (d − 1)
             let d = ((fpx / radius).powi(2) + 1.0).sqrt();
