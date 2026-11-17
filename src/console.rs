@@ -12,7 +12,9 @@ use crate::terms::{
 };
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
-use crate::globe::{cam_fit, cam_pan, cam_zoom, px_per_m, GlobeAttrib, GlobeFar, GlobeLayer, BASE, CITIES, SVG_Z};
+use crate::globe::{
+    cam_fit, cam_pan, cam_zoom, clear_region, pick_region, px_per_m, GlobeAttrib, GlobeFar, GlobeLayer, RegionInfo, BASE, CITIES, SVG_Z,
+};
 use crate::nav::CyberiaNav;
 use crate::wallet::{load_intents, load_leases, push_intent};
 use leptos::prelude::*;
@@ -514,6 +516,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     // plane follows it exactly, far from it the console steps aside.
     let cam = RwSignal::new((0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64));
     let picked = RwSignal::new(None::<usize>);
+    // the region selected on the globe (a country today)
+    let region = RwSignal::new(None::<RegionInfo>);
     let near = RwSignal::new(!planet);
     let site_lon = (map.bbox.min_lon + map.bbox.max_lon) * 0.5;
     let site_lat = (map.bbox.min_lat + map.bbox.max_lat) * 0.5;
@@ -803,6 +807,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 "+" | "=" => { ev.prevent_default(); zoom_by(1.25); }
                                 "-" | "_" => { ev.prevent_default(); zoom_by(1.0 / 1.25); }
                                 "0" => { ev.prevent_default(); reset_cam(); }
+                                // nothing selected: the region, the city and the plot let go
+                                "Escape" => {
+                                    clear_region();
+                                    region.set(None);
+                                    picked.set(None);
+                                    selected_flat.set(None);
+                                }
                                 _ => {}
                             }
                         }
@@ -966,10 +977,32 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 map_hover.set(None);
                             }
                         }
+                        on:click=move |ev| {
+                            // a click that ends a drag selects nothing
+                            if map_did_drag.get_untracked() {
+                                map_did_drag.set(false);
+                                return;
+                            }
+                            let Some(target) = ev.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok()) else { return };
+                            if near.get_untracked() {
+                                // bare ground between the plots: the plot lets go
+                                if target.tag_name().eq_ignore_ascii_case("svg") {
+                                    selected_flat.set(None);
+                                }
+                                return;
+                            }
+                            if target.closest(".globe-ui, .globe-marker, button, a, input").ok().flatten().is_some() {
+                                return;
+                            }
+                            let Some(el) = map_wrap_ref.get_untracked() else { return };
+                            let r = el.get_bounding_client_rect();
+                            // a region under the tap is selected; open water or space clears
+                            region.set(pick_region(ev.client_x() as f64 - r.left(), ev.client_y() as f64 - r.top()));
+                        }
                     >
                         // the globe: imagery and the world's lines, under everything
                         <GlobeLayer cam=cam picked=picked home=home />
-                        <GlobeFar cam=cam picked=picked />
+                        <GlobeFar cam=cam picked=picked region=region />
                         <GlobeAttrib />
 
                         // left zoom rail (game-style) — deep zoom for cm-scale tile planning
@@ -1512,6 +1545,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                     <div class="cyberia-panel-h" style="margin-top: 24px;">
                         <span class="panel-kicker">"FLAT"</span>
                         <span class="panel-sub">"pick on the map · lease or ask for its papers"</span>
+                        {move || selected_flat.get().is_some().then(|| view! {
+                            <button class="panel-x" type="button" title="deselect (Esc)" on:click=move |_| selected_flat.set(None)>"✕"</button>
+                        })}
                     </div>
                     <div class="intent-form">
                         {move || {

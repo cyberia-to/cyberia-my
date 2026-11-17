@@ -35,6 +35,20 @@ const TILES: &str = match option_env!("CYBERIA_TILES") {
     Some(t) => t,
     None => "/tiles/s2",
 };
+/// The poles' own pyramid: equirectangular tiles (2^(z+1) × 2^z per zoom), because
+/// Web Mercator ends at 85.05°. North of NORTH_FROM and south of SOUTH_FROM.
+const POLAR: &str = match option_env!("CYBERIA_POLAR") {
+    Some(t) => t,
+    None => "/tiles/polar",
+};
+const GEO: u8 = 64; // a tile key with zoom ≥ GEO is a polar tile of zoom − GEO
+const GEO_MIN: u8 = 3;
+const NORTH_ZOOM: u8 = 6;
+const SOUTH_ZOOM: u8 = 7;
+const NORTH_FROM: f64 = 84.375;
+const SOUTH_FROM: f64 = -60.0;
+/// Regions whose franchise is open, by three-letter code.
+const FRANCHISE_OPEN: &[&str] = &["IDN"];
 const WORLD_ZOOM: u8 = 7; // the whole earth is present to this zoom
 const MAX_TILE_ZOOM: u8 = 14;
 const FOV_Y: f64 = 30.0 * PI / 180.0;
@@ -54,6 +68,24 @@ fn unit(lon: f64, lat: f64) -> V3 {
 }
 fn dot(a: V3, b: V3) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+fn norm(a: V3) -> V3 {
+    let l = dot(a, a).sqrt().max(1e-300);
+    [a[0] / l, a[1] / l, a[2] / l]
+}
+/// East and north on the sphere at a point.
+fn tangent(lon: f64, lat: f64) -> (V3, V3) {
+    let (l, p) = (lon.to_radians(), lat.to_radians());
+    ([l.cos(), 0.0, -l.sin()], [-p.sin() * l.sin(), p.cos(), -p.sin() * l.cos()])
+}
+fn smooth(x: f64) -> f64 {
+    let t = x.clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+/// How strongly the camera is drawn back to north-up: fully below 60°, not at all
+/// above 75°, so the globe turns freely over the poles and stands upright elsewhere.
+fn upright(lat: f64) -> f64 {
+    smooth((75.0 - lat.abs()) / 15.0)
 }
 fn merc_lat(y: f64) -> f64 {
     (PI * (1.0 - 2.0 * y)).sinh().atan().to_degrees()
@@ -77,15 +109,17 @@ struct View {
 }
 
 impl View {
-    fn new(lon: f64, lat: f64, z: f64, w: f64, h: f64) -> Self {
-        let (l, p) = (lon.to_radians(), lat.to_radians());
+    /// `hd`: the heading, radians the screen's up is turned from north (0 = north-up).
+    fn new(lon: f64, lat: f64, hd: f64, z: f64, w: f64, h: f64) -> Self {
         let f = 1.0 / (FOV_Y / 2.0).tan();
         let fpx = h / 2.0 * f;
         let ppr = 256.0 * 2f64.powf(z) / (2.0 * PI); // css px per radian under the camera
+        let (e, n) = tangent(lon, lat);
+        let (sn, cs) = hd.sin_cos();
         View {
-            e: [l.cos(), 0.0, -l.sin()],
-            north: [-p.sin() * l.sin(), p.cos(), -p.sin() * l.cos()],
-            up: [p.cos() * l.sin(), p.sin(), p.cos() * l.cos()],
+            e: [e[0] * cs + n[0] * sn, e[1] * cs + n[1] * sn, e[2] * cs + n[2] * sn],
+            north: [n[0] * cs - e[0] * sn, n[1] * cs - e[1] * sn, n[2] * cs - e[2] * sn],
+            up: unit(lon, lat),
             d: 1.0 + fpx / ppr,
             f,
             fpx,
@@ -108,25 +142,29 @@ impl View {
         let y = self.f * v[1] / -v[2];
         Some(((x * 0.5 + 0.5) * self.w, (0.5 - y * 0.5) * self.h))
     }
-    /// The point of the sphere under a screen pixel, as (lon, lat) degrees.
-    fn unproject(&self, sx: f64, sy: f64) -> Option<(f64, f64)> {
+    /// The point of the sphere under a screen pixel.
+    fn unproject_q(&self, sx: f64, sy: f64) -> Option<V3> {
         let dx = (sx - self.w / 2.0) / self.fpx;
         let dy = (self.h / 2.0 - sy) / self.fpx;
         let len = (dx * dx + dy * dy + 1.0).sqrt();
         let dir = [dx / len, dy / len, -1.0 / len];
         // |t·dir − c|² = 1 with c = (0, 0, −d)
-        let b = dir[2] * self.d; // dir·c = −d·dir.z → b = −dir·c
+        let b = dir[2] * self.d;
         let disc = b * b - (self.d * self.d - 1.0);
         if disc < 0.0 {
             return None;
         }
         let t = -b - disc.sqrt();
         let hit = [dir[0] * t, dir[1] * t, dir[2] * t + self.d];
-        let q = [
+        Some([
             self.e[0] * hit[0] + self.north[0] * hit[1] + self.up[0] * hit[2],
             self.e[1] * hit[0] + self.north[1] * hit[1] + self.up[1] * hit[2],
             self.e[2] * hit[0] + self.north[2] * hit[1] + self.up[2] * hit[2],
-        ];
+        ])
+    }
+    /// The same, as (lon, lat) degrees.
+    fn unproject(&self, sx: f64, sy: f64) -> Option<(f64, f64)> {
+        let q = self.unproject_q(sx, sy)?;
         Some((q[0].atan2(q[2]).to_degrees(), q[1].clamp(-1.0, 1.0).asin().to_degrees()))
     }
     /// Angular radius of what the screen can show, around the camera target.
@@ -164,23 +202,27 @@ void main(){
   o = vec4(c, 1.0);
 }";
 const TILE_VS: &str = "#version 300 es
-in vec3 a_pos; in vec2 a_uv;
+in vec3 a_pos; in vec2 a_uv; in float a_fade;
 uniform float u_fx, u_fy, u_k, u_h; uniform vec3 u_uv;
-out vec2 v_uv; out float v_vis;
+out vec2 v_uv; out float v_vis; out float v_fade;
 void main(){
   gl_Position = vec4(a_pos.x * u_fx, a_pos.y * u_fy, 0.0, -a_pos.z);
   v_vis = (a_pos.z + u_k) / u_h;
   v_uv = (a_uv + u_uv.yz) * u_uv.x;
+  v_fade = a_fade;
 }";
 const TILE_FS: &str = "#version 300 es
 precision highp float;
-in vec2 v_uv; in float v_vis; out vec4 o;
-uniform sampler2D u_tex;
+in vec2 v_uv; in float v_vis; in float v_fade; out vec4 o;
+uniform sampler2D u_tex; uniform float u_tone;
 void main(){
   if (v_vis < 0.0) discard;
   vec3 c = texture(u_tex, v_uv).rgb;
+  // the south cap's sea is brighter than the mosaic's: bring it to the same water
+  float sea = u_tone * smoothstep(0.06, 0.22, c.b - c.r);
+  c = mix(c, vec3(0.105, 0.165, 0.305) * (0.85 + 0.3 * c.b), sea);
   c *= 0.45 + 0.55 * smoothstep(0.0, 0.45, v_vis);
-  o = vec4(c, 1.0);
+  o = vec4(c, v_fade);
 }";
 // world lines: static unit vectors, the camera frame as uniforms
 const LINE_VS: &str = "#version 300 es
@@ -195,10 +237,10 @@ void main(){
 // cyberia lines: view-space positions computed on the CPU in f64
 const VLINE_VS: &str = "#version 300 es
 in vec3 a_pos;
-uniform float u_fx, u_fy, u_k, u_h;
+uniform float u_fx, u_fy, u_k, u_h; uniform vec2 u_off;
 out float v_vis;
 void main(){
-  gl_Position = vec4(a_pos.x * u_fx, a_pos.y * u_fy, 0.0, -a_pos.z);
+  gl_Position = vec4(a_pos.x * u_fx - u_off.x * a_pos.z, a_pos.y * u_fy - u_off.y * a_pos.z, 0.0, -a_pos.z);
   v_vis = (a_pos.z + u_k) / u_h;
 }";
 const LINE_FS: &str = "#version 300 es
@@ -255,6 +297,7 @@ impl Prog {
 struct Tile {
     grid: usize,
     verts: Vec<V3>, // (grid+1)² unit vectors, row by row from the north-west corner
+    fade: Vec<f32>, // opacity per vertex; empty = opaque
     tex: Option<WebGlTexture>,
     loading: bool,
     failed: bool,
@@ -280,9 +323,30 @@ struct Marker {
     el: HtmlElement,
 }
 
+/// A region the globe can select: a country today.
+#[derive(Deserialize)]
+struct Land {
+    #[serde(rename = "n")]
+    name: String,
+    #[serde(rename = "i")]
+    code: String,
+    #[serde(rename = "b")]
+    bbox: [f64; 4],
+    #[serde(rename = "p")]
+    rings: Vec<Vec<f64>>, // lon, lat, lon, lat, …
+}
+
+/// What the page shows about a selected region.
+#[derive(Clone, PartialEq)]
+pub struct RegionInfo {
+    pub name: String,
+    pub code: String,
+    pub franchise: bool,
+}
+
 struct Fly {
-    from: (f64, f64, f64),
-    to: (f64, f64, f64),
+    from: (V3, f64, f64), // the point under the camera, zoom, heading
+    to: (V3, f64),
     t0: f64,
     dur: f64,
 }
@@ -310,8 +374,13 @@ struct Engine {
     alive: bool,
     lon: f64,
     lat: f64,
+    hd: f64, // heading, radians from north-up
     z: f64,
     z_min: f64,
+    last_t: f64,
+    lands: Vec<Land>,
+    highlight: Vec<V3>, // the selected region's outline
+    open: Vec<V3>,      // the outlines of the regions whose franchise is open
     dirty: bool,
     frame: u32,
     fly: Option<Fly>,
@@ -354,10 +423,10 @@ impl Engine {
     }
     fn view(&self) -> View {
         let (w, h) = self.size();
-        View::new(self.lon, self.lat, self.z, w, h)
+        View::new(self.lon, self.lat, self.hd, self.z, w, h)
     }
     fn clamp(&mut self) {
-        self.lat = self.lat.clamp(-85.0, 85.0);
+        self.lat = self.lat.clamp(-90.0, 90.0);
         self.lon = (self.lon + 180.0).rem_euclid(360.0) - 180.0;
         self.z = self.z.clamp(self.z_min, Z_MAX);
     }
@@ -367,13 +436,63 @@ impl Engine {
         self.url_synced = false;
     }
 
+    /// Put the camera over another point of the sphere, carrying the screen's
+    /// orientation along the way (no twist), so a drag can cross a pole.
+    fn move_to(&mut self, up2: V3) {
+        let v = self.view();
+        let up2 = norm(up2);
+        let c = 1.0 + dot(v.up, up2);
+        if c < 1e-9 {
+            return;
+        }
+        let k = dot(up2, v.north) / c;
+        let n2 = [v.north[0] - (v.up[0] + up2[0]) * k, v.north[1] - (v.up[1] + up2[1]) * k, v.north[2] - (v.up[2] + up2[2]) * k];
+        self.lat = up2[1].clamp(-1.0, 1.0).asin().to_degrees();
+        if up2[0].abs() + up2[2].abs() > 1e-12 {
+            self.lon = up2[0].atan2(up2[2]).to_degrees();
+        }
+        let (e_t, n_t) = tangent(self.lon, self.lat);
+        // an upright map stays upright below the polar zone, and always at city zooms;
+        // a turned one is left alone while the hand moves it (it stands up once released)
+        let was_upright = self.hd == 0.0;
+        self.hd = if self.z > 9.0 || (was_upright && upright(self.lat) >= 1.0) {
+            0.0
+        } else {
+            (-dot(n2, e_t)).atan2(dot(n2, n_t))
+        };
+    }
+
     fn covered(&self, k: Key) -> bool {
-        k.0 <= WORLD_ZOOM
+        k.0 >= GEO
+            || k.0 <= WORLD_ZOOM
             || self.regions.iter().any(|r| r.0 == k.0 && k.1 >= r.1 && k.1 <= r.3 && k.2 >= r.2 && k.2 <= r.4)
     }
 
     fn tile(&mut self, k: Key) -> &mut Tile {
         self.tiles.entry(k).or_insert_with(|| {
+            if k.0 >= GEO {
+                // equirectangular: vertices evenly in longitude and latitude
+                let g = k.0 - GEO;
+                let h = 180.0 / (1u32 << g) as f64;
+                let grid = match g {
+                    0..=3 => 12,
+                    4 => 8,
+                    5 => 6,
+                    _ => 4,
+                };
+                let mut verts = Vec::with_capacity((grid + 1) * (grid + 1));
+                let mut fade = Vec::with_capacity(verts.capacity());
+                for j in 0..=grid {
+                    let lat = (90.0 - (k.2 as f64 + j as f64 / grid as f64) * h).clamp(-90.0, 90.0);
+                    for i in 0..=grid {
+                        let lon = -180.0 + (k.1 as f64 + i as f64 / grid as f64) * h;
+                        verts.push(unit(lon, lat));
+                        // the south cap comes in over three degrees below its edge
+                        fade.push(if lat > 0.0 { 1.0 } else { smooth((SOUTH_FROM - lat) / 3.0) as f32 });
+                    }
+                }
+                return Tile { grid, verts, fade, tex: None, loading: false, failed: false, used: 0 };
+            }
             let grid = match k.0 {
                 0..=2 => 24,
                 3..=5 => 12,
@@ -389,7 +508,7 @@ impl Engine {
                     verts.push(unit(lon, lat));
                 }
             }
-            Tile { grid, verts, tex: None, loading: false, failed: false, used: 0 }
+            Tile { grid, verts, fade: Vec::new(), tex: None, loading: false, failed: false, used: 0 }
         })
     }
 
@@ -467,23 +586,40 @@ impl Engine {
         if let Some(fl) = &self.fly {
             let k = ((t - fl.t0) / fl.dur).clamp(0.0, 1.0);
             let s = k * k * (3.0 - 2.0 * k);
-            let mut dlon = fl.to.0 - fl.from.0;
-            if dlon > 180.0 {
-                dlon -= 360.0;
-            } else if dlon < -180.0 {
-                dlon += 360.0;
+            let (a, b) = (fl.from.0, fl.to.0);
+            let ang = dot(a, b).clamp(-1.0, 1.0).acos();
+            // along the great circle between the two points
+            let q = if ang < 1e-9 {
+                b
+            } else {
+                let (wa, wb) = (((1.0 - s) * ang).sin() / ang.sin(), (s * ang).sin() / ang.sin());
+                norm([a[0] * wa + b[0] * wb, a[1] * wa + b[1] * wb, a[2] * wa + b[2] * wb])
+            };
+            let dist = (ang.to_degrees() / 40.0).min(1.0);
+            let dip = (PI * k).sin() * dist * (fl.from.1.min(fl.to.1) - self.z_min).clamp(0.0, 6.0);
+            self.lat = q[1].clamp(-1.0, 1.0).asin().to_degrees();
+            if q[0].abs() + q[2].abs() > 1e-12 {
+                self.lon = q[0].atan2(q[2]).to_degrees();
             }
-            let dist = ((dlon * dlon + (fl.to.1 - fl.from.1).powi(2)).sqrt() / 40.0).min(1.0);
-            let dip = (PI * k).sin() * dist * (fl.from.2.min(fl.to.2) - self.z_min).clamp(0.0, 6.0);
-            self.lon = fl.from.0 + dlon * s;
-            self.lat = fl.from.1 + (fl.to.1 - fl.from.1) * s;
-            self.z = fl.from.2 + (fl.to.2 - fl.from.2) * s - dip;
+            self.z = fl.from.1 + (fl.to.1 - fl.from.1) * s - dip;
+            self.hd = fl.from.2 * (1.0 - s);
             if k >= 1.0 {
                 self.fly = None;
             }
             self.clamp();
             self.touch();
+        } else if self.hd != 0.0 && t - self.last_move > 250.0 {
+            // released away from the poles, the map stands back up by itself
+            let w = if self.z > 9.0 { 1.0 } else { upright(self.lat) };
+            if w > 0.0 {
+                self.hd *= (-(t - self.last_t).clamp(0.0, 100.0) / 1000.0 * 6.0 * w).exp();
+                if self.hd.abs() < 0.0005 {
+                    self.hd = 0.0;
+                }
+                self.dirty = true;
+            }
         }
+        self.last_t = t;
 
         // canvas size follows the element
         let (w, h) = self.size();
@@ -534,8 +670,9 @@ impl Engine {
         gl.bind_vertex_array(Some(&self.bg_vao));
         gl.draw_arrays(GL::TRIANGLE_STRIP, 0, 4);
 
-        // imagery
+        // imagery: the north cap under the Mercator pyramid, the south cap over it
         let wanted = self.wanted(&v);
+        let (north, south) = self.wanted_polar(&v);
         let mut loads: Vec<Key> = Vec::new();
         gl.use_program(Some(&self.tile_prog.p));
         gl.uniform1f(self.tile_prog.loc("u_fx"), fx);
@@ -543,70 +680,21 @@ impl Engine {
         gl.uniform1f(self.tile_prog.loc("u_k"), (v.d - 1.0 / v.d) as f32);
         gl.uniform1f(self.tile_prog.loc("u_h"), (1.0 - 1.0 / v.d) as f32);
         gl.uniform1i(self.tile_prog.loc("u_tex"), 0);
+        gl.uniform1f(self.tile_prog.loc("u_tone"), 0.0);
         gl.active_texture(GL::TEXTURE0);
         gl.bind_vertex_array(Some(&self.tile_vao));
         let frame = self.frame;
         let mut scratch: Vec<f32> = Vec::new();
-        for k in wanted {
-            // the deepest ancestor (or the tile itself) that exists on the server
-            let mut want = k;
-            while !self.covered(want) && want.0 > 0 {
-                want = (want.0 - 1, want.1 >> 1, want.2 >> 1);
+        for k in north.into_iter().chain(wanted) {
+            self.draw_tile(&v, k, &mut loads, &mut scratch);
+        }
+        if !south.is_empty() {
+            gl.enable(GL::BLEND);
+            gl.blend_func(GL::SRC_ALPHA, GL::ONE_MINUS_SRC_ALPHA);
+            gl.uniform1f(self.tile_prog.loc("u_tone"), 1.0);
+            for k in south {
+                self.draw_tile(&v, k, &mut loads, &mut scratch);
             }
-            {
-                let tl = self.tile(want);
-                tl.used = frame;
-                if tl.tex.is_none() && !tl.loading && !tl.failed {
-                    loads.push(want);
-                }
-            }
-            // the deepest loaded ancestor carries the picture meanwhile
-            let mut src = want;
-            let tex = loop {
-                if let Some(tx) = self.tiles.get_mut(&src).and_then(|tl| {
-                    tl.used = frame;
-                    tl.tex.clone()
-                }) {
-                    break Some(tx);
-                }
-                if src.0 == 0 {
-                    break None;
-                }
-                src = (src.0 - 1, src.1 >> 1, src.2 >> 1);
-            };
-            let Some(tex) = tex else { continue };
-            let up = (k.0 - src.0) as u32;
-            let scale = 1.0 / (1u32 << up) as f32;
-            let off = ((k.1 & ((1 << up) - 1)) as f32, (k.2 & ((1 << up) - 1)) as f32);
-            let (grid, n_verts) = {
-                let tl = self.tile(k);
-                tl.used = frame;
-                scratch.clear();
-                let g = tl.grid;
-                for (i, q) in tl.verts.iter().enumerate() {
-                    let p = v.to_view(*q);
-                    scratch.extend_from_slice(&[
-                        p[0] as f32,
-                        p[1] as f32,
-                        p[2] as f32,
-                        (i % (g + 1)) as f32 / g as f32,
-                        (i / (g + 1)) as f32 / g as f32,
-                    ]);
-                }
-                (g, tl.verts.len())
-            };
-            let _ = n_verts;
-            let (ibo, count) = self.index_for(grid);
-            gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.tile_vbo));
-            gl.buffer_data_with_array_buffer_view(
-                GL::ARRAY_BUFFER,
-                &js_sys::Float32Array::from(scratch.as_slice()),
-                GL::DYNAMIC_DRAW,
-            );
-            gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&ibo));
-            gl.bind_texture(GL::TEXTURE_2D, Some(&tex));
-            gl.uniform3f(self.tile_prog.loc("u_uv"), scale, off.0, off.1);
-            gl.draw_elements_with_i32(GL::TRIANGLES, count, GL::UNSIGNED_SHORT, 0);
         }
         // the planet's base picture is always asked for
         if self.tile((0, 0, 0)).tex.is_none() && !self.tile((0, 0, 0)).loading {
@@ -640,6 +728,7 @@ impl Engine {
         gl.uniform1f(self.vline_prog.loc("u_k"), (v.d - 1.0 / v.d) as f32);
         gl.uniform1f(self.vline_prog.loc("u_h"), (1.0 - 1.0 / v.d) as f32);
         gl.bind_vertex_array(Some(&self.vline_vao));
+        gl.uniform2f(self.vline_prog.loc("u_off"), 0.0, 0.0);
         for l in &self.cyberia {
             if self.z < l.min_z || self.z > l.max_z || l.pts.is_empty() || !v.visible(l.pts[0]) {
                 continue;
@@ -658,6 +747,27 @@ impl Engine {
             );
             gl.uniform4f(self.vline_prog.loc("u_color"), l.color[0], l.color[1], l.color[2], l.color[3] * fade);
             gl.draw_arrays(GL::LINES, 0, l.pts.len() as i32);
+        }
+        let open_a = (1.0 - smooth((self.z - 6.5) / 2.0)) as f32 * 0.7;
+        let px = (2.0 / v.w as f32, 2.0 / v.h as f32);
+        for (pts, color, bold) in [(&self.open, [0.0f32, 1.0, 0.25, open_a], false), (&self.highlight, [1.0f32, 0.84, 0.0, 1.0], true)] {
+            if pts.is_empty() || color[3] <= 0.0 {
+                continue;
+            }
+            scratch.clear();
+            for q in pts {
+                let p = v.to_view(*q);
+                scratch.extend_from_slice(&[p[0] as f32, p[1] as f32, p[2] as f32]);
+            }
+            gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.vline_vbo));
+            gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &js_sys::Float32Array::from(scratch.as_slice()), GL::DYNAMIC_DRAW);
+            gl.uniform4f(self.vline_prog.loc("u_color"), color[0], color[1], color[2], color[3]);
+            // a line of one pixel drawn five times, one pixel apart, reads as a bold one
+            let passes: &[(f32, f32)] = if bold { &[(0.0, 0.0), (1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0)] } else { &[(0.0, 0.0)] };
+            for (ox, oy) in passes {
+                gl.uniform2f(self.vline_prog.loc("u_off"), ox * px.0, oy * px.1);
+                gl.draw_arrays(GL::LINES, 0, pts.len() as i32);
+            }
         }
         gl.bind_vertex_array(None);
 
@@ -762,23 +872,22 @@ impl Engine {
     }
 
     fn fly_to(&mut self, lon: f64, lat: f64, z: f64, dur: f64) {
-        self.fly = Some(Fly { from: (self.lon, self.lat, self.z), to: (lon, lat, z.clamp(self.z_min, Z_MAX)), t0: now(), dur });
+        self.fly = Some(Fly {
+            from: (unit(self.lon, self.lat), self.z, self.hd),
+            to: (unit(lon, lat), z.clamp(self.z_min, Z_MAX)),
+            t0: now(),
+            dur,
+        });
         self.dirty = true;
     }
 
     /// Zoom by dz keeping the point under (sx, sy) where it is.
     fn zoom_at(&mut self, dz: f64, sx: f64, sy: f64) {
-        let before = self.view().unproject(sx, sy);
+        let before = self.view().unproject_q(sx, sy);
         self.z = (self.z + dz).clamp(self.z_min, Z_MAX);
-        if let (Some(b), Some(a)) = (before, self.view().unproject(sx, sy)) {
-            let mut dlon = b.0 - a.0;
-            if dlon > 180.0 {
-                dlon -= 360.0;
-            } else if dlon < -180.0 {
-                dlon += 360.0;
-            }
-            self.lon += dlon;
-            self.lat += b.1 - a.1;
+        if let (Some(b), Some(a)) = (before, self.view().unproject_q(sx, sy)) {
+            let up = unit(self.lon, self.lat);
+            self.move_to([up[0] + b[0] - a[0], up[1] + b[1] - a[1], up[2] + b[2] - a[2]]);
         }
         self.fly = None;
         self.clamp();
@@ -788,11 +897,174 @@ impl Engine {
     fn pan_px(&mut self, dx: f64, dy: f64) {
         let v = self.view();
         let ppr = v.fpx / (v.d - 1.0);
-        self.lon -= (dx / ppr).to_degrees() / self.lat.to_radians().cos().max(0.08);
-        self.lat += (dy / ppr).to_degrees();
+        // the ground follows the finger: the camera goes the other way, along the screen's axes
+        let (a, b) = ((dx / ppr).clamp(-1.0, 1.0), (dy / ppr).clamp(-1.0, 1.0));
+        self.move_to([
+            v.up[0] - v.e[0] * a + v.north[0] * b,
+            v.up[1] - v.e[1] * a + v.north[1] * b,
+            v.up[2] - v.e[2] * a + v.north[2] * b,
+        ]);
         self.fly = None;
         self.clamp();
         self.touch();
+    }
+
+    /// The region under a point of the earth: the smallest one that contains it.
+    fn land_at(&self, lon: f64, lat: f64) -> Option<usize> {
+        let mut best: Option<(usize, f64)> = None;
+        for (i, l) in self.lands.iter().enumerate() {
+            let b = l.bbox;
+            if lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3] {
+                continue;
+            }
+            let inside = l.rings.iter().any(|r| {
+                let n = r.len() / 2;
+                let mut c = false;
+                let mut j = n - 1;
+                for i in 0..n {
+                    let (xi, yi, xj, yj) = (r[2 * i], r[2 * i + 1], r[2 * j], r[2 * j + 1]);
+                    if (yi > lat) != (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi {
+                        c = !c;
+                    }
+                    j = i;
+                }
+                c
+            });
+            let area = (b[2] - b[0]) * (b[3] - b[1]);
+            if inside && best.map(|x| area < x.1).unwrap_or(true) {
+                best = Some((i, area));
+            }
+        }
+        best.map(|b| b.0)
+    }
+
+    fn outline(&self, i: usize) -> Vec<V3> {
+        let mut out = Vec::new();
+        for r in &self.lands[i].rings {
+            let n = r.len() / 2;
+            for a in 0..n {
+                let b = (a + 1) % n;
+                let (x1, y1, x2, y2) = (r[2 * a], r[2 * a + 1], r[2 * b], r[2 * b + 1]);
+                // not the seams the source cuts along the date line and at the pole
+                if (x1.abs() > 179.99 && x2.abs() > 179.99) || (y1 < -89.9 && y2 < -89.9) {
+                    continue;
+                }
+                out.push(unit(x1, y1));
+                out.push(unit(x2, y2));
+            }
+        }
+        out
+    }
+
+    /// The polar tiles the screen needs: (north cap, south cap).
+    fn wanted_polar(&self, v: &View) -> (Vec<Key>, Vec<Key>) {
+        let theta = v.cap();
+        let cam = unit(self.lon, self.lat);
+        let tz = (self.z + 0.6).floor() as i32;
+        let mut out = (Vec::new(), Vec::new());
+        for north in [true, false] {
+            let reach = if north {
+                self.lat + theta.to_degrees() > NORTH_FROM
+            } else {
+                self.lat - theta.to_degrees() < SOUTH_FROM
+            };
+            if !reach {
+                continue;
+            }
+            let top = if north { NORTH_ZOOM } else { SOUTH_ZOOM } as i32;
+            let mut g = (tz - 1).clamp(GEO_MIN as i32, top) as u8;
+            let list = loop {
+                let n = 1u32 << g;
+                let h = 180.0 / n as f64;
+                let margin = h.to_radians() * 0.8;
+                let mut list = Vec::new();
+                for y in 0..n {
+                    let keep = if north { (y as f64) * h < 90.0 - NORTH_FROM } else { 90.0 - (y as f64 + 1.0) * h < SOUTH_FROM };
+                    if !keep {
+                        continue;
+                    }
+                    let clat = 90.0 - (y as f64 + 0.5) * h;
+                    for x in 0..2 * n {
+                        let clon = -180.0 + (x as f64 + 0.5) * h;
+                        if dot(unit(clon, clat), cam).clamp(-1.0, 1.0).acos() <= theta + margin {
+                            list.push((GEO + g, x, y));
+                        }
+                    }
+                }
+                if list.len() <= 120 || g == GEO_MIN {
+                    break list;
+                }
+                g -= 1;
+            };
+            if north {
+                out.0 = list;
+            } else {
+                out.1 = list;
+            }
+        }
+        out
+    }
+
+    /// Draw one tile with the best picture at hand; ask for its own if it is missing.
+    fn draw_tile(&mut self, v: &View, k: Key, loads: &mut Vec<Key>, scratch: &mut Vec<f32>) {
+        let frame = self.frame;
+        let parent = |k: Key| (k.0 != 0 && k.0 != GEO + GEO_MIN).then(|| (k.0 - 1, k.1 >> 1, k.2 >> 1));
+        // the deepest ancestor (or the tile itself) that exists on the server
+        let mut want = k;
+        while !self.covered(want) && want.0 > 0 {
+            want = (want.0 - 1, want.1 >> 1, want.2 >> 1);
+        }
+        {
+            let tl = self.tile(want);
+            tl.used = frame;
+            if tl.tex.is_none() && !tl.loading && !tl.failed {
+                loads.push(want);
+            }
+        }
+        // the deepest loaded ancestor carries the picture meanwhile
+        let mut src = want;
+        let tex = loop {
+            if let Some(tx) = self.tiles.get_mut(&src).and_then(|tl| {
+                tl.used = frame;
+                tl.tex.clone()
+            }) {
+                break Some(tx);
+            }
+            match parent(src) {
+                Some(p) => src = p,
+                None => break None,
+            }
+        };
+        let Some(tex) = tex else { return };
+        let up = (k.0 - src.0) as u32;
+        let scale = 1.0 / (1u32 << up) as f32;
+        let off = ((k.1 & ((1 << up) - 1)) as f32, (k.2 & ((1 << up) - 1)) as f32);
+        let grid = {
+            let tl = self.tile(k);
+            tl.used = frame;
+            scratch.clear();
+            let g = tl.grid;
+            for (i, q) in tl.verts.iter().enumerate() {
+                let p = v.to_view(*q);
+                scratch.extend_from_slice(&[
+                    p[0] as f32,
+                    p[1] as f32,
+                    p[2] as f32,
+                    (i % (g + 1)) as f32 / g as f32,
+                    (i / (g + 1)) as f32 / g as f32,
+                    tl.fade.get(i).copied().unwrap_or(1.0),
+                ]);
+            }
+            g
+        };
+        let (ibo, count) = self.index_for(grid);
+        let gl = &self.gl;
+        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.tile_vbo));
+        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &js_sys::Float32Array::from(scratch.as_slice()), GL::DYNAMIC_DRAW);
+        gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&ibo));
+        gl.bind_texture(GL::TEXTURE_2D, Some(&tex));
+        gl.uniform3f(self.tile_prog.loc("u_uv"), scale, off.0, off.1);
+        gl.draw_elements_with_i32(GL::TRIANGLES, count, GL::UNSIGNED_SHORT, 0);
     }
 }
 
@@ -817,7 +1089,11 @@ fn start_load(this: &Rc<RefCell<Engine>>, k: Key) {
         })
         .unchecked_ref(),
     ));
-    img.set_src(&format!("{TILES}/{}/{}/{}.jpg", k.0, k.1, k.2));
+    if k.0 >= GEO {
+        img.set_src(&format!("{POLAR}/{}/{}/{}.jpg", k.0 - GEO, k.1, k.2));
+    } else {
+        img.set_src(&format!("{TILES}/{}/{}/{}.jpg", k.0, k.1, k.2));
+    }
 }
 
 async fn fetch_f32(url: String) -> Option<Vec<f32>> {
@@ -828,6 +1104,15 @@ async fn fetch_f32(url: String) -> Option<Vec<f32>> {
     }
     let buf = JsFuture::from(resp.array_buffer().ok()?).await.ok()?;
     Some(js_sys::Float32Array::new(&buf).to_vec())
+}
+
+async fn fetch_text(url: String) -> Option<String> {
+    let resp = JsFuture::from(web_sys::window()?.fetch_with_str(&url)).await.ok()?;
+    let resp: web_sys::Response = resp.dyn_into().ok()?;
+    if !resp.ok() {
+        return None;
+    }
+    JsFuture::from(resp.text().ok()?).await.ok()?.as_string()
 }
 
 #[derive(Deserialize)]
@@ -899,9 +1184,9 @@ fn start(
         .ok_or("this browser has no WebGL2")?;
 
     let bg = Prog::new(&gl, BG_VS, BG_FS, &["a_pos"], &["u_r", "u_aspect"])?;
-    let tile_prog = Prog::new(&gl, TILE_VS, TILE_FS, &["a_pos", "a_uv"], &["u_fx", "u_fy", "u_k", "u_h", "u_uv", "u_tex"])?;
+    let tile_prog = Prog::new(&gl, TILE_VS, TILE_FS, &["a_pos", "a_uv", "a_fade"], &["u_fx", "u_fy", "u_k", "u_h", "u_uv", "u_tex", "u_tone"])?;
     let line_prog = Prog::new(&gl, LINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_d", "u_e", "u_n", "u_up", "u_color"])?;
-    let vline_prog = Prog::new(&gl, VLINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_k", "u_h", "u_color"])?;
+    let vline_prog = Prog::new(&gl, VLINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_k", "u_h", "u_color", "u_off"])?;
 
     let bg_vao = gl.create_vertex_array().ok_or("vao")?;
     gl.bind_vertex_array(Some(&bg_vao));
@@ -920,9 +1205,11 @@ fn start(
     let tile_vbo = gl.create_buffer().ok_or("vbo")?;
     gl.bind_buffer(GL::ARRAY_BUFFER, Some(&tile_vbo));
     gl.enable_vertex_attrib_array(0);
-    gl.vertex_attrib_pointer_with_i32(0, 3, GL::FLOAT, false, 20, 0);
+    gl.vertex_attrib_pointer_with_i32(0, 3, GL::FLOAT, false, 24, 0);
     gl.enable_vertex_attrib_array(1);
-    gl.vertex_attrib_pointer_with_i32(1, 2, GL::FLOAT, false, 20, 12);
+    gl.vertex_attrib_pointer_with_i32(1, 2, GL::FLOAT, false, 24, 12);
+    gl.enable_vertex_attrib_array(2);
+    gl.vertex_attrib_pointer_with_i32(2, 1, GL::FLOAT, false, 24, 20);
 
     let vline_vao = gl.create_vertex_array().ok_or("vao")?;
     gl.bind_vertex_array(Some(&vline_vao));
@@ -950,8 +1237,13 @@ fn start(
         alive: true,
         lon,
         lat,
+        hd: 0.0,
         z,
         z_min: 0.0,
+        last_t: 0.0,
+        lands: Vec::new(),
+        highlight: Vec::new(),
+        open: Vec::new(),
         dirty: true,
         frame: 0,
         fly: None,
@@ -1021,6 +1313,19 @@ fn start(
             if let Some(v) = fetch_f32(format!("{BASE}/globe/{file}.bin")).await {
                 eng.borrow_mut().add_world_layer(&v, color, min_z);
             }
+        });
+    }
+
+    {
+        let eng = engine.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            let Some(text) = fetch_text(format!("{BASE}/globe/regions.json")).await else { return };
+            let Ok(lands) = serde_json::from_str::<Vec<Land>>(&text) else { return };
+            let mut e = eng.borrow_mut();
+            e.lands = lands;
+            let open: Vec<usize> = (0..e.lands.len()).filter(|i| FRANCHISE_OPEN.contains(&e.lands[*i].code.as_str())).collect();
+            e.open = open.into_iter().flat_map(|i| e.outline(i)).collect();
+            e.dirty = true;
         });
     }
 
@@ -1107,6 +1412,31 @@ pub fn cam_world() {
     });
 }
 
+/// Select the region under a point of the layer (css px) and outline it;
+/// a tap on open water or on space clears the selection.
+pub fn pick_region(sx: f64, sy: f64) -> Option<RegionInfo> {
+    ENGINE.with(|g| {
+        let g = g.borrow();
+        let mut e = g.as_ref()?.borrow_mut();
+        let hit = e.view().unproject(sx, sy).and_then(|(lon, lat)| e.land_at(lon, lat));
+        e.highlight = hit.map(|i| e.outline(i)).unwrap_or_default();
+        e.dirty = true;
+        hit.map(|i| RegionInfo {
+            name: e.lands[i].name.clone(),
+            code: e.lands[i].code.clone(),
+            franchise: FRANCHISE_OPEN.contains(&e.lands[i].code.as_str()),
+        })
+    })
+}
+
+/// Drop the selected region.
+pub fn clear_region() {
+    with_engine(|e| {
+        e.highlight.clear();
+        e.dirty = true;
+    });
+}
+
 /// Css px per metre on the ground at a zoom.
 pub fn px_per_m(z: f64) -> f64 {
     2f64.powf(z) / M_PER_PX_Z0
@@ -1190,7 +1520,7 @@ pub fn GlobeLayer(
 /// What the layer shows over the planet: the cities, the way to found one,
 /// the zoom buttons and the readout. The host hides it once the land console is on.
 #[component]
-pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl IntoView {
+pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>, region: RwSignal<Option<RegionInfo>>) -> impl IntoView {
     let founding = RwSignal::new(false);
     let name = RwSignal::new(String::new());
 
@@ -1208,6 +1538,11 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl Int
                     type="button"
                     class=move || if picked.get() == Some(i) { "globe-city on" } else { "globe-city" }
                     on:click=move |_| {
+                        // a second tap on the selected city lets it go
+                        if picked.get_untracked() == Some(i) {
+                            picked.set(None);
+                            return;
+                        }
                         picked.set(Some(i));
                         founding.set(false);
                         cam_fit(c.lon, c.lat, c.fit_m, 2600.0);
@@ -1260,6 +1595,26 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl Int
 
         {move || founding.get().then(|| view! { <div class="globe-cross"></div> })}
 
+        {move || region.get().map(|r| view! {
+            <div class="globe-ui globe-region">
+                <div class="gr-h">
+                    <span class="gr-kicker">"REGION"</span>
+                    <button type="button" class="gr-x" title="deselect (Esc)" on:click=move |_| { clear_region(); region.set(None); }>"✕"</button>
+                </div>
+                <div class="gr-name">{r.name.clone()}</div>
+                <div class=if r.franchise { "gr-status open" } else { "gr-status" }>
+                    {if r.franchise { "FRANCHISE · OPEN" } else { "FRANCHISE · NOT OPEN YET" }}
+                </div>
+                <div class="gr-note">
+                    {if r.franchise {
+                        "cities of cyberia can be founded here"
+                    } else {
+                        "today the franchise is open in Indonesia only"
+                    }}
+                </div>
+            </div>
+        })}
+
         <div class="globe-ui globe-hud">
             {move || {
                 let (lat, lon, z, ..) = cam.get();
@@ -1276,7 +1631,7 @@ pub fn GlobeAttrib() -> impl IntoView {
         <div class="globe-ui globe-attrib">
             "imagery: Sentinel-2 cloudless 2016 by "
             <a href="https://s2maps.eu" target="_blank" rel="noopener">"EOX"</a>
-            " (CC BY 4.0) · lines: Natural Earth · served by cyberia"
+            " (CC BY 4.0) · Antarctica: Blue Marble by NASA · lines: Natural Earth · served by cyberia"
         </div>
     }
 }
