@@ -44,7 +44,8 @@ def main [--skip-build] {
   ^rsync -az --delete -e $ssh $"($root)/dist/globe/" $"($dest)globe/"
   # the documents' first pages, beside the library
   ^rsync -az --delete -e $ssh $"($root)/dist/covers/" $"($dest)covers/"
-  ^rsync -az --delete --exclude "/*/" -e $ssh $"($root)/dist/" $dest
+  # cyberia.kml lives in the docroot and in no build (it is not in git): it stays
+  ^rsync -az --delete --exclude "/*/" --exclude "/cyberia.kml" -e $ssh $"($root)/dist/" $dest
 
   print ""
   print "✓ deployed → https://cyberia.my/  (after DNS + TLS)"
