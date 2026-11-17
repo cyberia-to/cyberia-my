@@ -4695,3 +4695,80 @@ button.city-card:hover {
   .globe-host .cyberia-right .plot-slab { width: min(46%, 180px); }
   .globe-host .cyberia-right .cyberia-panel-h { margin-top: 8px !important; }
 }
+
+/* ─── the cabinet: where you stand, your flats, who you are, where to turn ── */
+.cab { width: 100%; padding: 28px max(24px, calc((100% - 1180px) / 2)) 60px; box-sizing: border-box; display: block; overflow-y: auto; }
+.cab-hero { margin-bottom: 22px; }
+.cab-title { font-size: 40px; line-height: 1.05; margin: 6px 0 10px; color: #fff; letter-spacing: 0.01em; }
+.cab-lead { max-width: 560px; color: #9a9a9a; font-size: 15px; line-height: 1.5; margin: 0; }
+.cab-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
+.cab-step { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #1d1d1d; background: #070707; min-width: 0; }
+.cs-mark { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid #333; color: #777; font: 700 13px/1 'Play', sans-serif; }
+.cab-step.done { border-color: rgba(0, 255, 65, 0.35); }
+.cab-step.done .cs-mark { border-color: #00ff41; color: #000; background: #00ff41; }
+.cab-step.sent { border-color: rgba(255, 212, 0, 0.4); }
+.cab-step.sent .cs-mark { border-color: #ffd400; color: #ffd400; }
+.cs-copy { display: grid; gap: 3px; min-width: 0; }
+.cs-name { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: #fff; }
+.cs-state { font: 12px/1.2 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #8a8a8a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cab-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+.cab-side { display: grid; gap: 16px; }
+.cab-card { border: 1px solid #1d1d1d; border-radius: 14px; background: #060606; overflow: hidden; }
+.cab-card-h { display: flex; align-items: baseline; gap: 12px; padding: 14px 16px 12px; border-bottom: 1px solid #151515; }
+.cab-empty { display: grid; gap: 10px; justify-items: start; padding: 28px 18px 30px; }
+.cab-empty-t { font-size: 22px; font-weight: 700; color: #fff; }
+.cab-empty-s { color: #9a9a9a; font-size: 14px; line-height: 1.5; max-width: 460px; }
+.cab-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 8px; padding: 10px 16px; border-radius: 10px; border: 1px solid #00ff41; background: rgba(0, 255, 65, 0.08); color: #00ff41; font: 700 12px/1 'Play', sans-serif; letter-spacing: 0.12em; text-decoration: none; cursor: pointer; }
+.cab-btn:hover { background: #00ff41; color: #000; }
+.cab-btn.ghost { border-color: #333; background: none; color: #9a9a9a; }
+.cab-btn.ghost:hover { border-color: #fff; color: #fff; background: none; }
+.cab-flat-list { display: grid; gap: 10px; padding: 14px; }
+.cab-flat { display: grid; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid #1f1f1f; background: #0a0a0a; text-decoration: none; color: #fff; transition: border-color 0.15s ease; }
+.cab-flat:hover { border-color: #00ff41; }
+.cf-top { display: flex; align-items: center; gap: 12px; }
+.cf-name { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; }
+.cf-deal { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; border: 1px solid currentColor; }
+.cf-go { margin-left: auto; color: #555; font-size: 18px; }
+.cab-flat:hover .cf-go { color: #00ff41; }
+.cf-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.cf-facts > div { display: grid; gap: 4px; min-width: 0; }
+.cf-k { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #6f6f6f; }
+.cf-v { font-size: 13px; color: #cfcfcf; overflow-wrap: anywhere; }
+.cab-more { display: block; text-align: center; padding: 12px; border-radius: 12px; border: 1px dashed #2a2a2a; color: #8a8a8a; text-decoration: none; font-size: 13px; }
+.cab-more:hover { border-color: #00ff41; color: #00ff41; }
+.cab-id { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #131313; }
+.cab-id:last-child { border-bottom: 0; }
+.ci-dot { flex: none; width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; border: 1.5px solid #444; }
+.ci-dot.on { border: 0; background: #00ff41; box-shadow: 0 0 10px rgba(0, 255, 65, 0.7); }
+.ci-dot.wait { border: 0; background: #ffd400; }
+.ci-body { display: grid; gap: 5px; min-width: 0; flex: 1; justify-items: start; }
+.ci-name { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: #fff; }
+.ci-val { color: #e6e6e6; font-size: 13px; overflow-wrap: anywhere; }
+.ci-note { color: #808080; font-size: 12px; line-height: 1.4; }
+.ci-note:empty { display: none; }
+.cab-how { margin-top: 6px; width: 100%; }
+.cab-how summary { cursor: pointer; color: #9a9a9a; font-size: 12px; letter-spacing: 0.04em; }
+.cab-how summary:hover { color: #00ff41; }
+.cab-how ol { margin: 10px 0 8px; padding-left: 18px; display: grid; gap: 6px; color: #cfcfcf; font-size: 13px; line-height: 1.4; }
+.cab-how a { color: #00ff41; }
+.cab-link { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #131313; text-decoration: none; color: #fff; }
+.cab-link:last-child { border-bottom: 0; }
+.cab-link:hover { background: rgba(0, 255, 65, 0.05); }
+.cl-copy { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.cl-name { font-size: 14px; font-weight: 700; }
+.cl-sub { font-size: 12px; color: #808080; }
+.cl-go { color: #555; font-size: 16px; }
+.cab-link:hover .cl-go { color: #00ff41; }
+@media (max-width: 980px) {
+  .cab-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .cab { padding: 18px 12px 48px; }
+  .cab-title { font-size: 30px; }
+  .cab-lead { font-size: 14px; }
+  .cab-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .cab-step { padding: 10px; gap: 10px; }
+  .cf-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cab-btn { width: 100%; padding: 13px 16px; box-sizing: border-box; }
+  .cab-card-h .panel-sub { display: none; }
+}

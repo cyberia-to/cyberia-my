@@ -4,6 +4,7 @@
 
 use crate::deals::{fmt_ts, load_dd, load_deals, load_jv, Deal, STEPS};
 use crate::eth::{connect, forget_eth, has_provider, load_eth};
+use crate::globe::BASE;
 use crate::land::{load_map, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::orders::{
@@ -130,6 +131,11 @@ pub fn CabinetPage() -> impl IntoView {
         });
     };
 
+    let short_neuron = {
+        let b = n.bech32.clone();
+        if b.len() > 20 { format!("{}…{}", &b[..12], &b[b.len() - 6..]) } else { b }
+    };
+
     view! {
         <div class="page-shell cities-shell plot-shell">
             <div class="site-chrome cyberia-chrome">
@@ -137,7 +143,7 @@ pub fn CabinetPage() -> impl IntoView {
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">
-                                <a href="/cities" class="brand-flag" title="home" inner_html=FLAG_SVG></a>
+                                <a href=format!("{BASE}/") class="brand-flag" title="the globe" inner_html=FLAG_SVG></a>
                                 <span style="color: var(--cyber-green);">"cyber"</span>
                                 <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
                                 <span style="color: #fff;">"ia"</span>
@@ -147,98 +153,71 @@ pub fn CabinetPage() -> impl IntoView {
                     </div>
                 </div>
             </div>
-            <div class="cities-stage plot-stage-wrap">
-                <div class="cities-hero plot-hero">
-                    <div>
-                        <div class="cities-kicker">"HOLDER · CABINET"</div>
-                        <h2 class="cities-title">"Your room"</h2>
-                        <p class="cities-lead">
-                            "Every status in one place — the deal, due diligence, survey, media, KYC, the wallet. This page lives in your browser; the valley keeps nothing of yours on its servers."
-                        </p>
+            <div class="cities-stage plot-stage-wrap cab">
+                <header class="cab-hero">
+                    <div class="cities-kicker">"HOLDER · CABINET"</div>
+                    <h2 class="cab-title">"Your room"</h2>
+                    <p class="cab-lead">"Your flats, your identity and the people who answer. It lives in this browser; the valley keeps nothing of yours on its servers."</p>
+                </header>
+
+                // where you stand, at a glance: four steps, each lit when done
+                <div class="cab-steps">
+                    <div class="cab-step done">
+                        <span class="cs-mark">"✓"</span>
+                        <span class="cs-copy"><span class="cs-name">"NEURON"</span><span class="cs-state">{short_neuron.clone()}</span></span>
                     </div>
-                    <a class="cta-btn cta-lease dock-found" href="/docs" style="text-decoration:none; max-width: 220px;">
-                        <span class="cta-copy">
-                            <span class="cta-title">"DOCUMENTS →"</span>
-                            <span class="cta-sub">"the pack, rules, papers"</span>
-                        </span>
-                    </a>
+                    {move || {
+                        let w = eth.get();
+                        let on = w.is_some();
+                        let state = w.map(|w| w.short()).unwrap_or_else(|| "not connected".into());
+                        view! {
+                            <div class=if on { "cab-step done" } else { "cab-step" }>
+                                <span class="cs-mark">{if on { "✓" } else { "2" }}</span>
+                                <span class="cs-copy"><span class="cs-name">"WALLET"</span><span class="cs-state">{state}</span></span>
+                            </div>
+                        }
+                    }}
+                    {move || {
+                        let sent = ordered(&log.get(), OrderKind::Kyc, "you");
+                        view! {
+                            <div class=if sent.is_some() { "cab-step sent" } else { "cab-step" }>
+                                <span class="cs-mark">{if sent.is_some() { "…" } else { "3" }}</span>
+                                <span class="cs-copy"><span class="cs-name">"KYC"</span><span class="cs-state">{sent.map(|ts| format!("sent {}", fmt_ts(ts))).unwrap_or_else(|| "not sent".into())}</span></span>
+                            </div>
+                        }
+                    }}
+                    {move || {
+                        let count = rows(&log.get(), &index.get()).len();
+                        let cls = if count > 0 { "cab-step done" } else { "cab-step" };
+                        view! {
+                            <div class=cls>
+                                <span class="cs-mark">{if count > 0 { count.to_string() } else { "4".to_string() }}</span>
+                                <span class="cs-copy"><span class="cs-name">"FLATS"</span><span class="cs-state">{if count > 0 { "in your room".to_string() } else { "none yet".to_string() }}</span></span>
+                            </div>
+                        }
+                    }}
                 </div>
 
-                <div class="library">
-                    <section class="plot-card">
-                        <div class="cyberia-panel-h">
-                            <span class="panel-kicker">"IDENTITY"</span>
-                            <span class="panel-sub">"the neuron on cyber · the wallet on Ethereum · KYC"</span>
-                        </div>
-                        <div class="cabinet-grid">
-                            <div class="cabinet-cell">
-                                <div class="deal-now-step">"NEURON"</div>
-                                <div class="cabinet-mono">{n.bech32.clone()}</div>
-                                <div class="deal-now-since">"derived in this browser · signs your signals and requests"</div>
-                            </div>
-                            <div class="cabinet-cell">
-                                <div class="deal-now-step">"ETHEREUM WALLET"</div>
-                                {move || match eth.get() {
-                                    Some(w) => view! {
-                                        <div class="cabinet-mono" title=w.address.clone()>{w.short()}</div>
-                                        <div class="deal-now-since">{format!("{} · connected {}", w.chain_name(), fmt_ts(w.connected_ms))}</div>
-                                        <button type="button" class="gps-btn" on:click=move |_| { forget_eth(); eth.set(None); }>"FORGET"</button>
-                                    }.into_any(),
-                                    None => view! {
-                                        <div class="deal-now-line">{if has_provider() { "a wallet is in this browser" } else { "no wallet in this browser yet" }}</div>
-                                        <button type="button" class="intent-commit lease" on:click=on_connect>"CONNECT WALLET"</button>
-                                        <div class="deal-now-since">{move || eth_note.get()}</div>
-                                        {(!has_provider()).then(|| view! {
-                                            <div class="wallet-guide">
-                                                <div class="deal-now-step">"HOW TO GET ONE · 5 MINUTES"</div>
-                                                <ol>
-                                                    <li>"on a computer: add the "<a href="https://metamask.io/download" target="_blank" rel="noopener">"MetaMask"</a>" or "<a href="https://rabby.io" target="_blank" rel="noopener">"Rabby"</a>" extension to your browser"</li>
-                                                    <li>"on a phone: install the MetaMask or Rabby app, then open cyberia.my inside the app's own browser"</li>
-                                                    <li>"create a wallet · write the 12 words on paper · nobody at the valley will ever ask for them"</li>
-                                                    <li>"come back to this page and press CONNECT WALLET · approve in the wallet"</li>
-                                                </ol>
-                                                <div class="deal-now-since">"the wallet holds your plot's token on Ethereum and signs for the DAO · paying by bank transfer needs no wallet at all"</div>
-                                            </div>
-                                        })}
-                                    }.into_any(),
-                                }}
-                            </div>
-                            <div class="cabinet-cell">
-                                <div class="deal-now-step">"KYC"</div>
-                                {move || match ordered(&log.get(), OrderKind::Kyc, "you") {
-                                    Some(ts) => view! {
-                                        <div class="deal-now-line">{format!("sent to @{SUPPORT_HANDLE} · {}", fmt_ts(ts))}</div>
-                                        <div class="deal-now-since">"support confirms in the same chat"</div>
-                                    }.into_any(),
-                                    None => view! {
-                                        <div class="deal-now-line">{OrderKind::Kyc.line()}</div>
-                                    }.into_any(),
-                                }}
-                                <a class="intent-commit lease ground-order-btn" href=kyc_href.clone() target="_blank" rel="noopener"
-                                    on:click=move |_| log.update(|l| record_order(l, OrderKind::Kyc, "you"))>
-                                    {move || if ordered(&log.get(), OrderKind::Kyc, "you").is_some() { "SEND KYC AGAIN" } else { "SEND KYC" }}
-                                </a>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="plot-card">
-                        <div class="cyberia-panel-h">
+                <div class="cab-grid">
+                    // ── the flats: the reason the room exists ──
+                    <section class="cab-card cab-flats">
+                        <div class="cab-card-h">
                             <span class="panel-kicker">"YOUR FLATS"</span>
-                            <span class="panel-sub">"every flat you asked about · the deal track and the ground"</span>
+                            <span class="panel-sub">"the deal and the ground of every flat you asked about"</span>
                         </div>
                         {move || {
                             let list = rows(&log.get(), &index.get());
                             if list.is_empty() {
                                 return view! {
-                                    <p class="docs-empty">"no flat yet — pick one on the "<a href="/map" style="color: var(--cyber-green);">"map"</a>" and request a lease or its documents"</p>
+                                    <div class="cab-empty">
+                                        <div class="cab-empty-t">"No flat yet"</div>
+                                        <div class="cab-empty-s">"pick one on the map and ask for a lease or for its documents — it appears here with its track"</div>
+                                        <a class="cab-btn" href=format!("{BASE}/map")>"OPEN CYBER VALLEY →"</a>
+                                    </div>
                                 }.into_any();
                             }
                             view! {
-                                <div class="cabinet-table">
-                                    <div class="cabinet-row cabinet-head">
-                                        <span>"flat"</span><span>"deal"</span><span>"paid"</span><span>"due diligence"</span><span>"survey"</span><span>"media"</span>
-                                    </div>
+                                <div class="cab-flat-list">
                                     {list.into_iter().map(|r| {
                                         let (dl, dc) = deal_line(&r.deal);
                                         let dd = match (r.dd_ms, r.jv_ms) {
@@ -246,49 +225,121 @@ pub fn CabinetPage() -> impl IntoView {
                                             (None, Some(ts)) => format!("on request · asked {}", fmt_ts(ts)),
                                             (None, None) => "—".to_string(),
                                         };
-                                        let href = format!("/plot/{}", r.id);
+                                        let href = format!("{BASE}/plot/{}", r.id);
                                         view! {
-                                            <a class="cabinet-row" href=href>
-                                                <span class="cabinet-flat">{r.name}</span>
-                                                <span style:color=dc>{dl}</span>
-                                                <span>{r.paid}</span>
-                                                <span>{dd}</span>
-                                                <span>{r.survey}</span>
-                                                <span>{r.media}</span>
+                                            <a class="cab-flat" href=href>
+                                                <div class="cf-top">
+                                                    <span class="cf-name">{r.name}</span>
+                                                    <span class="cf-deal" style:color=dc style:border-color=dc>{dl}</span>
+                                                    <span class="cf-go">"→"</span>
+                                                </div>
+                                                <div class="cf-facts">
+                                                    <div><span class="cf-k">"paid"</span><span class="cf-v">{r.paid}</span></div>
+                                                    <div><span class="cf-k">"due diligence"</span><span class="cf-v">{dd}</span></div>
+                                                    <div><span class="cf-k">"survey"</span><span class="cf-v">{r.survey}</span></div>
+                                                    <div><span class="cf-k">"media"</span><span class="cf-v">{r.media}</span></div>
+                                                </div>
                                             </a>
                                         }
                                     }).collect_view()}
+                                    <a class="cab-more" href=format!("{BASE}/map")>"+ another flat on the map"</a>
                                 </div>
                             }.into_any()
                         }}
                     </section>
 
-                    <section class="plot-card">
-                        <div class="cyberia-panel-h">
-                            <span class="panel-kicker">"SUPPORT"</span>
-                            <span class="panel-sub">"a person answers · Telegram"</span>
-                        </div>
-                        <div class="docs-list">
-                            <div class="docs-row">
-                                <a class="doc-dl" href=support_href() target="_blank" rel="noopener">
-                                    <span class="doc-name">{format!("DIRECT MESSAGE · @{SUPPORT_HANDLE}")}</span>
-                                    <span class="doc-meta">"the deal, KYC, documents, anything about a flat"</span>
-                                </a>
+                    <div class="cab-side">
+                        // ── who you are: three rows, each with its state and its one action ──
+                        <section class="cab-card">
+                            <div class="cab-card-h">
+                                <span class="panel-kicker">"IDENTITY"</span>
+                                <span class="panel-sub">"cyber · Ethereum · KYC"</span>
                             </div>
-                            <div class="docs-row">
-                                <a class="doc-dl" href=community_href() target="_blank" rel="noopener">
-                                    <span class="doc-name">"COMMUNITY GROUP · cyberia"</span>
-                                    <span class="doc-meta">"residents, visitors, news of the valley"</span>
-                                </a>
+                            <div class="cab-id">
+                                <span class="ci-dot on"></span>
+                                <div class="ci-body">
+                                    <div class="ci-name">"NEURON"</div>
+                                    <div class="cabinet-mono ci-val">{n.bech32.clone()}</div>
+                                    <div class="ci-note">"derived in this browser · signs your signals and requests"</div>
+                                </div>
                             </div>
-                            <div class="docs-row">
-                                <a class="doc-dl" href="/docs">
-                                    <span class="doc-name">"DOCUMENT LIBRARY"</span>
-                                    <span class="doc-meta">"the pack, the rules, the index, the land and company papers"</span>
-                                </a>
+                            {move || match eth.get() {
+                                Some(w) => view! {
+                                    <div class="cab-id">
+                                        <span class="ci-dot on"></span>
+                                        <div class="ci-body">
+                                            <div class="ci-name">"ETHEREUM WALLET"</div>
+                                            <div class="cabinet-mono ci-val" title=w.address.clone()>{w.short()}</div>
+                                            <div class="ci-note">{format!("{} · connected {}", w.chain_name(), fmt_ts(w.connected_ms))}</div>
+                                            <button type="button" class="cab-btn ghost" on:click=move |_| { forget_eth(); eth.set(None); }>"FORGET"</button>
+                                        </div>
+                                    </div>
+                                }.into_any(),
+                                None => view! {
+                                    <div class="cab-id">
+                                        <span class="ci-dot"></span>
+                                        <div class="ci-body">
+                                            <div class="ci-name">"ETHEREUM WALLET"</div>
+                                            <div class="ci-note">{if has_provider() { "a wallet is in this browser" } else { "no wallet in this browser yet · bank transfer needs none" }}</div>
+                                            <button type="button" class="cab-btn" on:click=on_connect>"CONNECT WALLET"</button>
+                                            <div class="ci-note">{move || eth_note.get()}</div>
+                                            {(!has_provider()).then(|| view! {
+                                                <details class="cab-how">
+                                                    <summary>"how to get a wallet · 5 minutes"</summary>
+                                                    <ol>
+                                                        <li>"on a computer: add the "<a href="https://metamask.io/download" target="_blank" rel="noopener">"MetaMask"</a>" or "<a href="https://rabby.io" target="_blank" rel="noopener">"Rabby"</a>" extension to your browser"</li>
+                                                        <li>"on a phone: install the MetaMask or Rabby app, then open cyberia.my inside the app's own browser"</li>
+                                                        <li>"create a wallet · write the 12 words on paper · nobody at the valley will ever ask for them"</li>
+                                                        <li>"come back to this page and press CONNECT WALLET · approve in the wallet"</li>
+                                                    </ol>
+                                                    <div class="ci-note">"the wallet holds your plot's token on Ethereum and signs for the DAO"</div>
+                                                </details>
+                                            })}
+                                        </div>
+                                    </div>
+                                }.into_any(),
+                            }}
+                            <div class="cab-id">
+                                <span class=move || if ordered(&log.get(), OrderKind::Kyc, "you").is_some() { "ci-dot wait" } else { "ci-dot" }></span>
+                                <div class="ci-body">
+                                    <div class="ci-name">"KYC"</div>
+                                    {move || match ordered(&log.get(), OrderKind::Kyc, "you") {
+                                        Some(ts) => view! {
+                                            <div class="ci-val">{format!("sent to @{SUPPORT_HANDLE} · {}", fmt_ts(ts))}</div>
+                                            <div class="ci-note">"support confirms in the same chat"</div>
+                                        }.into_any(),
+                                        None => view! {
+                                            <div class="ci-note">{OrderKind::Kyc.line()}</div>
+                                        }.into_any(),
+                                    }}
+                                    <a class="cab-btn" href=kyc_href.clone() target="_blank" rel="noopener"
+                                        on:click=move |_| log.update(|l| record_order(l, OrderKind::Kyc, "you"))>
+                                        {move || if ordered(&log.get(), OrderKind::Kyc, "you").is_some() { "SEND KYC AGAIN" } else { "SEND KYC" }}
+                                    </a>
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+
+                        // ── where to turn ──
+                        <section class="cab-card">
+                            <div class="cab-card-h">
+                                <span class="panel-kicker">"HELP"</span>
+                                <span class="panel-sub">"a person answers · Telegram"</span>
+                            </div>
+                            <a class="cab-link" href=support_href() target="_blank" rel="noopener">
+                                <span class="cl-copy"><span class="cl-name">{format!("Direct message · @{SUPPORT_HANDLE}")}</span><span class="cl-sub">"the deal, KYC, documents, anything about a flat"</span></span>
+                                <span class="cl-go">"→"</span>
+                            </a>
+                            <a class="cab-link" href=community_href() target="_blank" rel="noopener">
+                                <span class="cl-copy"><span class="cl-name">"Community group · cyberia"</span><span class="cl-sub">"residents, visitors, news of the valley"</span></span>
+                                <span class="cl-go">"→"</span>
+                            </a>
+                            <a class="cab-link" href=format!("{BASE}/docs")>
+                                <span class="cl-copy"><span class="cl-name">"Documents"</span><span class="cl-sub">"the pack, the rules, the land and company papers"</span></span>
+                                <span class="cl-go">"→"</span>
+                            </a>
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>
