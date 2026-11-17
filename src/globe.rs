@@ -106,8 +106,10 @@ const HOLD_ZOOM: f64 = 1.7; // zoom levels per second
 const HOLD_TWIST: f64 = 1.5; // radians per second
 const HOLD_EASE: f64 = 110.0; // ms to reach two thirds of the speed
 const HOLD_MIN: f64 = 170.0; // ms a tap keeps moving, so a tap is a nudge
-/// The sketch lines of the world (coast, borders, provinces) are gone from this zoom.
-const WORLD_LINES_Z: f64 = 6.5;
+/// The grid zoom of each level's boundary lines: a cell is 360/2^z degrees.
+const LINE_GRID: [u32; 6] = [2, 4, 6, 7, 8, 9];
+/// Steps of a line cell (scripts/build-divisions.py).
+const LINE_QUANTA: f64 = 16384.0;
 fn merc_lat(y: f64) -> f64 {
     (PI * (1.0 - 2.0 * y)).sinh().atan().to_degrees()
 }
@@ -325,11 +327,12 @@ struct Tile {
     used: u32,
 }
 
-struct StaticLayer {
-    vao: WebGlVertexArrayObject,
+/// The boundary lines of one level in one grid cell, on the GPU.
+struct DivLines {
+    vao: Option<WebGlVertexArrayObject>,
+    vbo: Option<WebGlBuffer>,
     count: i32,
-    color: [f32; 4],
-    min_z: f64,
+    used: u32,
 }
 
 struct PreciseLayer {
@@ -436,10 +439,11 @@ struct Engine {
     tiles: HashMap<Key, Tile>,
     inflight: usize,
     regions: Vec<(u8, u32, u32, u32, u32)>,
-    world: Vec<StaticLayer>,
+    div_lines: HashMap<(u8, u32, u32), DivLines>,
+    div_loading: usize,
+    div_wanted: Vec<(u8, u32, u32)>, // cells to fetch, taken by the frame loop
     cyberia: Vec<PreciseLayer>,
     markers: Vec<Marker>,
-    admin1_asked: bool,
     id: u32,
     fit: Option<f64>,
     on_view: Box<dyn Fn(f64, f64, f64, f64, f64, f64)>,
@@ -830,18 +834,55 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         gl.uniform3f(self.line_prog.loc("u_e"), v.e[0] as f32, v.e[1] as f32, v.e[2] as f32);
         gl.uniform3f(self.line_prog.loc("u_n"), v.north[0] as f32, v.north[1] as f32, v.north[2] as f32);
         gl.uniform3f(self.line_prog.loc("u_up"), v.up[0] as f32, v.up[1] as f32, v.up[2] as f32);
-        for l in &self.world {
-            // the world's lines are a sketch of the planet (1:50m): closer in they would
-            // double the exact boundaries beside them, so they fade out by WORLD_LINES_Z
-            if self.z < l.min_z || self.z >= WORLD_LINES_Z {
-                continue;
+        // the divisions: the level the zoom reads and the one above it, each from the
+        // cells of its own grid; deeper levels come in as the camera comes down
+        if self.z < 17.5 {
+            let theta = v.cap();
+            let mut drawn = 0;
+            let mut level = level_for_zoom(self.z) as i32;
+            while level >= 0 && drawn < 2 {
+                let l = level as u8;
+                level -= 1;
+                let cells = self.cells_in_view(360.0 / (1u32 << LINE_GRID[l as usize]) as f64, theta);
+                if cells.len() > 48 {
+                    continue; // too fine for this view
+                }
+                let cells: Vec<(u32, u32)> = cells.into_iter().filter(|c| line_cell_exists(l, c.0, c.1)).collect();
+                if cells.is_empty() {
+                    continue; // no such level here: the one above speaks
+                }
+                // the finer of the two is the fainter
+                let alpha = if drawn == 0 { 0.42 } else { 0.8 };
+                drawn += 1;
+                gl.uniform4f(self.line_prog.loc("u_color"), 1.0, 1.0, 1.0, alpha);
+                for (x, y) in cells {
+                    match self.div_lines.get_mut(&(l, x, y)) {
+                        Some(d) => {
+                            d.used = frame;
+                            if let Some(vao) = &d.vao {
+                                gl.bind_vertex_array(Some(vao));
+                                gl.draw_arrays(GL::LINES, 0, d.count);
+                            }
+                        }
+                        None => {
+                            if self.div_loading < 8 {
+                                self.div_loading += 1;
+                                self.div_lines.insert((l, x, y), DivLines { vao: None, vbo: None, count: 0, used: frame });
+                                self.div_wanted.push((l, x, y));
+                            }
+                        }
+                    }
+                }
             }
-            let near = (1.0 - smooth((self.z - (WORLD_LINES_Z - 1.5)) / 1.5)) as f32;
-            let fade = ((self.z - l.min_z) / 0.8).clamp(0.0, 1.0) as f32;
-            let c = l.color;
-            gl.uniform4f(self.line_prog.loc("u_color"), c[0], c[1], c[2], c[3] * near * if l.min_z > 0.0 { fade } else { 1.0 });
-            gl.bind_vertex_array(Some(&l.vao));
-            gl.draw_arrays(GL::LINES, 0, l.count);
+            if self.div_lines.len() > 160 {
+                let old: Vec<(u8, u32, u32)> = self.div_lines.iter().filter(|(_, d)| d.vao.is_some() && frame - d.used > 600).map(|(k, _)| *k).collect();
+                for k in old {
+                    if let Some(d) = self.div_lines.remove(&k) {
+                        gl.delete_vertex_array(d.vao.as_ref());
+                        gl.delete_buffer(d.vbo.as_ref());
+                    }
+                }
+            }
         }
         gl.use_program(Some(&self.vline_prog.p));
         gl.uniform1f(self.vline_prog.loc("u_fx"), fx);
@@ -977,22 +1018,60 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         self.dirty = true;
     }
 
-    fn add_world_layer(&mut self, lonlat: &[f32], color: [f32; 4], min_z: f64) {
-        let mut q: Vec<f32> = Vec::with_capacity(lonlat.len() / 2 * 3);
-        for c in lonlat.chunks_exact(2) {
-            let u = unit(c[0] as f64, c[1] as f64);
-            q.extend_from_slice(&[u[0] as f32, u[1] as f32, u[2] as f32]);
+    /// The cells of a lon/lat grid the screen can see.
+    fn cells_in_view(&self, size: f64, theta: f64) -> Vec<(u32, u32)> {
+        let (nx, ny) = ((360.0 / size).round() as i64, (180.0 / size).round() as i64);
+        let (lon0, lat0) = (self.lon.to_radians(), self.lat.to_radians());
+        let t = theta.to_degrees();
+        let y0 = (((90.0 - (self.lat + t).min(90.0)) / size).floor() as i64).clamp(0, ny - 1);
+        let y1 = (((90.0 - (self.lat - t).max(-90.0)) / size).floor() as i64).clamp(0, ny - 1);
+        let all_lon = lat0.abs() + theta >= PI / 2.0 - 0.02 || theta.sin() >= lat0.cos();
+        let (x0, span) = if all_lon {
+            (0, nx)
+        } else {
+            let dl = (theta.sin() / lat0.cos()).asin();
+            let a = (((lon0 - dl + PI) / (2.0 * PI)) * nx as f64).floor() as i64;
+            let b = (((lon0 + dl + PI) / (2.0 * PI)) * nx as f64).floor() as i64;
+            (a, (b - a + 1).min(nx))
+        };
+        let margin = size.to_radians() * 0.8;
+        let cam = unit(self.lon, self.lat);
+        let mut out = Vec::new();
+        for y in y0..=y1 {
+            let clat = 90.0 - (y as f64 + 0.5) * size;
+            for i in 0..span {
+                let x = (x0 + i).rem_euclid(nx);
+                let clon = -180.0 + (x as f64 + 0.5) * size;
+                if dot(unit(clon, clat), cam).clamp(-1.0, 1.0).acos() <= theta + margin {
+                    out.push((x as u32, y as u32));
+                }
+            }
+        }
+        out
+    }
+
+    /// A cell of boundary lines arrived: int16 quads in steps of the cell.
+    fn add_div_lines(&mut self, key: (u8, u32, u32), quads: Option<Vec<i16>>) {
+        self.div_loading = self.div_loading.saturating_sub(1);
+        let Some(quads) = quads else { return }; // stays empty: asked once
+        let size = 360.0 / (1u32 << LINE_GRID[key.0 as usize]) as f64;
+        let (ox, oy, q) = (key.1 as f64 * size - 180.0, 90.0 - key.2 as f64 * size, size / LINE_QUANTA);
+        let mut pts: Vec<f32> = Vec::with_capacity(quads.len() / 2 * 3);
+        for c in quads.chunks_exact(2) {
+            let u = unit(ox + c[0] as f64 * q, oy - c[1] as f64 * q);
+            pts.extend_from_slice(&[u[0] as f32, u[1] as f32, u[2] as f32]);
         }
         let gl = &self.gl;
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(&vao));
+        let vao = gl.create_vertex_array();
+        gl.bind_vertex_array(vao.as_ref());
         let vbo = gl.create_buffer();
         gl.bind_buffer(GL::ARRAY_BUFFER, vbo.as_ref());
-        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &js_sys::Float32Array::from(q.as_slice()), GL::STATIC_DRAW);
+        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &js_sys::Float32Array::from(pts.as_slice()), GL::STATIC_DRAW);
         gl.enable_vertex_attrib_array(0);
         gl.vertex_attrib_pointer_with_i32(0, 3, GL::FLOAT, false, 0, 0);
         gl.bind_vertex_array(None);
-        self.world.push(StaticLayer { vao, count: (q.len() / 3) as i32, color, min_z });
+        let frame = self.frame;
+        self.div_lines.insert(key, DivLines { vao, vbo, count: (pts.len() / 3) as i32, used: frame });
         self.dirty = true;
     }
 
@@ -1178,14 +1257,14 @@ fn start_load(this: &Rc<RefCell<Engine>>, k: Key) {
     }
 }
 
-async fn fetch_f32(url: String) -> Option<Vec<f32>> {
+async fn fetch_i16(url: String) -> Option<Vec<i16>> {
     let resp = JsFuture::from(web_sys::window()?.fetch_with_str(&url)).await.ok()?;
     let resp: web_sys::Response = resp.dyn_into().ok()?;
     if !resp.ok() {
         return None;
     }
     let buf = JsFuture::from(resp.array_buffer().ok()?).await.ok()?;
-    Some(js_sys::Float32Array::new(&buf).to_vec())
+    Some(js_sys::Int16Array::new(&buf).to_vec())
 }
 
 async fn fetch_text(url: String) -> Option<String> {
@@ -1350,10 +1429,11 @@ fn start(
         tiles: HashMap::new(),
         inflight: 0,
         regions: Vec::new(),
-        world: Vec::new(),
+        div_lines: HashMap::new(),
+        div_loading: 0,
+        div_wanted: Vec::new(),
         cyberia: cyberia_layers(),
         markers: Vec::new(),
-        admin1_asked: false,
         id,
         fit,
         on_view,
@@ -1394,14 +1474,26 @@ fn start(
             }
         });
     }
-    for (file, color, min_z) in [
-        ("coast", [0.45f32, 1.0, 0.70, 0.55], 0.0),
-        ("borders", [0.45f32, 1.0, 0.70, 0.38], 0.0),
-    ] {
+    // which cells of the divisions exist, so nothing is asked in vain
+    {
         let eng = engine.clone();
         wasm_bindgen_futures::spawn_local(async move {
-            if let Some(v) = fetch_f32(format!("{BASE}/globe/{file}.bin")).await {
-                eng.borrow_mut().add_world_layer(&v, color, min_z);
+            if let Some(text) = fetch_text(format!("{DIV}/cells.json")).await {
+                if let Ok(c) = serde_json::from_str::<CellLists>(&text) {
+                    let set = |m: HashMap<String, Vec<String>>| -> std::collections::HashSet<(u8, u32, u32)> {
+                        m.into_iter()
+                            .flat_map(|(l, cells)| {
+                                let l: u8 = l.parse().unwrap_or(0);
+                                cells.into_iter().filter_map(move |c| {
+                                    let (x, y) = c.split_once('/')?;
+                                    Some((l, x.parse().ok()?, y.parse().ok()?))
+                                })
+                            })
+                            .collect()
+                    };
+                    KNOWN.with(|k| *k.borrow_mut() = Some((set(c.t), set(c.l))));
+                    eng.borrow_mut().dirty = true;
+                }
             }
         });
     }
@@ -1434,21 +1526,13 @@ fn start(
         for k in loads {
             start_load(&eng, k);
         }
-        // the provinces arrive when the camera first comes close enough to read them
-        let ask = {
-            let mut e = eng.borrow_mut();
-            let ask = !e.admin1_asked && e.z > 3.4;
-            if ask {
-                e.admin1_asked = true;
-            }
-            ask
-        };
-        if ask {
+        // the boundary cells the frame found missing
+        let cells: Vec<(u8, u32, u32)> = std::mem::take(&mut eng.borrow_mut().div_wanted);
+        for key in cells {
             let e2 = eng.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                if let Some(v) = fetch_f32(format!("{BASE}/globe/admin1.bin")).await {
-                    e2.borrow_mut().add_world_layer(&v, [0.45, 1.0, 0.70, 0.22], 3.6);
-                }
+                let quads = fetch_i16(format!("{DIV}/l/{}/{}/{}.bin", key.0, key.1, key.2)).await;
+                e2.borrow_mut().add_div_lines(key, quads);
             });
         }
         if let Some(c) = cb2.borrow().as_ref() {
@@ -1557,7 +1641,20 @@ pub fn cam_world() {
 
 // ─── divisions: the unit under a point, level by level ────────────────
 
+#[derive(Deserialize)]
+struct CellLists {
+    t: HashMap<String, Vec<String>>,
+    l: HashMap<String, Vec<String>>,
+}
+
+/// Does a level have boundary lines in a cell? Unknown until the list arrives: then nothing is drawn.
+fn line_cell_exists(level: u8, x: u32, y: u32) -> bool {
+    KNOWN.with(|k| k.borrow().as_ref().map(|(_, l)| l.contains(&(level, x, y))).unwrap_or(false))
+}
+
 thread_local! {
+    /// The cells that exist: (index cells, line cells), each (level, x, y).
+    static KNOWN: RefCell<Option<(std::collections::HashSet<(u8, u32, u32)>, std::collections::HashSet<(u8, u32, u32)>)>> = const { RefCell::new(None) };
     static UNITS: RefCell<HashMap<u64, Rc<UnitFile>>> = RefCell::new(HashMap::new());
     static CELLS: RefCell<HashMap<(u8, u32, u32), Rc<Vec<f64>>>> = RefCell::new(HashMap::new());
     static COUNTRIES: RefCell<Option<Rc<Vec<Country>>>> = const { RefCell::new(None) };
@@ -1592,6 +1689,11 @@ async fn unit_file(id: u64) -> Option<Rc<UnitFile>> {
 async fn cell(level: u8, x: u32, y: u32) -> Rc<Vec<f64>> {
     if let Some(c) = CELLS.with(|m| m.borrow().get(&(level, x, y)).cloned()) {
         return c;
+    }
+    // a cell the list does not name holds no unit of this level
+    let known = KNOWN.with(|k| k.borrow().as_ref().map(|(t, _)| t.contains(&(level, x, y))));
+    if known == Some(false) {
+        return Rc::new(Vec::new());
     }
     let flat: Vec<f64> = match fetch_text(format!("{DIV}/t/{level}/{x}/{y}.json")).await {
         Some(t) => serde_json::from_str(&t).unwrap_or_default(),
@@ -1731,6 +1833,61 @@ pub async fn locate(lon: f64, lat: f64, found: impl Fn(Unit)) {
     }
 }
 
+/// A place found by name: a unit, where it is and how wide.
+#[derive(Clone, PartialEq, Debug)]
+pub struct Place {
+    pub id: u64,
+    pub level: u8,
+    pub name: String,
+    pub code: String,
+    pub lon: f64,
+    pub lat: f64,
+    pub span_deg: f64,
+}
+
+/// Lower case without the accents of the Latin letters: Île → ile.
+fn fold(text: &str) -> String {
+    text.to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ā' | 'ă' | 'ą' => 'a',
+            'ç' | 'ć' | 'č' => 'c',
+            'ď' | 'đ' => 'd',
+            'è' | 'é' | 'ê' | 'ë' | 'ē' | 'ė' | 'ę' | 'ě' => 'e',
+            'ğ' => 'g',
+            'ì' | 'í' | 'î' | 'ï' | 'ī' | 'ı' => 'i',
+            'ł' => 'l',
+            'ñ' | 'ń' | 'ň' => 'n',
+            'ò' | 'ó' | 'ô' | 'õ' | 'ö' | 'ø' | 'ō' | 'ő' => 'o',
+            'ř' => 'r',
+            'ś' | 'š' | 'ş' => 's',
+            'ť' | 'ţ' => 't',
+            'ù' | 'ú' | 'û' | 'ü' | 'ū' | 'ů' | 'ű' => 'u',
+            'ý' | 'ÿ' => 'y',
+            'ź' | 'ż' | 'ž' => 'z',
+            c => c,
+        })
+        .collect()
+}
+
+/// Units whose name starts with the query (three letters at least), states first.
+pub async fn search(query: &str) -> Vec<Place> {
+    let q = query.trim().to_lowercase();
+    if q.chars().count() < 3 {
+        return Vec::new();
+    }
+    let prefix: String = q.chars().take(3).collect();
+    let hex: String = prefix.bytes().map(|b| format!("{b:02x}")).collect();
+    let Some(text) = fetch_text(format!("{DIV}/s/{hex}.json")).await else { return Vec::new() };
+    let rows: Vec<(String, u8, String, u64, f64, f64, f64)> = serde_json::from_str(&text).unwrap_or_default();
+    let fq = fold(&q);
+    rows.into_iter()
+        .filter(|r| r.0.to_lowercase().starts_with(&q) || fold(&r.0).starts_with(&fq))
+        .take(12)
+        .map(|r| Place { name: r.0, level: r.1, code: r.2, id: r.3, lon: r.4, lat: r.5, span_deg: r.6 })
+        .collect()
+}
+
 /// Outline a unit the page already holds (it came from `locate`).
 pub fn show_unit(id: u64) {
     let Some(u) = UNITS.with(|m| m.borrow().get(&id).cloned()) else { return };
@@ -1844,7 +2001,16 @@ pub fn GlobeLayer(
 /// What the layer shows over the planet: the cities, the way to found one,
 /// the zoom buttons and the readout. The host hides it once the land console is on.
 #[component]
-pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl IntoView {
+pub fn GlobeFar(
+    cam: RwSignal<Cam>,
+    picked: RwSignal<Option<usize>>,
+    /// a place found by name was chosen: fly there and select it
+    #[prop(into)]
+    on_place: Callback<Place>,
+) -> impl IntoView {
+    let query = RwSignal::new(String::new());
+    let found = RwSignal::new(Vec::<Place>::new());
+    let asked = StoredValue::new(0u32);
     let founding = RwSignal::new(false);
     let name = RwSignal::new(String::new());
 
@@ -1852,6 +2018,52 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl Int
         <div class="globe-ui globe-hint">"drag: turn the globe · shift-drag or two fingers: twist · wheel or pinch: zoom · tap: select · esc: let go"</div>
 
         <div class="globe-ui globe-cities">
+            <input
+                class="gs-input"
+                type="search"
+                placeholder="search a place: state, region, district…"
+                prop:value=move || query.get()
+                on:input=move |ev| {
+                    let q = event_target_value(&ev);
+                    query.set(q.clone());
+                    asked.update_value(|n| *n += 1);
+                    let no = asked.get_value();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let list = search(&q).await;
+                        // only the answer to the latest letters is shown
+                        if asked.try_get_value() == Some(no) {
+                            found.set(list);
+                        }
+                    });
+                }
+            />
+            {move || {
+                let list = found.get();
+                let q = query.get();
+                if list.is_empty() {
+                    let n = q.trim().chars().count();
+                    return (n > 0).then(|| view! {
+                        <div class="gs-note">{if n < 3 { "three letters at least" } else { "nothing by that name" }}</div>
+                    }).into_any();
+                }
+                view! {
+                    <div class="gs-list">
+                        {list.into_iter().map(|p| {
+                            let place = p.clone();
+                            view! {
+                                <button type="button" class="gs-row" on:click=move |_| {
+                                    found.set(Vec::new());
+                                    query.set(String::new());
+                                    on_place.run(place.clone());
+                                }>
+                                    <span class="gs-name">{p.name.clone()}</span>
+                                    <span class="gs-meta">{format!("{} · {}", level_name(p.level).to_lowercase(), p.code)}</span>
+                                </button>
+                            }
+                        }).collect_view()}
+                    </div>
+                }.into_any()
+            }}
             <div class="globe-cities-h">"CITIES OF CYBERIA"</div>
             {CITIES.iter().enumerate().map(|(i, c)| view! {
                 <button
@@ -2110,7 +2322,7 @@ pub fn GlobeAttrib() -> impl IntoView {
             <a href="https://s2maps.eu" target="_blank" rel="noopener">"EOX"</a>
             " (CC BY 4.0) · Antarctica: Blue Marble by NASA · divisions: "
             <a href="https://www.geoboundaries.org" target="_blank" rel="noopener">"geoBoundaries"</a>
-            " · lines: Natural Earth · served by cyberia"
+            " · served by cyberia"
         </div>
     }
 }

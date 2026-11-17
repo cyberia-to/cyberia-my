@@ -35,7 +35,8 @@ def main():
         with open(os.path.join(states_dir, name), "rb") as f:
             s = tomllib.load(f)
         code = s["code"]
-        a3 = a2_a3.get(code)
+        # states the boundary sources know by no ISO code keep their cyberstates code
+        a3 = a2_a3.get(code) or (code if code in ("ABK", "KRD", "NCY", "OST", "PMR") else None)
         if a3:
             out[a3] = {"code": code, "name": s["name"], "slug": s.get("slug", "")}
         else:

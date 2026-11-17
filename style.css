@@ -4575,3 +4575,15 @@ button.city-card:hover {
 
 /* the pad says how to move; the old hint under the plan would sit on the imagery's credit */
 .globe-host .map-hud-hint { display: none; }
+
+/* search a place by name */
+.gs-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.72); color: #fff; font: 14px 'Play', sans-serif; user-select: text; }
+.gs-input:focus { outline: none; border-color: #00ff41; }
+.gs-list { display: grid; gap: 3px; max-height: 46vh; overflow-y: auto; }
+.gs-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; text-align: left; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.78); color: #fff; cursor: pointer; font-family: 'Play', sans-serif; }
+.gs-row:hover { border-color: #00ff41; }
+.gs-name { font-size: 14px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-meta { font-size: 10px; color: #9a9a9a; letter-spacing: .08em; white-space: nowrap; text-transform: uppercase; }
+.gs-note { font: 11px 'Play', sans-serif; color: #8a8a8a; padding: 2px 4px; text-shadow: 0 1px 2px #000; }
+/* with the right panel open the map is narrower: the hint would run under the search */
+.globe-picked .globe-hint { display: none; }
