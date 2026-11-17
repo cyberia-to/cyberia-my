@@ -730,7 +730,20 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         }
                     }}
                 </div>
-                {move || view! { <CyberiaNav active=if near.get() { nav_active } else { "cities" } /> }}
+                // the bar's two places are places of this map: the camera flies, no page loads
+                {move || view! {
+                    <CyberiaNav
+                        active=if near.get() { nav_active } else { "earth" }
+                        on_go=Callback::new(move |place: &'static str| {
+                            if place == "earth" {
+                                picked.set(None);
+                                cam_world();
+                            } else {
+                                reset_cam();
+                            }
+                        })
+                    />
+                }}
             </div>
             </div>
             </div>
