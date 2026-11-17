@@ -48,6 +48,17 @@ web-sys = { version = "0.3", features = [
     "Blob",
     "Event",
     "Response",
+    "Performance",
+    "HtmlCanvasElement",
+    "HtmlImageElement",
+    "WebGl2RenderingContext",
+    "WebGlProgram",
+    "WebGlShader",
+    "WebGlBuffer",
+    "WebGlTexture",
+    "WebGlUniformLocation",
+    "WebGlVertexArrayObject",
+    "AddEventListenerOptions",
 ] }
 
 [[bin]]

@@ -3,6 +3,7 @@
 //! Only CITIES · MAP · CABINET stay in view. Every other surface is parked under
 //! `/menu/<name>` — still routed, no longer competing for the eye.
 
+use crate::globe::BASE;
 use crate::land::FLAG_SVG;
 use leptos::prelude::*;
 
@@ -30,9 +31,9 @@ pub fn CyberiaNav(#[prop(into)] active: String) -> impl IntoView {
     let a = active;
     view! {
         <div class="map-zone cyberia-nav">
-            <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href="/cities">"CITIES"</a>
-            <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href="/map">"MAP"</a>
-            <a class=if a == "cabinet" { "nav-btn nav-here" } else { "nav-btn" } href="/cabinet">"CABINET"</a>
+            <a class=if a == "cities" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/")>"CITIES"</a>
+            <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/map")>"MAP"</a>
+            <a class=if a == "cabinet" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/cabinet")>"CABINET"</a>
         </div>
     }
 }
@@ -50,7 +51,7 @@ pub fn MenuPage() -> impl IntoView {
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">
-                                <a href="/cities" class="brand-flag" title="home" inner_html=FLAG_SVG></a>
+                                <a href=format!("{BASE}/") class="brand-flag" title="the globe" inner_html=FLAG_SVG></a>
                                 <span style="color: var(--cyber-green);">"cyber"</span>
                                 <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
                                 <span style="color: #fff;">"ia"</span>

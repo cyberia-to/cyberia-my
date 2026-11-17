@@ -4417,3 +4417,158 @@ button.city-card:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ─── the globe: one map from the planet to a plot ───────────────────────
+   The canvas lies under the land console's SVG inside .flat-map-wrap and
+   shares its camera. .globe-far = the camera is away from a city: the
+   console's panels step aside and the planet's own controls show. */
+.globe-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; pointer-events: none; }
+.globe-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+.globe-host .flat-map-wrap { background: #000; }
+.globe-host .map-world { position: relative; z-index: 1; }
+.globe-host .flat-map { background: none; }
+.globe-ui { cursor: default; }
+.globe-marker { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; margin: -7px 0 0 -7px; padding: 0; border: 0; background: none; color: #fff; font: 700 12px/1 'Play', sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; pointer-events: auto; white-space: nowrap; will-change: transform; }
+.gm-dot { width: 14px; height: 14px; border-radius: 50%; background: #ffd400; box-shadow: 0 0 0 3px rgba(255,212,0,.22), 0 0 18px #ffd400; flex: none; }
+.globe-marker.live .gm-dot { background: #00ff41; box-shadow: 0 0 0 3px rgba(0,255,65,.22), 0 0 18px #00ff41; }
+.gm-name { padding: 4px 8px; background: rgba(0,0,0,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; text-shadow: 0 1px 2px #000; }
+.globe-marker:hover .gm-name { border-color: #00ff41; color: #00ff41; }
+.globe-zoom { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; z-index: 4; }
+.globe-zoom button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.66); color: #fff; font: 700 20px/1 'Play', sans-serif; cursor: pointer; }
+.globe-zoom button:hover { border-color: #00ff41; color: #00ff41; }
+.globe-cities { position: absolute; right: 14px; top: 14px; width: min(300px, calc(100vw - 28px)); display: grid; gap: 6px; z-index: 4; }
+.globe-cities-h { font: 700 11px/1 'Play', sans-serif; letter-spacing: .2em; color: #8a8a8a; padding: 4px 2px; text-shadow: 0 1px 2px #000; }
+.globe-city { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.16); background: rgba(0,0,0,.66); color: #fff; cursor: pointer; font-family: 'Play', sans-serif; }
+.globe-city:hover, .globe-city.on { border-color: #00ff41; }
+.globe-city.found { border-style: dashed; }
+.gc-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #ffd400; flex: none; }
+.gc-dot.live { border: 0; background: #00ff41; box-shadow: 0 0 10px #00ff41; }
+.gc-copy { display: grid; gap: 3px; min-width: 0; }
+.gc-name { font-weight: 700; font-size: 15px; }
+.gc-sub { font-size: 11px; color: #9a9a9a; }
+.globe-found { display: grid; gap: 8px; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,212,0,.45); background: rgba(0,0,0,.8); font-family: 'Play', sans-serif; }
+.gf-step { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #ffd400; }
+.gf-note { font-size: 11px; color: #9a9a9a; }
+.gf-coord { font: 13px/1.3 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #fff; white-space: pre; }
+.gf-input { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.22); background: #0a0a0a; color: #fff; font: 14px 'Play', sans-serif; user-select: text; }
+.gf-input:focus { outline: none; border-color: #ffd400; }
+.gf-commit { padding: 12px; border-radius: 10px; border: 1px dashed rgba(255,212,0,.6); background: rgba(255,212,0,.08); color: #ffd400; font: 700 13px/1 'Play', sans-serif; letter-spacing: .1em; cursor: not-allowed; opacity: .75; }
+.globe-cross { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 3; pointer-events: none; border: 1px solid #ffd400; border-radius: 50%; box-shadow: 0 0 14px rgba(255,212,0,.6); }
+.globe-cross::before, .globe-cross::after { content: ""; position: absolute; background: #ffd400; }
+.globe-cross::before { left: 50%; top: -9px; bottom: -9px; width: 1px; }
+.globe-cross::after { top: 50%; left: -9px; right: -9px; height: 1px; }
+.globe-hud { position: absolute; left: 14px; bottom: 30px; font: 12px/1.3 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #cfcfcf; background: rgba(0,0,0,.6); padding: 5px 9px; border-radius: 7px; z-index: 4; white-space: pre; }
+.globe-attrib { position: absolute; left: 14px; bottom: 8px; font: 10px/1.2 'Play', sans-serif; color: #8a8a8a; z-index: 4; text-shadow: 0 1px 2px #000; }
+.globe-attrib a { color: #a8a8a8; }
+.globe-error { position: absolute; inset: 40% 10% auto; text-align: center; color: #ff5a4a; font: 700 16px 'Play', sans-serif; z-index: 6; }
+
+/* away from a city: the map is the whole stage */
+.globe-far .cyberia-stage,
+.globe-far .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding: 0; gap: 0; overflow: hidden; }
+.globe-far .cyberia-stage .cyberia-flats { grid-column: 1; grid-row: 1; border: 0; border-radius: 0; box-shadow: none; }
+.globe-far .cyberia-right:not(.division-panel),
+.globe-far .cyberia-fleets,
+.globe-far .cyberia-flats > .cyberia-panel-h,
+.globe-far .flat-legend,
+.globe-far .map-hud-hint,
+.globe-far .map-zoom-rail,
+.globe-far .map-world,
+.globe-far .map-tooltip,
+.globe-far .cyberia-dock { display: none; }
+/* at a city: the land console is on, the planet's controls are off */
+.globe-host:not(.globe-far) .globe-zoom,
+.globe-host:not(.globe-far) .globe-cities,
+.globe-host:not(.globe-far) .globe-hud,
+.globe-host:not(.globe-far) .globe-cross { display: none; }
+.globe-host:not(.globe-far) .globe-attrib { left: auto; right: 8px; bottom: 4px; font-size: 9px; }
+
+@media (max-width: 640px) {
+  .globe-cities { top: auto; bottom: 64px; right: 10px; left: 10px; width: auto; }
+  .globe-cities-h, .gc-sub { display: none; }
+  .globe-zoom { top: 34%; left: 8px; }
+  .globe-hud { bottom: 34px; left: 10px; font-size: 10px; }
+  .globe-attrib { left: 10px; right: 10px; bottom: 6px; font-size: 9px; }
+}
+@media (max-width: 640px) {
+  .globe-cities { right: 84px; }
+  .globe-host:not(.globe-far) .globe-attrib { left: auto; right: 6px; top: 4px; bottom: auto; max-width: 72%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* a selected region: its card; the outline is drawn by the engine */
+.globe-region { position: absolute; left: 68px; top: 14px; width: min(280px, calc(100vw - 96px)); display: grid; gap: 6px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,212,0,.55); background: rgba(0,0,0,.8); font-family: 'Play', sans-serif; z-index: 4; }
+.gr-h { display: flex; align-items: center; justify-content: space-between; }
+.gr-kicker { font-size: 11px; font-weight: 700; letter-spacing: .2em; color: #ffd400; }
+.gr-x, .panel-x { width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,.22); background: none; color: #cfcfcf; font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
+.gr-x:hover, .panel-x:hover { border-color: #fff; color: #fff; }
+.panel-x { margin-left: auto; }
+.gr-name { font-size: 20px; font-weight: 700; color: #fff; }
+.gr-status { font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #8a8a8a; }
+.gr-status.open { color: #00ff41; }
+.gr-note { font-size: 11px; color: #9a9a9a; }
+.globe-host:not(.globe-far) .globe-region { display: none; }
+@media (max-width: 640px) {
+  .globe-region { left: 10px; right: 10px; top: 10px; width: auto; }
+}
+
+/* the tapped point and the divisions it is in, level under level */
+.globe-region { width: min(320px, calc(100vw - 96px)); }
+.gr-h { gap: 8px; }
+.gr-coord { font: 11px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #cfcfcf; margin-right: auto; white-space: pre; }
+.gr-levels { display: grid; gap: 4px; }
+.gr-level { display: grid; gap: 2px; text-align: left; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.03); color: #fff; cursor: pointer; font-family: 'Play', sans-serif; }
+.gr-level:hover { border-color: rgba(255,212,0,.6); }
+.gr-level.on { border-color: #ffd400; background: rgba(255,212,0,.12); }
+.gl-kind { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: #8a8a8a; }
+.gr-level.on .gl-kind { color: #ffd400; }
+.gl-name { font-size: 14px; font-weight: 700; }
+
+/* a tapped point over the planet opens the right panel, as a plot does at a city */
+.globe-far.globe-picked .cyberia-stage,
+.globe-far.globe-picked .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr) 324px; padding: 8px 10px; gap: 8px; }
+.globe-far.globe-picked .cyberia-stage .division-panel { grid-column: 2; grid-row: 1; overflow-y: auto; }
+.division-panel .gr-levels { margin-bottom: 10px; }
+.division-panel .division-note { font-size: 11px; color: #9a9a9a; margin-top: 6px; }
+.division-panel .division-cta { width: 100%; margin-top: 12px; }
+@media (max-width: 1100px) {
+  .globe-far.globe-picked .cyberia-stage,
+  .globe-far.globe-picked .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(220px, 44vh); padding: 0; gap: 0; }
+  .globe-far.globe-picked .cyberia-stage .division-panel { grid-column: 1; grid-row: 2; }
+}
+/* a division reads as a map: north up and still, where a plot's slab spins */
+.division-panel .plot-slab { transform: none; animation: none; }
+.division-panel .plot-slab-path { stroke-width: 1.4; }
+
+/* the globe's own controls: turn, north up, the hint */
+.gz-sep { height: 6px; }
+.gz-compass { color: #ff3b30 !important; }
+.gz-needle { display: inline-block; font-size: 15px; line-height: 1; }
+.globe-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); font: 10px/1.2 'Play', sans-serif; letter-spacing: .06em; color: #7c7c7c; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 6px; z-index: 4; white-space: nowrap; pointer-events: none; }
+.globe-host:not(.globe-far) .globe-hint { display: none; }
+@media (max-width: 900px) { .globe-hint { display: none; } }
+@media (max-width: 640px) { .globe-zoom button { width: 36px; height: 36px; } .globe-zoom { top: 30%; } }
+
+/* the area of a division: on its row, under its render */
+.gr-level { grid-template-columns: 1fr auto; }
+.gl-kind { grid-column: 1; }
+.gl-area { grid-column: 2; grid-row: 1 / span 2; align-self: center; font: 11px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #9a9a9a; white-space: nowrap; }
+.gr-level.on .gl-area { color: #ffd400; }
+.gl-name { grid-column: 1; }
+.prism-area { margin-top: 4px; font: 12px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #cfcfcf; }
+
+/* the pad: one place for every move of the camera, each button signed with its key */
+.nav-pad { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 5; display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; padding: 6px; border-radius: 12px; background: rgba(0,0,0,.62); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(4px); }
+.nav-pad button { position: relative; height: 40px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(12,12,12,.8); color: #fff; font: 700 17px/1 'Play', sans-serif; cursor: pointer; padding: 0 0 6px; }
+.nav-pad button:hover { border-color: #00ff41; color: #00ff41; }
+.nav-pad button:active { background: rgba(0,255,65,.14); }
+.nav-pad kbd { position: absolute; right: 3px; bottom: 2px; font: 700 8px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #8a8a8a; letter-spacing: 0; }
+.nav-pad button:hover kbd { color: #00ff41; }
+.nav-pad .np-north { color: #ff3b30; }
+.nav-pad .np-needle { display: inline-block; font-size: 14px; }
+.nav-pad .np-wide { grid-column: 1 / span 2; font-size: 11px; letter-spacing: .1em; padding-bottom: 0; }
+.nav-pad .np-wide2 { padding-bottom: 4px; }
+@media (max-width: 640px) {
+  .nav-pad { grid-template-columns: repeat(3, 32px); gap: 3px; padding: 4px; left: 6px; top: 34%; }
+  .nav-pad button { height: 32px; font-size: 14px; padding-bottom: 0; }
+  .nav-pad kbd { display: none; }
+  .nav-pad .np-wide { font-size: 9px; }
+}

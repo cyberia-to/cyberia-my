@@ -1,7 +1,6 @@
 mod admin;
 mod app;
 mod cabinet;
-mod cities;
 mod console;
 mod deals;
 mod docs;
@@ -12,6 +11,7 @@ mod erp;
 mod events;
 mod friends;
 mod genetics;
+mod globe;
 mod land;
 mod me;
 mod nav;
