@@ -13,7 +13,7 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_drag, cam_fit, cam_hold, cam_north, cam_pan, cam_release, cam_stop, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
+    cam_drag, cam_fit, cam_hold, cam_north, cam_pan, cam_release, cam_stop, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Place, Unit, BASE,
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
@@ -558,6 +558,39 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
         let _ = ls.remove_item("cyberia_found_cities");
     }
 
+    // a point of the earth is chosen (a tap, or a place found by name): every
+    // division it is in is looked up, and one is selected — `prefer` if it is
+    // there, else the level the zoom reads
+    let tap_at = move |lon: f64, lat: f64, prefer: Option<(u64, u8)>| {
+        drop_point();
+        let tap = tap_no.get_value();
+        point.set(Some((lat, lon)));
+        let want = prefer.map(|p| p.1).unwrap_or_else(|| level_for_zoom(cam.get_untracked().2));
+        wasm_bindgen_futures::spawn_local(async move {
+            locate(lon, lat, move |u: Unit| {
+                if tap_no.try_get_value() != Some(tap) {
+                    return; // a later tap took over
+                }
+                if u.level <= want {
+                    unit_sel.set(Some(u.id));
+                    show_unit(u.id);
+                }
+                chain.update(|c| c.push(u));
+            })
+            .await;
+            // open water: nothing to select
+            if tap_no.try_get_value() == Some(tap) && chain.get_untracked().is_empty() {
+                drop_point();
+            }
+        });
+    };
+    // a place found by name: fly so that it fills the view, then select it
+    let go_place = move |p: Place| {
+        picked.set(None);
+        cam_fit(p.lon, p.lat, (p.span_deg * 111_320.0 * 1.6).max(2_000.0), 1800.0);
+        tap_at(p.lon, p.lat, Some((p.id, p.level)));
+    };
+
     let zoom_by = move |factor: f64| cam_zoom(factor.log2(), None);
     let zoom_at = move |factor: f64, cx: f64, cy: f64| cam_zoom(factor.log2(), Some((cx, cy)));
     let pan_by = move |dx_screen: f64, dy_screen: f64| cam_pan(dx_screen, dy_screen);
@@ -1078,37 +1111,15 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             let Some(el) = map_wrap_ref.get_untracked() else { return };
                             let r = el.get_bounding_client_rect();
                             // the point under the tap, then every division it is in; space clears
-                            let Some((lon, lat)) = point_at(ev.client_x() as f64 - r.left(), ev.client_y() as f64 - r.top()) else {
-                                drop_point();
-                                return;
-                            };
-                            drop_point();
-                            let tap = tap_no.get_value();
-                            point.set(Some((lat, lon)));
-                            // the level the tap selects follows the zoom: the state from afar
-                            let want = level_for_zoom(cam.get_untracked().2);
-                            wasm_bindgen_futures::spawn_local(async move {
-                                locate(lon, lat, move |u: Unit| {
-                                    if tap_no.try_get_value() != Some(tap) {
-                                        return; // a later tap took over
-                                    }
-                                    if u.level <= want {
-                                        unit_sel.set(Some(u.id));
-                                        show_unit(u.id);
-                                    }
-                                    chain.update(|c| c.push(u));
-                                })
-                                .await;
-                                // open water: nothing to select
-                                if tap_no.try_get_value() == Some(tap) && chain.get_untracked().is_empty() {
-                                    drop_point();
-                                }
-                            });
+                            match point_at(ev.client_x() as f64 - r.left(), ev.client_y() as f64 - r.top()) {
+                                Some((lon, lat)) => tap_at(lon, lat, None),
+                                None => drop_point(),
+                            }
                         }
                     >
                         // the globe: imagery and the world's lines, under everything
                         <GlobeLayer cam=cam picked=picked home=home />
-                        <GlobeFar cam=cam picked=picked />
+                        <GlobeFar cam=cam picked=picked on_place=go_place />
                         <GlobeAttrib />
 
                         // the pad: every way to move the camera, each button with its key
