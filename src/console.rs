@@ -13,7 +13,7 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_drag, cam_fit, cam_pan, cam_release, cam_stop, cam_turn, cam_twist, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
+    cam_drag, cam_fit, cam_north, cam_pan, cam_release, cam_stop, cam_turn, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
@@ -565,6 +565,56 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let reset_cam = move || cam_fit(site_lon, site_lat, site_fit_m, 900.0);
     let home = (!planet).then_some((site_lon, site_lat, site_fit_m));
 
+    // the keyboard steers the map from anywhere on the page, not only when the map
+    // has the focus; every key is written on its button in the pad
+    const TURN: f64 = std::f64::consts::PI / 8.0;
+    let keys = window_event_listener(leptos::ev::keydown, move |ev| {
+        if ev.ctrl_key() || ev.meta_key() || ev.alt_key() {
+            return;
+        }
+        // typing is not steering
+        let typing = ev
+            .target()
+            .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+            .map(|el| {
+                let tag = el.tag_name().to_ascii_lowercase();
+                tag == "input" || tag == "textarea" || tag == "select" || el.has_attribute("contenteditable")
+            })
+            .unwrap_or(false);
+        if typing {
+            return;
+        }
+        let step = if ev.shift_key() { 240.0 } else { 60.0 };
+        let mut used = true;
+        match ev.key().as_str() {
+            "ArrowLeft" | "a" | "A" => pan_by(step, 0.0),
+            "ArrowRight" | "d" | "D" => pan_by(-step, 0.0),
+            "ArrowUp" | "w" | "W" => pan_by(0.0, step),
+            "ArrowDown" | "s" | "S" => pan_by(0.0, -step),
+            "+" | "=" => zoom_by(1.25),
+            "-" | "_" => zoom_by(1.0 / 1.25),
+            "q" | "Q" => cam_turn(-TURN),
+            "e" | "E" => cam_turn(TURN),
+            "n" | "N" => cam_north(),
+            "0" => {
+                picked.set(None);
+                cam_world();
+            }
+            "h" | "H" => reset_cam(),
+            // nothing selected: the division, the city and the plot let go
+            "Escape" => {
+                drop_point();
+                picked.set(None);
+                selected_flat.set(None);
+            }
+            _ => used = false,
+        }
+        if used {
+            ev.prevent_default();
+        }
+    });
+    on_cleanup(move || keys.remove());
+
     Effect::new(move |_| {
         let title = if domains_board {
             "Cyberia — domains · Gesing, Bali"
@@ -806,34 +856,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 zoom_by(factor);
                             }
                         }
-                        on:keydown=move |ev| {
-                            // typing a city's name is not steering the map
-                            let typing = ev.target()
-                                .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
-                                .map(|el| el.tag_name().eq_ignore_ascii_case("input"))
-                                .unwrap_or(false);
-                            if typing { return; }
-                            let key = ev.key();
-                            let step = 36.0;
-                            match key.as_str() {
-                                "ArrowLeft" | "a" | "A" => { ev.prevent_default(); pan_by(step, 0.0); }
-                                "ArrowRight" | "d" | "D" => { ev.prevent_default(); pan_by(-step, 0.0); }
-                                "ArrowUp" | "w" | "W" => { ev.prevent_default(); pan_by(0.0, step); }
-                                "ArrowDown" | "s" | "S" => { ev.prevent_default(); pan_by(0.0, -step); }
-                                "+" | "=" => { ev.prevent_default(); zoom_by(1.25); }
-                                "-" | "_" => { ev.prevent_default(); zoom_by(1.0 / 1.25); }
-                                "0" => { ev.prevent_default(); reset_cam(); }
-                                "q" | "Q" => { ev.prevent_default(); cam_turn(-std::f64::consts::PI / 8.0); }
-                                "e" | "E" => { ev.prevent_default(); cam_turn(std::f64::consts::PI / 8.0); }
-                                // nothing selected: the region, the city and the plot let go
-                                "Escape" => {
-                                    drop_point();
-                                    picked.set(None);
-                                    selected_flat.set(None);
-                                }
-                                _ => {}
-                            }
-                        }
                         on:pointerdown=move |ev| {
                             // pan from anywhere on the map (plots, empty, places) —
                             // filled flats used to block drag; click still selects if no pan
@@ -1064,30 +1086,22 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         <GlobeFar cam=cam picked=picked />
                         <GlobeAttrib />
 
-                        // left zoom rail (game-style) — deep zoom for cm-scale tile planning
-                        <div class="map-zoom-rail" aria-label="map zoom">
-                            <button class="map-cam-btn" type="button" title="zoom in (to ~10cm tile scale)"
-                                on:click=move |ev| { ev.stop_propagation(); zoom_by(1.35); }
-                            >"+"</button>
-                            <button class="map-cam-btn" type="button" title="zoom out"
-                                on:click=move |ev| { ev.stop_propagation(); zoom_by(1.0 / 1.35); }
-                            >"−"</button>
-                            <button class="map-cam-btn" type="button" title="reset view"
-                                on:click=move |ev| { ev.stop_propagation(); reset_cam(); }
-                            >"⌂"</button>
-                            <div class="map-cam-sep"></div>
-                            <button class="map-cam-btn" type="button" title="pan left"
-                                on:click=move |ev| { ev.stop_propagation(); pan_by(48.0, 0.0); }
-                            >"←"</button>
-                            <button class="map-cam-btn" type="button" title="pan right"
-                                on:click=move |ev| { ev.stop_propagation(); pan_by(-48.0, 0.0); }
-                            >"→"</button>
-                            <button class="map-cam-btn" type="button" title="pan up"
-                                on:click=move |ev| { ev.stop_propagation(); pan_by(0.0, 48.0); }
-                            >"↑"</button>
-                            <button class="map-cam-btn" type="button" title="pan down"
-                                on:click=move |ev| { ev.stop_propagation(); pan_by(0.0, -48.0); }
-                            >"↓"</button>
+                        // the pad: every way to move the camera, each button with its key
+                        <div class="nav-pad globe-ui" aria-label="map navigation">
+                            <button type="button" title="turn the view left · Q" on:click=move |_| cam_turn(-TURN)>"⟲"<kbd>"Q"</kbd></button>
+                            <button type="button" title="up · W or ↑ (shift: far)" on:click=move |_| pan_by(0.0, 120.0)>"↑"<kbd>"W"</kbd></button>
+                            <button type="button" title="turn the view right · E" on:click=move |_| cam_turn(TURN)>"⟳"<kbd>"E"</kbd></button>
+                            <button type="button" title="left · A or ← (shift: far)" on:click=move |_| pan_by(120.0, 0.0)>"←"<kbd>"A"</kbd></button>
+                            <button type="button" class="np-north" title="north up · N" on:click=move |_| cam_north()>
+                                <span class="np-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
+                                <kbd>"N"</kbd>
+                            </button>
+                            <button type="button" title="right · D or → (shift: far)" on:click=move |_| pan_by(-120.0, 0.0)>"→"<kbd>"D"</kbd></button>
+                            <button type="button" title="zoom out · −" on:click=move |_| zoom_by(1.0 / 1.6)>"−"<kbd>"−"</kbd></button>
+                            <button type="button" title="down · S or ↓ (shift: far)" on:click=move |_| pan_by(0.0, -120.0)>"↓"<kbd>"S"</kbd></button>
+                            <button type="button" title="zoom in · +" on:click=move |_| zoom_by(1.6)>"+"<kbd>"+"</kbd></button>
+                            <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯ EARTH"<kbd>"0"</kbd></button>
+                            <button type="button" class="np-wide2" title="Cyber Valley · H" on:click=move |_| reset_cam()>"⌂"<kbd>"H"</kbd></button>
                         </div>
 
                         {

@@ -4554,3 +4554,21 @@ button.city-card:hover {
 .gr-level.on .gl-area { color: #ffd400; }
 .gl-name { grid-column: 1; }
 .prism-area { margin-top: 4px; font: 12px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #cfcfcf; }
+
+/* the pad: one place for every move of the camera, each button signed with its key */
+.nav-pad { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 5; display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; padding: 6px; border-radius: 12px; background: rgba(0,0,0,.62); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(4px); }
+.nav-pad button { position: relative; height: 40px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(12,12,12,.8); color: #fff; font: 700 17px/1 'Play', sans-serif; cursor: pointer; padding: 0 0 6px; }
+.nav-pad button:hover { border-color: #00ff41; color: #00ff41; }
+.nav-pad button:active { background: rgba(0,255,65,.14); }
+.nav-pad kbd { position: absolute; right: 3px; bottom: 2px; font: 700 8px/1 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #8a8a8a; letter-spacing: 0; }
+.nav-pad button:hover kbd { color: #00ff41; }
+.nav-pad .np-north { color: #ff3b30; }
+.nav-pad .np-needle { display: inline-block; font-size: 14px; }
+.nav-pad .np-wide { grid-column: 1 / span 2; font-size: 11px; letter-spacing: .1em; padding-bottom: 0; }
+.nav-pad .np-wide2 { padding-bottom: 4px; }
+@media (max-width: 640px) {
+  .nav-pad { grid-template-columns: repeat(3, 32px); gap: 3px; padding: 4px; left: 6px; top: 34%; }
+  .nav-pad button { height: 32px; font-size: 14px; padding-bottom: 0; }
+  .nav-pad kbd { display: none; }
+  .nav-pad .np-wide { font-size: 9px; }
+}

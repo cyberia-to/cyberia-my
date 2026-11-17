@@ -1810,18 +1810,7 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl Int
     let name = RwSignal::new(String::new());
 
     view! {
-        <div class="globe-ui globe-zoom">
-            <button type="button" title="zoom in" on:click=move |_| cam_zoom(1.0, None)>"+"</button>
-            <button type="button" title="zoom out" on:click=move |_| cam_zoom(-1.0, None)>"−"</button>
-            <button type="button" title="the whole earth" on:click=move |_| { picked.set(None); cam_world(); }>"◯"</button>
-            <span class="gz-sep"></span>
-            <button type="button" title="turn left (Q)" on:click=move |_| cam_turn(-PI / 8.0)>"⟲"</button>
-            <button type="button" class="gz-compass" title="north up" on:click=move |_| cam_north()>
-                <span class="gz-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
-            </button>
-            <button type="button" title="turn right (E)" on:click=move |_| cam_turn(PI / 8.0)>"⟳"</button>
-        </div>
-        <div class="globe-ui globe-hint">"drag: turn the globe · shift-drag or two fingers: twist · wheel or pinch: zoom · tap: select"</div>
+        <div class="globe-ui globe-hint">"drag: turn the globe · shift-drag or two fingers: twist · wheel or pinch: zoom · tap: select · esc: let go"</div>
 
         <div class="globe-ui globe-cities">
             <div class="globe-cities-h">"CITIES OF CYBERIA"</div>
