@@ -198,7 +198,8 @@ def launch(browser, width, height):
     profile = tempfile.mkdtemp(prefix="cdp-")
     proc = subprocess.Popen(
         [browser, "--headless=new", "--remote-debugging-port=0", f"--user-data-dir={profile}",
-         "--no-first-run", "--no-default-browser-check", "--disable-gpu",
+         "--no-first-run", "--no-default-browser-check",
+         *(["--use-angle=metal", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"] if os.environ.get("CDP_GPU") else ["--disable-gpu"]),
          f"--window-size={width},{height}", "about:blank"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
