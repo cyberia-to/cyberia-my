@@ -222,28 +222,6 @@ fn zone_key(flat: &Flat) -> &str {
     s
 }
 
-/// District colour — it lives on the outline only.
-fn zone_color(zone_or_id: &str) -> &'static str {
-    let z = zone_or_id.to_lowercase();
-    if z.contains("avalon") {
-        "#ff5b00"
-    } else if z.contains("sinwood") {
-        "#00fe00"
-    } else if z.contains("bridge") {
-        "#00acff"
-    } else if z.contains("core") {
-        "#fcf000"
-    } else if z.contains("ether") {
-        "#d500f9"
-    } else if z.contains("asgard") {
-        "#ff0000"
-    } else if z.contains("edem") || z.contains("canyon") {
-        "#304ffe"
-    } else {
-        "#ffffff"
-    }
-}
-
 fn load_map() -> MapData {
     serde_json::from_str(MAP_JSON).expect("cyberia_map.json")
 }
@@ -1080,8 +1058,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                             let id_lab = flat.id.clone();
                                             let id_hov = flat.id.clone();
                                             let id_hov2 = flat.id.clone();
-                                            let zkey = zone_key(&flat).to_string();
-                                            let z_stroke = zkey.clone();
                                             let label_hov = bare_name(&flat.name);
                                             let area = area_m2(&flat.coords);
                                             let d = poly_path(&flat.coords, &m.bbox, W, H, PAD);
@@ -1139,7 +1115,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                         fill=land_use(&flat.id).color()
                                                         stroke=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_fill.as_str());
-                                                            if sel { "#ffffff" } else { zone_color(&z_stroke) }
+                                                            // one neutral seam for every plot: the district is in the name, not the colour
+                                                            if sel { "#ffffff" } else { "#0a0a0a" }
                                                         }
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
@@ -1464,19 +1441,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         <span class="leg dash" title="a lease request you opened in this browser">"IN TRANSFER"</span>
                         </div>
                         <div class="leg-row">
-                        <span class="leg dim">"outline = district"</span>
-                        {[
-                            ("sinwood", "SINWOOD"),
-                            ("avalon", "AVALON"),
-                            ("etherland", "ETHERLAND"),
-                            ("asgard", "ASGARD"),
-                            ("core", "CORE"),
-                            ("bridge", "BRIDGE"),
-                            ("edem", "EDEM"),
-                        ].into_iter().map(|(z, name)| view! {
-                            <span class="leg ring" style:--sw=zone_color(z)>{name}</span>
-                        }).collect_view()}
-                        <span class="leg dim">"· lines"</span>
+                        <span class="leg dim">"lines"</span>
                         <span class="leg line" style:--sw="#777777">"ROAD"</span>
                         <span class="leg line thin" style:--sw="#097138">"PATH"</span>
                         <span class="leg line dashed" style:--sw="#304ffe">"CANYON"</span>
