@@ -4641,3 +4641,57 @@ button.city-card:hover {
   .globe-far:not(.globe-picked) .cyberia-right:not(.division-panel) { display: flex; opacity: 0; pointer-events: none; min-width: 0; border-color: transparent; }
   .globe-host .cyberia-right { transition: opacity 0.4s ease 0.12s; }
 }
+
+/* ─── a phone: the map is the page ───────────────────────────────────────
+   the map fills the screen under the header; what is selected rides in a sheet
+   at the bottom (one line closed, most of the screen open); fingers pan, zoom
+   and twist, so the pad keeps only north, the earth and the city. */
+.sheet-handle { display: none; }
+@media (max-width: 720px) {
+  .cyberia-chrome .chrome-inner { padding: 6px 10px; }
+  .globe-host .cyberia-stage,
+  .globe-host .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: minmax(0, 1fr) !important; padding: 0 !important; gap: 0 !important; overflow: hidden; }
+  .globe-host .cyberia-stage .cyberia-flats { grid-column: 1; grid-row: 1; border: 0; border-radius: 0; box-shadow: none; }
+  .globe-host .cyberia-flats > .cyberia-panel-h,
+  .globe-host .flat-legend,
+  .globe-host .cyberia-fleets,
+  .globe-host .cyberia-dock { display: none !important; }
+
+  /* the sheet */
+  .globe-host .cyberia-right { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; max-height: calc(58px + env(safe-area-inset-bottom)); border: 1px solid #262626; border-bottom: 0; border-radius: 16px 16px 0 0; background: rgba(6, 6, 6, 0.97); overflow: hidden; transition: max-height 0.35s cubic-bezier(0.2, 0.7, 0.2, 1); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6); animation: none; opacity: 1; }
+  .globe-host.sheet-open .cyberia-right { max-height: 78dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .globe-far:not(.globe-picked) .cyberia-right:not(.division-panel) { display: none; }
+  .sheet-handle { display: flex; align-items: center; gap: 12px; width: 100%; flex: none; min-height: 58px; padding: 8px 16px; border: 0; background: none; color: #fff; text-align: left; font-family: 'Play', sans-serif; cursor: pointer; position: sticky; top: 0; z-index: 2; background: rgba(6, 6, 6, 0.97); }
+  .sheet-handle::before { content: ""; position: absolute; left: 50%; top: 5px; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: #3a3a3a; }
+  .sh-copy { display: grid; gap: 2px; min-width: 0; flex: 1; padding-top: 6px; }
+  .sh-name { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sh-name.dim { color: #9a9a9a; font-weight: 400; font-size: 14px; }
+  .sh-sub { font-size: 12px; color: #9a9a9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sh-chev { font-size: 16px; color: #8a8a8a; flex: none; }
+
+  /* the pad: north, the earth, the city */
+  .nav-pad { grid-template-columns: 40px; gap: 6px; padding: 5px; left: 8px; top: 8px; transform: none; border-radius: 14px; }
+  .nav-pad .np-key, .nav-pad .np-label { display: none; }
+  .nav-pad button { height: 40px; font-size: 16px; padding: 0; }
+  .nav-pad .np-wide { grid-column: auto; font-size: 16px; }
+
+  /* over the planet: the search, the cities as two chips, the credit in one line */
+  .globe-cities { left: 8px; right: 8px; bottom: 22px; top: auto; width: auto; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .globe-cities .gs-input, .globe-cities .gs-list, .globe-cities .gs-note, .globe-cities .globe-found { grid-column: 1 / -1; }
+  .globe-cities .gs-list { max-height: 34dvh; }
+  .globe-city { padding: 9px 10px; gap: 8px; }
+  .gc-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .globe-hud { display: none; }
+  .globe-attrib { left: 8px; right: 8px; bottom: 4px; font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .globe-picked .globe-cities { display: none; }
+  .globe-picked .globe-attrib { bottom: calc(62px + env(safe-area-inset-bottom)); }
+  .globe-host:not(.globe-far) .globe-attrib { top: auto; bottom: calc(62px + env(safe-area-inset-bottom)); right: 8px; left: 8px; max-width: none; }
+  .gs-input { padding: 9px 12px; font-size: 16px; } /* 16 px: a phone does not zoom the page on focus */
+  .gf-input { font-size: 16px; }
+}
+@media (max-width: 720px) {
+  .globe-host .cyberia-right { background: #060606; }
+  .globe-host .cyberia-right .render-3d { max-height: 210px; min-height: 0; }
+  .globe-host .cyberia-right .plot-slab { width: min(46%, 180px); }
+  .globe-host .cyberia-right .cyberia-panel-h { margin-top: 8px !important; }
+}

@@ -2206,6 +2206,8 @@ pub fn DivisionPanel(
     point: RwSignal<Option<(f64, f64)>>,
     chain: RwSignal<Vec<Unit>>,
     selected: RwSignal<Option<u64>>,
+    /// a phone shows the panel as a sheet at the bottom; true = open
+    sheet: RwSignal<bool>,
 ) -> impl IntoView {
     let close = move || {
         clear_region();
@@ -2221,6 +2223,19 @@ pub fn DivisionPanel(
     };
     view! {
         <section class="cyberia-panel cyberia-right division-panel">
+            // a phone's sheet: one line says what is selected, a tap opens the rest
+            <button type="button" class="sheet-handle" on:click=move |_| sheet.update(|o| *o = !*o)>
+                <span class="sh-copy">
+                    {move || match current() {
+                        Some(u) => view! {
+                            <span class="sh-name">{u.name.clone()}</span>
+                            <span class="sh-sub"><span style="color:#ffd400">{level_name(u.level)}</span>{format!(" · {}", fmt_area(u.area_km2))}</span>
+                        }.into_any(),
+                        None => view! { <span class="sh-name dim">"looking up the divisions here…"</span> }.into_any(),
+                    }}
+                </span>
+                <span class="sh-chev">{move || if sheet.get() { "▾" } else { "▴" }}</span>
+            </button>
             <div class="cyberia-panel-h">
                 <span class="panel-kicker">"RENDER"</span>
                 <span class="panel-sub">"division · outline"</span>
