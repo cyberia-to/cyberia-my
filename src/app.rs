@@ -1,7 +1,6 @@
 //! cyberia.my router — Signal Studio pages are full URLs (no overlays).
 
-use crate::cities::CitiesPage;
-use crate::console::{DomainsBoard, ValleyConsole};
+use crate::console::{DomainsBoard, GlobeHome, ValleyConsole};
 use crate::elements::ElementsPage;
 use crate::events::EventsPage;
 use crate::friends::FriendPage;
@@ -9,7 +8,7 @@ use crate::admin::AdminPage;
 use crate::cabinet::CabinetPage;
 use crate::docs::{DocPage, DocsPage};
 use crate::genetics::GeneticsPage;
-use crate::globe::{GlobePage, BASE};
+use crate::globe::BASE;
 use crate::me::MePage;
 use crate::nav::{CyberiaNav, MenuPage};
 use crate::orgs::OrgsPage;
@@ -36,7 +35,7 @@ pub fn App() -> impl IntoView {
                 // an address of the globe: /@lat,lon,zoom
                 let path = window().location().pathname().unwrap_or_default();
                 if path.contains("/@") {
-                    return view! { <GlobePage /> }.into_any();
+                    return view! { <GlobeHome /> }.into_any();
                 }
                 view! {
                     <div class="page-shell" style="padding:40px;">
@@ -46,8 +45,9 @@ pub fn App() -> impl IntoView {
                     </div>
                 }.into_any()
             }>
-                <Route path=path!("/") view=GlobePage />
-                <Route path=path!("/cities") view=CitiesPage />
+                <Route path=path!("/") view=GlobeHome />
+                // the catalog of cities is the globe itself
+                <Route path=path!("/cities") view=GlobeHome />
                 <Route path=path!("/me") view=MePage />
                 <Route path=path!("/you") view=MePage />
 
@@ -147,7 +147,7 @@ fn CityStub() -> impl IntoView {
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">
-                                <a href="/cities" style="color: var(--cyber-green); text-decoration:none;">"cyber•ia"</a>
+                                <a href=format!("{BASE}/") style="color: var(--cyber-green); text-decoration:none;">"cyber•ia"</a>
                             </h1>
                         </div>
                         <CyberiaNav active="cities" />
@@ -157,8 +157,8 @@ fn CityStub() -> impl IntoView {
             <div class="cities-stage" style="align-content: start;">
                 <div class="cities-kicker">"CITY"</div>
                 <h2 class="cities-title" style="text-transform: none;">{move || slug().to_uppercase()}</h2>
-                <a class="cta-btn cta-lease cta-lg" href="/cities" style="max-width: 280px; margin-top: 16px; text-decoration: none; display: inline-flex;">
-                    <span class="cta-title">"← BACK TO CITIES"</span>
+                <a class="cta-btn cta-lease cta-lg" href=format!("{BASE}/") style="max-width: 280px; margin-top: 16px; text-decoration: none; display: inline-flex;">
+                    <span class="cta-title">"← BACK TO THE GLOBE"</span>
                 </a>
             </div>
         </div>

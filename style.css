@@ -4418,12 +4418,16 @@ button.city-card:hover {
     }
 }
 
-/* ─── the globe: the home and the map engine ─────────────────────────── */
-.globe-shell { position: fixed; inset: 0; background: #000; overflow: hidden; }
-.globe-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
-.globe-canvas:active { cursor: grabbing; }
-.globe-overlay { position: absolute; inset: 0; pointer-events: none; }
-.globe-chrome { position: absolute; top: 0; left: 0; right: 0; z-index: 5; background: linear-gradient(180deg, rgba(0,0,0,.85), rgba(0,0,0,0)); border-bottom: 0; }
+/* ─── the globe: one map from the planet to a plot ───────────────────────
+   The canvas lies under the land console's SVG inside .flat-map-wrap and
+   shares its camera. .globe-far = the camera is away from a city: the
+   console's panels step aside and the planet's own controls show. */
+.globe-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; pointer-events: none; }
+.globe-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+.globe-host .flat-map-wrap { background: #000; }
+.globe-host .map-world { position: relative; z-index: 1; }
+.globe-host .flat-map { background: none; }
+.globe-ui { cursor: default; }
 .globe-marker { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; margin: -7px 0 0 -7px; padding: 0; border: 0; background: none; color: #fff; font: 700 12px/1 'Play', sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; pointer-events: auto; white-space: nowrap; will-change: transform; }
 .gm-dot { width: 14px; height: 14px; border-radius: 50%; background: #ffd400; box-shadow: 0 0 0 3px rgba(255,212,0,.22), 0 0 18px #ffd400; flex: none; }
 .globe-marker.live .gm-dot { background: #00ff41; box-shadow: 0 0 0 3px rgba(0,255,65,.22), 0 0 18px #00ff41; }
@@ -4432,29 +4436,60 @@ button.city-card:hover {
 .globe-zoom { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; z-index: 4; }
 .globe-zoom button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.66); color: #fff; font: 700 20px/1 'Play', sans-serif; cursor: pointer; }
 .globe-zoom button:hover { border-color: #00ff41; color: #00ff41; }
-.globe-cities { position: absolute; right: 14px; top: 64px; width: min(300px, calc(100vw - 28px)); display: grid; gap: 6px; z-index: 4; }
-.globe-cities-h { font: 700 11px/1 'Play', sans-serif; letter-spacing: .2em; color: #8a8a8a; padding: 4px 2px; }
+.globe-cities { position: absolute; right: 14px; top: 14px; width: min(300px, calc(100vw - 28px)); display: grid; gap: 6px; z-index: 4; }
+.globe-cities-h { font: 700 11px/1 'Play', sans-serif; letter-spacing: .2em; color: #8a8a8a; padding: 4px 2px; text-shadow: 0 1px 2px #000; }
 .globe-city { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.16); background: rgba(0,0,0,.66); color: #fff; cursor: pointer; font-family: 'Play', sans-serif; }
 .globe-city:hover, .globe-city.on { border-color: #00ff41; }
-.gc-dot { width: 10px; height: 10px; border-radius: 50%; background: #ffd400; flex: none; }
-.gc-dot.live { background: #00ff41; box-shadow: 0 0 10px #00ff41; }
+.globe-city.found { border-style: dashed; }
+.gc-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #ffd400; flex: none; }
+.gc-dot.live { border: 0; background: #00ff41; box-shadow: 0 0 10px #00ff41; }
 .gc-copy { display: grid; gap: 3px; min-width: 0; }
 .gc-name { font-weight: 700; font-size: 15px; }
 .gc-sub { font-size: 11px; color: #9a9a9a; }
-.globe-open { display: block; text-align: center; padding: 12px; border-radius: 10px; background: #00ff41; color: #000; font: 700 13px/1 'Play', sans-serif; letter-spacing: .08em; text-decoration: none; }
-.globe-enter { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); display: grid; gap: 4px; text-align: center; padding: 12px 22px; border-radius: 12px; border: 1px solid #00ff41; background: rgba(0,20,6,.86); color: #00ff41; text-decoration: none; z-index: 4; font-family: 'Play', sans-serif; white-space: nowrap; }
-.ge-title { font-weight: 700; font-size: 16px; letter-spacing: .12em; }
-.ge-sub { font-size: 12px; color: #cfe; }
+.globe-found { display: grid; gap: 8px; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,212,0,.45); background: rgba(0,0,0,.8); font-family: 'Play', sans-serif; }
+.gf-step { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #ffd400; }
+.gf-note { font-size: 11px; color: #9a9a9a; }
+.gf-coord { font: 13px/1.3 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #fff; white-space: pre; }
+.gf-input { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.22); background: #0a0a0a; color: #fff; font: 14px 'Play', sans-serif; user-select: text; }
+.gf-input:focus { outline: none; border-color: #ffd400; }
+.gf-commit { padding: 12px; border-radius: 10px; border: 1px dashed rgba(255,212,0,.6); background: rgba(255,212,0,.08); color: #ffd400; font: 700 13px/1 'Play', sans-serif; letter-spacing: .1em; cursor: not-allowed; opacity: .75; }
+.globe-cross { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 3; pointer-events: none; border: 1px solid #ffd400; border-radius: 50%; box-shadow: 0 0 14px rgba(255,212,0,.6); }
+.globe-cross::before, .globe-cross::after { content: ""; position: absolute; background: #ffd400; }
+.globe-cross::before { left: 50%; top: -9px; bottom: -9px; width: 1px; }
+.globe-cross::after { top: 50%; left: -9px; right: -9px; height: 1px; }
 .globe-hud { position: absolute; left: 14px; bottom: 30px; font: 12px/1.3 'JetBrains Mono', ui-monospace, Menlo, monospace; color: #cfcfcf; background: rgba(0,0,0,.6); padding: 5px 9px; border-radius: 7px; z-index: 4; white-space: pre; }
-.globe-attrib { position: absolute; left: 14px; bottom: 8px; font: 10px/1.2 'Play', sans-serif; color: #7c7c7c; z-index: 4; }
-.globe-attrib a { color: #9c9c9c; }
+.globe-attrib { position: absolute; left: 14px; bottom: 8px; font: 10px/1.2 'Play', sans-serif; color: #8a8a8a; z-index: 4; text-shadow: 0 1px 2px #000; }
+.globe-attrib a { color: #a8a8a8; }
 .globe-error { position: absolute; inset: 40% 10% auto; text-align: center; color: #ff5a4a; font: 700 16px 'Play', sans-serif; z-index: 6; }
+
+/* away from a city: the map is the whole stage */
+.globe-far .cyberia-stage,
+.globe-far .cyberia-stage.no-rail { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding: 0; gap: 0; overflow: hidden; }
+.globe-far .cyberia-stage .cyberia-flats { grid-column: 1; grid-row: 1; border: 0; border-radius: 0; box-shadow: none; }
+.globe-far .cyberia-right,
+.globe-far .cyberia-fleets,
+.globe-far .cyberia-flats > .cyberia-panel-h,
+.globe-far .flat-legend,
+.globe-far .map-hud-hint,
+.globe-far .map-zoom-rail,
+.globe-far .map-world,
+.globe-far .map-tooltip,
+.globe-far .cyberia-dock { display: none; }
+/* at a city: the land console is on, the planet's controls are off */
+.globe-host:not(.globe-far) .globe-zoom,
+.globe-host:not(.globe-far) .globe-cities,
+.globe-host:not(.globe-far) .globe-hud,
+.globe-host:not(.globe-far) .globe-cross { display: none; }
+.globe-host:not(.globe-far) .globe-attrib { left: auto; right: 8px; bottom: 4px; font-size: 9px; }
+
 @media (max-width: 640px) {
-  .globe-cities { top: auto; bottom: 150px; right: 10px; left: 10px; width: auto; grid-template-columns: 1fr 1fr; }
+  .globe-cities { top: auto; bottom: 64px; right: 10px; left: 10px; width: auto; }
   .globe-cities-h, .gc-sub { display: none; }
-  .globe-open { grid-column: 1 / -1; }
-  .globe-zoom { top: 40%; left: 8px; }
-  .globe-hud { bottom: 46px; left: 10px; font-size: 10px; }
+  .globe-zoom { top: 34%; left: 8px; }
+  .globe-hud { bottom: 34px; left: 10px; font-size: 10px; }
   .globe-attrib { left: 10px; right: 10px; bottom: 6px; font-size: 9px; }
-  .globe-enter { bottom: 236px; }
+}
+@media (max-width: 640px) {
+  .globe-cities { right: 84px; }
+  .globe-host:not(.globe-far) .globe-attrib { left: auto; right: 6px; top: 4px; bottom: auto; max-width: 72%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }

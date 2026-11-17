@@ -12,6 +12,7 @@ use crate::terms::{
 };
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
+use crate::globe::{cam_fit, cam_pan, cam_zoom, px_per_m, GlobeAttrib, GlobeFar, GlobeLayer, BASE, CITIES, SVG_Z};
 use crate::nav::CyberiaNav;
 use crate::wallet::{load_intents, load_leases, push_intent};
 use leptos::prelude::*;
@@ -247,25 +248,35 @@ fn load_map() -> MapData {
     serde_json::from_str(MAP_JSON).expect("cyberia_map.json")
 }
 
-/// Project lon/lat into a viewBox-local SVG plane (y flipped).
+/// SVG units per metre: the site fitted into the padded viewBox with ONE scale
+/// for both axes, so the plane is conformal and lies exactly over the globe.
+fn svg_per_m(bbox: &BBox, w: f64, h: f64, pad: f64) -> f64 {
+    let (ew, ns) = site_span_m(bbox);
+    ((w - 2.0 * pad) / ew.max(1.0)).min((h - 2.0 * pad) / ns.max(1.0))
+}
+
+/// Metres per degree at the site: (east, north).
+fn m_per_deg(bbox: &BBox) -> (f64, f64) {
+    let lat0 = (bbox.min_lat + bbox.max_lat) * 0.5;
+    (111_320.0 * lat0.to_radians().cos(), 111_320.0)
+}
+
+/// Project lon/lat into a viewBox-local SVG plane (y flipped), centred on the site.
 fn project(lon: f64, lat: f64, bbox: &BBox, w: f64, h: f64, pad: f64) -> (f64, f64) {
-    let dx = (bbox.max_lon - bbox.min_lon).max(1e-9);
-    let dy = (bbox.max_lat - bbox.min_lat).max(1e-9);
-    // square-ish fit with padding
-    let x = pad + (lon - bbox.min_lon) / dx * (w - 2.0 * pad);
-    let y = pad + (1.0 - (lat - bbox.min_lat) / dy) * (h - 2.0 * pad);
-    (x, y)
+    let k = svg_per_m(bbox, w, h, pad);
+    let (me, mn) = m_per_deg(bbox);
+    let lon0 = (bbox.min_lon + bbox.max_lon) * 0.5;
+    let lat0 = (bbox.min_lat + bbox.max_lat) * 0.5;
+    (w * 0.5 + (lon - lon0) * me * k, h * 0.5 - (lat - lat0) * mn * k)
 }
 
 /// Inverse of `project` — SVG/world → lon/lat (for domain drag).
 fn unproject(x: f64, y: f64, bbox: &BBox, w: f64, h: f64, pad: f64) -> (f64, f64) {
-    let dx = (bbox.max_lon - bbox.min_lon).max(1e-9);
-    let dy = (bbox.max_lat - bbox.min_lat).max(1e-9);
-    let uw = (w - 2.0 * pad).max(1e-9);
-    let uh = (h - 2.0 * pad).max(1e-9);
-    let lon = bbox.min_lon + (x - pad) / uw * dx;
-    let lat = bbox.min_lat + (1.0 - (y - pad) / uh) * dy;
-    (lon, lat)
+    let k = svg_per_m(bbox, w, h, pad);
+    let (me, mn) = m_per_deg(bbox);
+    let lon0 = (bbox.min_lon + bbox.max_lon) * 0.5;
+    let lat0 = (bbox.min_lat + bbox.max_lat) * 0.5;
+    (lon0 + (x - w * 0.5) / (me * k), lat0 - (y - h * 0.5) / (mn * k))
 }
 
 fn poly_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> String {
@@ -312,23 +323,17 @@ fn trails() -> &'static [Trail] {
     TRAILS.get_or_init(|| serde_json::from_str(include_str!("cyberia_trails.json")).unwrap_or_default())
 }
 
-/// Game camera zoom range.
-/// Max ~1000 → ~1.5 m view width on Gesing site → 10 cm tile ≈ 60–70 screen px
-/// (enough to layout tiny hex/tiles as a planning game).
-const MAP_ZOOM_MIN: f64 = 0.5;
-const MAP_ZOOM_MAX: f64 = 1000.0;
-
 /// Keep HUD-sized marks (labels, dots) constant on screen while viewBox zooms.
 /// Anchor at (x,y) in SVG/world units.
 fn screen_stable_tf(x: f64, y: f64, zoom: f64) -> String {
-    let s = 1.0 / zoom.max(0.25);
+    let s = 1.0 / zoom.max(1e-9);
     format!("translate({x:.2},{y:.2}) scale({s:.4})")
 }
 
 /// SVG camera: viewBox centered at `center` with size (W/z)×(H/z).
 /// Pure vector zoom — no CSS scale raster blur.
 fn map_view_box(center: (f64, f64), zoom: f64, w: f64, h: f64) -> String {
-    let z = zoom.max(0.25);
+    let z = zoom.max(1e-9);
     let vw = w / z;
     let vh = h / z;
     format!(
@@ -351,11 +356,8 @@ fn site_span_m(bbox: &BBox) -> (f64, f64) {
 }
 
 /// Visible world width (meters) at current zoom — for HUD scale readout.
-fn view_width_m(zoom: f64, map_w: f64, pad: f64, site_ew_m: f64) -> f64 {
-    let z = zoom.max(0.25);
-    let usable = (map_w - 2.0 * pad).max(1.0);
-    let m_per_svg = site_ew_m / usable;
-    (map_w / z) * m_per_svg
+fn view_width_m(zoom: f64, map_w: f64, svg_k: f64) -> f64 {
+    (map_w / zoom.max(1e-9)) / svg_k.max(1e-9)
 }
 
 fn format_zoom_hud(zoom: f64, view_m: f64) -> String {
@@ -390,7 +392,7 @@ pub(crate) fn client_to_world(
     w: f64,
     h: f64,
 ) -> (f64, f64) {
-    let z = zoom.max(0.25);
+    let z = zoom.max(1e-9);
     let vw = w / z;
     let vh = h / z;
     let left = center.0 - vw * 0.5;
@@ -420,6 +422,12 @@ pub fn ValleyConsole() -> impl IntoView {
     view! { <MapConsole domains_board=false /> }
 }
 
+/// The home: the same map, opened on the whole planet.
+#[component]
+pub fn GlobeHome() -> impl IntoView {
+    view! { <MapConsole domains_board=false planet=true /> }
+}
+
 /// Domains board — same camera, left rail = 21 cybics (draggable shill points).
 #[component]
 pub fn DomainsBoard() -> impl IntoView {
@@ -427,7 +435,7 @@ pub fn DomainsBoard() -> impl IntoView {
 }
 
 #[component]
-fn MapConsole(domains_board: bool) -> impl IntoView {
+fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> impl IntoView {
     let map = load_map();
     let map = std::sync::Arc::new(map);
     let map_bbox = map.bbox.clone();
@@ -512,7 +520,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
     const MAP_W: f64 = 960.0;
     const MAP_H: f64 = 720.0;
     const MAP_PAD: f64 = 20.0;
-    let site_ew_m = site_span_m(&map.bbox).0;
+    let svg_k = svg_per_m(&map.bbox, MAP_W, MAP_H, MAP_PAD);
     let map_zoom = RwSignal::new(1.0_f64);
     let map_center = RwSignal::new((MAP_W * 0.5, MAP_H * 0.5)); // world/SVG units
     let map_hover = RwSignal::new(None::<(String, String, f64)>); // id, label, m2
@@ -521,58 +529,47 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
     let map_did_drag = RwSignal::new(false);
     let map_drag_last = RwSignal::new((0.0_f64, 0.0_f64));
     let map_wrap_ref = NodeRef::<leptos::html::Div>::new();
+    // fingers on the map: (pointer id, x, y) — two of them pinch
+    let touches = StoredValue::new(Vec::<(i32, f64, f64)>::new());
 
-    // focus camera on a domain id (used from list cards)
-
-    let zoom_by = move |factor: f64| {
-        map_zoom.update(|z| *z = (*z * factor).clamp(MAP_ZOOM_MIN, MAP_ZOOM_MAX));
+    // ONE camera: the globe's. It reports every frame; near the site the SVG
+    // plane follows it exactly, far from it the console steps aside.
+    let cam = RwSignal::new((0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64));
+    let picked = RwSignal::new(None::<usize>);
+    let near = RwSignal::new(!planet);
+    let site_lon = (map.bbox.min_lon + map.bbox.max_lon) * 0.5;
+    let site_lat = (map.bbox.min_lat + map.bbox.max_lat) * 0.5;
+    let site_fit_m = {
+        let (ew, ns) = site_span_m(&map.bbox);
+        ew.max(ns) * 1.1
     };
-    let zoom_at = move |factor: f64, cx: f64, cy: f64| {
-        // keep world point under cursor stable while viewBox zooms
-        let z0 = map_zoom.get_untracked();
-        let z1 = (z0 * factor).clamp(MAP_ZOOM_MIN, MAP_ZOOM_MAX);
-        if (z1 - z0).abs() < 1e-9 {
-            return;
-        }
-        let c0 = map_center.get_untracked();
-        let (ww, wh) = if let Some(el) = map_wrap_ref.get_untracked() {
-            let r = el.get_bounding_client_rect();
-            (r.width(), r.height())
-        } else {
-            (MAP_W, MAP_H)
-        };
-        let (wx, wy) = client_to_world(cx, cy, ww, wh, c0, z0, MAP_W, MAP_H);
-        let vw1 = MAP_W / z1;
-        let vh1 = MAP_H / z1;
-        let fit1 = (ww / vw1).min(wh / vh1);
-        let ox1 = (ww - vw1 * fit1) * 0.5;
-        let oy1 = (wh - vh1 * fit1) * 0.5;
-        let left1 = wx - (cx - ox1) / fit1;
-        let top1 = wy - (cy - oy1) / fit1;
-        let c1 = (left1 + vw1 * 0.5, top1 + vh1 * 0.5);
-        map_zoom.set(z1);
-        map_center.set(c1);
-    };
-    let pan_by = move |dx_screen: f64, dy_screen: f64| {
-        let z = map_zoom.get_untracked().max(0.25);
-        let (ww, wh) = if let Some(el) = map_wrap_ref.get_untracked() {
-            let r = el.get_bounding_client_rect();
-            (r.width(), r.height())
-        } else {
-            (MAP_W, MAP_H)
-        };
-        let vw = MAP_W / z;
-        let vh = MAP_H / z;
-        let fit = (ww / vw).min(wh / vh).max(1e-9);
-        map_center.update(|(cx, cy)| {
-            *cx -= dx_screen / fit;
-            *cy -= dy_screen / fit;
+    {
+        let bbox = map_bbox.clone();
+        Effect::new(move |_| {
+            let (lat, lon, z, w, h) = cam.get();
+            if w < 2.0 || h < 2.0 {
+                return;
+            }
+            let n = z >= SVG_Z && (lat - site_lat).abs() < 0.2 && (lon - site_lon).abs() < 0.2;
+            if near.get_untracked() != n {
+                near.set(n);
+            }
+            if n {
+                map_center.set(project(lon, lat, &bbox, MAP_W, MAP_H, MAP_PAD));
+                map_zoom.set(px_per_m(z) / (svg_k * (w / MAP_W).min(h / MAP_H)));
+            }
         });
-    };
-    let reset_cam = move || {
-        map_zoom.set(1.0);
-        map_center.set((MAP_W * 0.5, MAP_H * 0.5));
-    };
+    }
+    // cities founded in this browser by the old catalog form are gone with the form
+    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        let _ = ls.remove_item("cyberia_found_cities");
+    }
+
+    let zoom_by = move |factor: f64| cam_zoom(factor.log2(), None);
+    let zoom_at = move |factor: f64, cx: f64, cy: f64| cam_zoom(factor.log2(), Some((cx, cy)));
+    let pan_by = move |dx_screen: f64, dy_screen: f64| cam_pan(dx_screen, dy_screen);
+    let reset_cam = move || cam_fit(site_lon, site_lat, site_fit_m, 900.0);
+    let home = (!planet).then_some((site_lon, site_lat, site_fit_m));
 
     Effect::new(move |_| {
         let title = if domains_board {
@@ -592,13 +589,13 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
     let map_bbox_drag = map_bbox.clone();
 
     view! {
-        <div class="page-shell cyberia-shell">
+        <div class=move || if near.get() { "page-shell cyberia-shell globe-host" } else { "page-shell cyberia-shell globe-host globe-far" }>
             <div class="site-chrome cyberia-chrome">
             <div class="chrome-inner">
             <div class="header-row1">
                 <div class="logo-zone">
                     <h1 class="logo">
-                        <a href="/cities" class="brand-flag" title="home" inner_html=FLAG_SVG></a>
+                        <a href=format!("{BASE}/") class="brand-flag" title="the globe" inner_html=FLAG_SVG></a>
                         <span style="color: var(--cyber-green);">"cyber"</span>
                         <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
                         <span style="color: #fff;">"ia"</span>
@@ -607,7 +604,9 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                 <div class="cyberia-phase-pill">
                     <span class="phase-dot"></span>
                     {move || {
-                        if domains_board {
+                        if !near.get() {
+                            format!("{} CITY · THE GLOBE", CITIES.len())
+                        } else if domains_board {
                             let n = domains.get().len();
                             format!("21 CYBICS · {n} DOMAINS · DRAG")
                         } else {
@@ -616,7 +615,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         }
                     }}
                 </div>
-                <CyberiaNav active=nav_active />
+                {move || view! { <CyberiaNav active=if near.get() { nav_active } else { "cities" } /> }}
             </div>
             </div>
             </div>
@@ -783,7 +782,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         <span class="map-zoom-readout" title="zoom · visible width (game scale)">
                             {move || {
                                 let z = map_zoom.get();
-                                let m = view_width_m(z, MAP_W, MAP_PAD, site_ew_m);
+                                let m = view_width_m(z, MAP_W, svg_k);
                                 format_zoom_hud(z, m)
                             }}
                         </span>
@@ -797,8 +796,9 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             ev.stop_propagation();
                             let dy = ev.delta_y();
                             if dy == 0.0 { return; }
-                            // slightly faster step so deep game zoom (×1000) is reachable
-                            let factor = if dy < 0.0 { 1.18 } else { 1.0 / 1.18 };
+                            // by the delta: a wheel notch and a trackpad stroke both feel right
+                            let k = if ev.ctrl_key() { 0.012 } else { 0.0028 };
+                            let factor = 2f64.powf((-dy * k).clamp(-1.2, 1.2));
                             if let Some(el) = map_wrap_ref.get_untracked() {
                                 let rect = el.get_bounding_client_rect();
                                 let cx = ev.client_x() as f64 - rect.left();
@@ -809,6 +809,12 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             }
                         }
                         on:keydown=move |ev| {
+                            // typing a city's name is not steering the map
+                            let typing = ev.target()
+                                .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+                                .map(|el| el.tag_name().eq_ignore_ascii_case("input"))
+                                .unwrap_or(false);
+                            if typing { return; }
                             let key = ev.key();
                             let step = 36.0;
                             match key.as_str() {
@@ -831,13 +837,18 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             let target = ev.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok());
                             let on_ui = target
                                 .as_ref()
-                                .and_then(|el| el.closest(".map-zoom-rail, .map-cam-btn, .domain-dot").ok().flatten())
+                                .and_then(|el| el.closest(".map-zoom-rail, .map-cam-btn, .domain-dot, .globe-ui").ok().flatten())
                                 .is_some();
                             if on_ui {
                                 return;
                             }
+                            touches.update_value(|t| {
+                                t.retain(|p| p.0 != ev.pointer_id());
+                                t.push((ev.pointer_id(), ev.client_x() as f64, ev.client_y() as f64));
+                            });
                             map_dragging.set(true);
-                            map_did_drag.set(false);
+                            // a second finger is a pinch, never a tap
+                            map_did_drag.set(touches.with_value(|t| t.len() > 1));
                             map_drag_last.set((ev.client_x() as f64, ev.client_y() as f64));
                             // pointer capture is deliberately NOT taken here: once a mouse
                             // is captured, Chrome retargets the click that follows pointerup
@@ -895,9 +906,37 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             }
 
                             if !map_dragging.get_untracked() { return; }
-                            let (lx, ly) = map_drag_last.get_untracked();
                             let cx = ev.client_x() as f64;
                             let cy = ev.client_y() as f64;
+                            // —— two fingers: zoom about their midpoint, pan with it ——
+                            let pinch = touches.with_value(|t| {
+                                if t.len() != 2 { return None; }
+                                let i = t.iter().position(|p| p.0 == ev.pointer_id())?;
+                                Some((t[i], t[1 - i]))
+                            });
+                            if let Some((me, other)) = pinch {
+                                let before = ((me.1 - other.1).powi(2) + (me.2 - other.2).powi(2)).sqrt().max(1.0);
+                                let after = ((cx - other.1).powi(2) + (cy - other.2).powi(2)).sqrt().max(1.0);
+                                let (ox, oy) = map_wrap_ref
+                                    .get_untracked()
+                                    .map(|el| { let r = el.get_bounding_client_rect(); (r.left(), r.top()) })
+                                    .unwrap_or((0.0, 0.0));
+                                zoom_at(after / before, (cx + other.1) / 2.0 - ox, (cy + other.2) / 2.0 - oy);
+                                pan_by((cx - me.1) / 2.0, (cy - me.2) / 2.0);
+                                touches.update_value(|t| {
+                                    if let Some(p) = t.iter_mut().find(|p| p.0 == ev.pointer_id()) {
+                                        *p = (ev.pointer_id(), cx, cy);
+                                    }
+                                });
+                                map_did_drag.set(true);
+                                return;
+                            }
+                            touches.update_value(|t| {
+                                if let Some(p) = t.iter_mut().find(|p| p.0 == ev.pointer_id()) {
+                                    *p = (ev.pointer_id(), cx, cy);
+                                }
+                            });
+                            let (lx, ly) = map_drag_last.get_untracked();
                             let dx = cx - lx;
                             let dy = cy - ly;
                             // ~5px threshold so a tap still counts as plot select
@@ -923,7 +962,12 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                 domain_drag.set(None);
                                 domain_did_drag.set(false);
                             }
-                            map_dragging.set(false);
+                            touches.update_value(|t| t.retain(|p| p.0 != ev.pointer_id()));
+                            // the finger that stays goes on panning from where it is
+                            match touches.with_value(|t| t.first().copied()) {
+                                Some(p) => map_drag_last.set((p.1, p.2)),
+                                None => map_dragging.set(false),
+                            }
                             // release now, before the browser synthesizes the click that
                             // follows — otherwise the capturing wrapper (not the plot the
                             // user actually tapped) stays the click's target and the plot
@@ -933,6 +977,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             }
                         }
                         on:pointercancel=move |_| {
+                            touches.update_value(|t| t.clear());
                             domain_drag.set(None);
                             domain_did_drag.set(false);
                             map_dragging.set(false);
@@ -944,6 +989,11 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                             }
                         }
                     >
+                        // the globe: imagery and the world's lines, under everything
+                        <GlobeLayer cam=cam picked=picked home=home />
+                        <GlobeFar cam=cam picked=picked />
+                        <GlobeAttrib />
+
                         // left zoom rail (game-style) — deep zoom for cm-scale tile planning
                         <div class="map-zoom-rail" aria-label="map zoom">
                             <button class="map-cam-btn" type="button" title="zoom in (to ~10cm tile scale)"
@@ -987,28 +1037,11 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                                     viewBox=move || map_view_box(map_center.get(), map_zoom.get(), W, H)
                                     preserveAspectRatio="xMidYMid meet"
                                 >
-                                    // full world backdrop (fixed world bounds)
-                                    <rect x="0" y="0" width=W height=H fill="#070707" />
                                     <defs>
                                         <pattern id="hatch-owned" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                                             <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(255,255,255,0.75)" stroke-width="1.1" />
                                         </pattern>
                                     </defs>
-                                    {(0..12).map(|i| {
-                                        let x = PAD + i as f64 * (W - 2.0*PAD) / 11.0;
-                                        let y2 = H - PAD;
-                                        view! {
-                                            <line x1=x y1=PAD x2=x y2=y2 stroke="#121212" stroke-width="1" />
-                                        }
-                                    }).collect_view()}
-                                    {(0..9).map(|i| {
-                                        let y = PAD + i as f64 * (H - 2.0*PAD) / 8.0;
-                                        let x2 = W - PAD;
-                                        view! {
-                                            <line x1=PAD y1=y x2=x2 y2=y stroke="#121212" stroke-width="1" />
-                                        }
-                                    }).collect_view()}
-
                                     // district outlines — full site ~37 ha envelope
                                     {m_districts.districts.iter().map(|d| {
                                         let path = poly_path(&d.coords, &m_districts.bbox, W, H, PAD);
@@ -1205,7 +1238,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
 
                                     // roads, paths and canyons — true width in metres, over the plots
                                     {
-                                        let upm = (W - 2.0 * PAD) / site_span_m(&m_trails.bbox).0.max(1.0);
+                                        let upm = svg_per_m(&m_trails.bbox, W, H, PAD);
                                         // paths first, roads over them, canyons on top
                                         let mut list: Vec<&Trail> = trails().iter().collect();
                                         list.sort_by_key(|t| match t.kind.as_str() { "path" => 0, "road" => 1, _ => 2 });
@@ -1803,7 +1836,7 @@ fn MapConsole(domains_board: bool) -> impl IntoView {
                         let Some(flat) = list.iter().find(|f| f.id == fid) else { return };
                         // every flat answers on its own page — open or not, the deal panel says why
                         if let Some(w) = web_sys::window() {
-                            let _ = w.location().set_href(&format!("/plot/{}/lease", flat.id));
+                            let _ = w.location().set_href(&format!("{BASE}/plot/{}/lease", flat.id));
                         }
                     }>
                         <span class="cta-ico">"🗺"</span>

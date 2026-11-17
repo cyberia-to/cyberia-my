@@ -10,8 +10,7 @@
 //! the CPU in f64 every frame, so the camera can go to a plot without f32
 //! jitter; the world line layers are static f32 unit vectors (≈0.4 m).
 
-use crate::land::{load_map, FLAG_SVG};
-use crate::nav::CyberiaNav;
+use crate::land::load_map;
 use leptos::prelude::*;
 use serde::Deserialize;
 use std::cell::RefCell;
@@ -39,7 +38,11 @@ const TILES: &str = match option_env!("CYBERIA_TILES") {
 const WORLD_ZOOM: u8 = 7; // the whole earth is present to this zoom
 const MAX_TILE_ZOOM: u8 = 14;
 const FOV_Y: f64 = 30.0 * PI / 180.0;
-const Z_MAX: f64 = 19.5;
+const Z_MAX: f64 = 26.0; // ≈ 2 m across the screen: tile-planning scale
+/// From this zoom the land console's vector layer takes over from the engine's lines.
+pub const SVG_Z: f64 = 13.5;
+/// Web Mercator ground resolution at zoom 0, metres per css px (sphere, no latitude factor).
+const M_PER_PX_Z0: f64 = 156_543.03;
 const MERC_LAT: f64 = 85.051_128_78;
 
 type V3 = [f64; 3];
@@ -162,11 +165,11 @@ void main(){
 }";
 const TILE_VS: &str = "#version 300 es
 in vec3 a_pos; in vec2 a_uv;
-uniform float u_fx, u_fy, u_d; uniform vec3 u_uv;
+uniform float u_fx, u_fy, u_k, u_h; uniform vec3 u_uv;
 out vec2 v_uv; out float v_vis;
 void main(){
   gl_Position = vec4(a_pos.x * u_fx, a_pos.y * u_fy, 0.0, -a_pos.z);
-  v_vis = (a_pos.z + u_d - 1.0 / u_d) / (1.0 - 1.0 / u_d);
+  v_vis = (a_pos.z + u_k) / u_h;
   v_uv = (a_uv + u_uv.yz) * u_uv.x;
 }";
 const TILE_FS: &str = "#version 300 es
@@ -192,11 +195,11 @@ void main(){
 // cyberia lines: view-space positions computed on the CPU in f64
 const VLINE_VS: &str = "#version 300 es
 in vec3 a_pos;
-uniform float u_fx, u_fy, u_d;
+uniform float u_fx, u_fy, u_k, u_h;
 out float v_vis;
 void main(){
   gl_Position = vec4(a_pos.x * u_fx, a_pos.y * u_fy, 0.0, -a_pos.z);
-  v_vis = (a_pos.z + u_d - 1.0 / u_d) / (1.0 - 1.0 / u_d);
+  v_vis = (a_pos.z + u_k) / u_h;
 }";
 const LINE_FS: &str = "#version 300 es
 precision highp float;
@@ -269,6 +272,7 @@ struct PreciseLayer {
     pts: Vec<V3>, // pairs: a segment per two points
     color: [f32; 4],
     min_z: f64,
+    max_z: f64,
 }
 
 struct Marker {
@@ -288,31 +292,17 @@ pub struct City {
     pub sub: &'static str,
     pub lon: f64,
     pub lat: f64,
-    pub zoom: f64,
-    pub href: &'static str,
-    pub live: bool,
+    /// metres the screen's short side shows when the camera arrives
+    pub fit_m: f64,
 }
 
-pub const CITIES: &[City] = &[
-    City {
-        name: "Cyber Valley",
-        sub: "Gesing · Bali · 37 ha · 126 plots",
-        lon: 115.0897935,
-        lat: -8.2998539,
-        zoom: 16.2,
-        href: "/map",
-        live: true,
-    },
-    City {
-        name: "Cyberia",
-        sub: "Armenia · city with a portal · founding",
-        lon: 44.515,
-        lat: 40.182,
-        zoom: 10.5,
-        href: "/cities#cyberia",
-        live: false,
-    },
-];
+pub const CITIES: &[City] = &[City {
+    name: "Cyber Valley",
+    sub: "Gesing · Bali · 37 ha · 126 plots",
+    lon: 115.0897935,
+    lat: -8.2998539,
+    fit_m: 1700.0,
+}];
 
 struct Engine {
     gl: GL,
@@ -341,17 +331,17 @@ struct Engine {
     world: Vec<StaticLayer>,
     cyberia: Vec<PreciseLayer>,
     markers: Vec<Marker>,
-    pointers: Vec<(i32, f64, f64)>,
-    moved: f64,
     admin1_asked: bool,
-    on_view: Box<dyn Fn(f64, f64, f64)>,
-    last_report: f64,
+    id: u32,
+    fit: Option<f64>,
+    on_view: Box<dyn Fn(f64, f64, f64, f64, f64)>,
     last_move: f64,
     url_synced: bool,
 }
 
 thread_local! {
     static ENGINE: RefCell<Option<Rc<RefCell<Engine>>>> = const { RefCell::new(None) };
+    static NEXT_ID: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
 }
 
 fn now() -> f64 {
@@ -508,6 +498,9 @@ impl Engine {
             // radius = fpx / sqrt(d² − 1) → d, then ppr = fpx / (d − 1)
             let d = ((fpx / radius).powi(2) + 1.0).sqrt();
             self.z_min = ((fpx / (d - 1.0)) * 2.0 * PI / 256.0).log2();
+            if let Some(m) = self.fit.take() {
+                self.z = (M_PER_PX_Z0 * w.min(h) / m).log2();
+            }
             self.clamp();
             self.dirty = true;
         }
@@ -516,7 +509,8 @@ impl Engine {
         if !self.url_synced && self.fly.is_none() && t - self.last_move > 500.0 {
             self.url_synced = true;
             if let Some(hist) = web_sys::window().and_then(|w| w.history().ok()) {
-                let url = format!("{BASE}/@{:.5},{:.5},{:.2}z", self.lat, self.lon, self.z);
+                let search = web_sys::window().and_then(|w| w.location().search().ok()).unwrap_or_default();
+                let url = format!("{BASE}/@{:.6},{:.6},{:.2}z{search}", self.lat, self.lon, self.z);
                 let _ = hist.replace_state_with_url(&JsValue::NULL, "", Some(&url));
             }
         }
@@ -546,7 +540,8 @@ impl Engine {
         gl.use_program(Some(&self.tile_prog.p));
         gl.uniform1f(self.tile_prog.loc("u_fx"), fx);
         gl.uniform1f(self.tile_prog.loc("u_fy"), fy);
-        gl.uniform1f(self.tile_prog.loc("u_d"), v.d as f32);
+        gl.uniform1f(self.tile_prog.loc("u_k"), (v.d - 1.0 / v.d) as f32);
+        gl.uniform1f(self.tile_prog.loc("u_h"), (1.0 - 1.0 / v.d) as f32);
         gl.uniform1i(self.tile_prog.loc("u_tex"), 0);
         gl.active_texture(GL::TEXTURE0);
         gl.bind_vertex_array(Some(&self.tile_vao));
@@ -629,7 +624,8 @@ impl Engine {
         gl.uniform3f(self.line_prog.loc("u_n"), v.north[0] as f32, v.north[1] as f32, v.north[2] as f32);
         gl.uniform3f(self.line_prog.loc("u_up"), v.up[0] as f32, v.up[1] as f32, v.up[2] as f32);
         for l in &self.world {
-            if self.z < l.min_z {
+            // static f32 unit vectors stop being exact below ~1 m: the deep zooms go without them
+            if self.z < l.min_z || self.z > 17.5 {
                 continue;
             }
             let fade = ((self.z - l.min_z) / 0.8).clamp(0.0, 1.0) as f32;
@@ -641,10 +637,11 @@ impl Engine {
         gl.use_program(Some(&self.vline_prog.p));
         gl.uniform1f(self.vline_prog.loc("u_fx"), fx);
         gl.uniform1f(self.vline_prog.loc("u_fy"), fy);
-        gl.uniform1f(self.vline_prog.loc("u_d"), v.d as f32);
+        gl.uniform1f(self.vline_prog.loc("u_k"), (v.d - 1.0 / v.d) as f32);
+        gl.uniform1f(self.vline_prog.loc("u_h"), (1.0 - 1.0 / v.d) as f32);
         gl.bind_vertex_array(Some(&self.vline_vao));
         for l in &self.cyberia {
-            if self.z < l.min_z || l.pts.is_empty() || !v.visible(l.pts[0]) {
+            if self.z < l.min_z || self.z > l.max_z || l.pts.is_empty() || !v.visible(l.pts[0]) {
                 continue;
             }
             scratch.clear();
@@ -667,7 +664,7 @@ impl Engine {
         // markers ride the same camera
         for m in &self.markers {
             let style = m.el.style();
-            match v.to_screen(m.q) {
+            match v.to_screen(m.q).filter(|_| self.z < SVG_Z) {
                 Some((x, y)) => {
                     let _ = style.set_property("display", "flex");
                     let _ = style.set_property("transform", &format!("translate({x:.1}px,{y:.1}px)"));
@@ -693,10 +690,7 @@ impl Engine {
             }
         }
 
-        if t - self.last_report > 90.0 {
-            self.last_report = t;
-            (self.on_view)(self.lat, self.lon, self.z);
-        }
+        (self.on_view)(self.lat, self.lon, self.z, w, h);
 
         // few at a time, the coarse first
         loads.sort();
@@ -856,11 +850,6 @@ async fn fetch_manifest() -> Option<Manifest> {
     serde_json::from_str(&text).ok()
 }
 
-#[derive(Deserialize)]
-struct TrailLine {
-    coords: Vec<[f64; 2]>,
-}
-
 fn ring_segments(coords: &[[f64; 2]], close: bool, out: &mut Vec<V3>) {
     for w in coords.windows(2) {
         out.push(unit(w[0][0], w[0][1]));
@@ -875,24 +864,11 @@ fn ring_segments(coords: &[[f64; 2]], close: bool, out: &mut Vec<V3>) {
 
 fn cyberia_layers() -> Vec<PreciseLayer> {
     let map = load_map();
-    let mut plots = Vec::new();
-    for p in &map.phase0 {
-        ring_segments(&p.coords, true, &mut plots);
-    }
     let mut districts = Vec::new();
     for d in &map.districts {
         ring_segments(&d.coords, true, &mut districts);
     }
-    let mut trails = Vec::new();
-    let lines: Vec<TrailLine> = serde_json::from_str(include_str!("cyberia_trails.json")).unwrap_or_default();
-    for t in &lines {
-        ring_segments(&t.coords, false, &mut trails);
-    }
-    vec![
-        PreciseLayer { pts: trails, color: [1.0, 1.0, 1.0, 0.45], min_z: 13.5 },
-        PreciseLayer { pts: districts, color: [1.0, 0.84, 0.0, 0.85], min_z: 11.5 },
-        PreciseLayer { pts: plots, color: [0.0, 1.0, 0.25, 0.95], min_z: 13.0 },
-    ]
+    vec![PreciseLayer { pts: districts, color: [1.0, 0.84, 0.0, 0.85], min_z: 10.5, max_z: SVG_Z }]
 }
 
 fn initial_view() -> Option<(f64, f64, f64)> {
@@ -905,12 +881,16 @@ fn initial_view() -> Option<(f64, f64, f64)> {
     Some((lat, lon, z))
 }
 
+/// Start the engine on a canvas. `home` is (lon, lat, metres to fit) when the page
+/// opens on a place; an address of the form /@lat,lon,zoomz wins over it. Input comes
+/// from the page through the `cam_*` functions: the engine listens to nothing itself.
 fn start(
     canvas: HtmlCanvasElement,
     overlay: HtmlElement,
-    on_view: Box<dyn Fn(f64, f64, f64)>,
+    home: Option<(f64, f64, f64)>,
+    on_view: Box<dyn Fn(f64, f64, f64, f64, f64)>,
     on_pick: Rc<dyn Fn(usize)>,
-) -> Result<(), String> {
+) -> Result<u32, String> {
     let gl: GL = canvas
         .get_context("webgl2")
         .ok()
@@ -919,9 +899,9 @@ fn start(
         .ok_or("this browser has no WebGL2")?;
 
     let bg = Prog::new(&gl, BG_VS, BG_FS, &["a_pos"], &["u_r", "u_aspect"])?;
-    let tile_prog = Prog::new(&gl, TILE_VS, TILE_FS, &["a_pos", "a_uv"], &["u_fx", "u_fy", "u_d", "u_uv", "u_tex"])?;
+    let tile_prog = Prog::new(&gl, TILE_VS, TILE_FS, &["a_pos", "a_uv"], &["u_fx", "u_fy", "u_k", "u_h", "u_uv", "u_tex"])?;
     let line_prog = Prog::new(&gl, LINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_d", "u_e", "u_n", "u_up", "u_color"])?;
-    let vline_prog = Prog::new(&gl, VLINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_d", "u_color"])?;
+    let vline_prog = Prog::new(&gl, VLINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_k", "u_h", "u_color"])?;
 
     let bg_vao = gl.create_vertex_array().ok_or("vao")?;
     gl.bind_vertex_array(Some(&bg_vao));
@@ -953,7 +933,16 @@ fn start(
     gl.bind_vertex_array(None);
 
     let doc = web_sys::window().and_then(|w| w.document()).ok_or("no document")?;
-    let (lat, lon, z) = initial_view().unwrap_or((12.0, 100.0, 0.0));
+    let addressed = initial_view();
+    let (lat, lon, z) = addressed.unwrap_or(match home {
+        Some((lon, lat, _)) => (lat, lon, 15.0),
+        None => (12.0, 100.0, 0.0),
+    });
+    let fit = if addressed.is_some() { None } else { home.map(|h| h.2) };
+    let id = NEXT_ID.with(|n| {
+        n.set(n.get() + 1);
+        n.get()
+    });
 
     let engine = Rc::new(RefCell::new(Engine {
         gl,
@@ -982,11 +971,10 @@ fn start(
         world: Vec::new(),
         cyberia: cyberia_layers(),
         markers: Vec::new(),
-        pointers: Vec::new(),
-        moved: 0.0,
         admin1_asked: false,
+        id,
+        fit,
         on_view,
-        last_report: 0.0,
         last_move: 0.0,
         url_synced: true,
     }));
@@ -994,91 +982,23 @@ fn start(
     // city markers: html over the canvas, placed by the camera every frame
     for (i, c) in CITIES.iter().enumerate() {
         let el: HtmlElement = doc.create_element("button").map_err(|_| "marker")?.unchecked_into();
-        el.set_class_name(if c.live { "globe-marker live" } else { "globe-marker" });
+        el.set_class_name("globe-marker live");
         el.set_inner_html(&format!("<span class=\"gm-dot\"></span><span class=\"gm-name\">{}</span>", c.name));
         let (eng, pick) = (engine.clone(), on_pick.clone());
         let click = Closure::<dyn FnMut(web_sys::MouseEvent)>::new(move |ev: web_sys::MouseEvent| {
             ev.stop_propagation();
             let c = &CITIES[i];
-            eng.borrow_mut().fly_to(c.lon, c.lat, c.zoom, 2600.0);
+            {
+                let mut e = eng.borrow_mut();
+                let (w, h) = e.size();
+                e.fly_to(c.lon, c.lat, (M_PER_PX_Z0 * w.min(h) / c.fit_m).log2(), 2600.0);
+            }
             pick(i);
         });
         el.add_event_listener_with_callback("click", click.as_ref().unchecked_ref()).ok();
         click.forget();
         overlay.append_child(&el).ok();
         engine.borrow_mut().markers.push(Marker { q: unit(c.lon, c.lat), el });
-    }
-
-    // input
-    {
-        let eng = engine.clone();
-        let cv = canvas.clone();
-        let down = Closure::<dyn FnMut(web_sys::PointerEvent)>::new(move |ev: web_sys::PointerEvent| {
-            let _ = cv.set_pointer_capture(ev.pointer_id());
-            let mut e = eng.borrow_mut();
-            e.pointers.push((ev.pointer_id(), ev.offset_x() as f64, ev.offset_y() as f64));
-            e.moved = 0.0;
-            e.fly = None;
-        });
-        canvas.add_event_listener_with_callback("pointerdown", down.as_ref().unchecked_ref()).ok();
-        down.forget();
-    }
-    {
-        let eng = engine.clone();
-        let mv = Closure::<dyn FnMut(web_sys::PointerEvent)>::new(move |ev: web_sys::PointerEvent| {
-            let mut e = eng.borrow_mut();
-            let (x, y) = (ev.offset_x() as f64, ev.offset_y() as f64);
-            let Some(i) = e.pointers.iter().position(|p| p.0 == ev.pointer_id()) else { return };
-            let (px, py) = (e.pointers[i].1, e.pointers[i].2);
-            if e.pointers.len() == 1 {
-                e.moved += (x - px).abs() + (y - py).abs();
-                e.pan_px(x - px, y - py);
-            } else if e.pointers.len() == 2 {
-                let o = e.pointers[1 - i];
-                let before = ((px - o.1).powi(2) + (py - o.2).powi(2)).sqrt().max(1.0);
-                let after = ((x - o.1).powi(2) + (y - o.2).powi(2)).sqrt().max(1.0);
-                e.zoom_at((after / before).log2(), (x + o.1) / 2.0, (y + o.2) / 2.0);
-                e.pan_px((x - px) / 2.0, (y - py) / 2.0);
-            }
-            e.pointers[i] = (ev.pointer_id(), x, y);
-        });
-        canvas.add_event_listener_with_callback("pointermove", mv.as_ref().unchecked_ref()).ok();
-        mv.forget();
-    }
-    for name in ["pointerup", "pointercancel"] {
-        let eng = engine.clone();
-        let up = Closure::<dyn FnMut(web_sys::PointerEvent)>::new(move |ev: web_sys::PointerEvent| {
-            eng.borrow_mut().pointers.retain(|p| p.0 != ev.pointer_id());
-        });
-        canvas.add_event_listener_with_callback(name, up.as_ref().unchecked_ref()).ok();
-        up.forget();
-    }
-    {
-        let eng = engine.clone();
-        let wheel = Closure::<dyn FnMut(web_sys::WheelEvent)>::new(move |ev: web_sys::WheelEvent| {
-            ev.prevent_default();
-            let k = if ev.ctrl_key() { 0.012 } else { 0.0028 };
-            let dz = (-ev.delta_y() * k).clamp(-1.2, 1.2);
-            eng.borrow_mut().zoom_at(dz, ev.offset_x() as f64, ev.offset_y() as f64);
-        });
-        let opts = web_sys::AddEventListenerOptions::new();
-        opts.set_passive(false);
-        canvas
-            .add_event_listener_with_callback_and_add_event_listener_options("wheel", wheel.as_ref().unchecked_ref(), &opts)
-            .ok();
-        wheel.forget();
-    }
-    {
-        let eng = engine.clone();
-        let dbl = Closure::<dyn FnMut(web_sys::MouseEvent)>::new(move |ev: web_sys::MouseEvent| {
-            let mut e = eng.borrow_mut();
-            if let Some((lon, lat)) = e.view().unproject(ev.offset_x() as f64, ev.offset_y() as f64) {
-                let z = e.z + 1.6;
-                e.fly_to(lon, lat, z, 700.0);
-            }
-        });
-        canvas.add_event_listener_with_callback("dblclick", dbl.as_ref().unchecked_ref()).ok();
-        dbl.forget();
     }
 
     // data: what exists beyond the world pyramid, then the line layers
@@ -1144,7 +1064,7 @@ fn start(
         .map_err(|_| "raf")?;
 
     ENGINE.with(|g| *g.borrow_mut() = Some(engine));
-    Ok(())
+    Ok(id)
 }
 
 fn with_engine(f: impl FnOnce(&mut Engine)) {
@@ -1155,141 +1075,208 @@ fn with_engine(f: impl FnOnce(&mut Engine)) {
     });
 }
 
-// ─── the page ─────────────────────────────────────────────────────────
+// ─── the camera, for the page that hosts the layer ────────────────────
+
+/// Zoom by `dz` levels around a point of the layer (css px), or its centre.
+pub fn cam_zoom(dz: f64, at: Option<(f64, f64)>) {
+    with_engine(|e| {
+        let (w, h) = e.size();
+        let (x, y) = at.unwrap_or((w / 2.0, h / 2.0));
+        e.zoom_at(dz, x, y);
+    });
+}
+
+/// Drag the ground by a screen offset.
+pub fn cam_pan(dx: f64, dy: f64) {
+    with_engine(|e| e.pan_px(dx, dy));
+}
+
+/// Fly to a place so that `metres` fit the short side of the layer.
+pub fn cam_fit(lon: f64, lat: f64, metres: f64, dur: f64) {
+    with_engine(|e| {
+        let (w, h) = e.size();
+        e.fly_to(lon, lat, (M_PER_PX_Z0 * w.min(h) / metres).log2(), dur);
+    });
+}
+
+/// Back out to the whole earth.
+pub fn cam_world() {
+    with_engine(|e| {
+        let (lon, lat, z) = (e.lon, e.lat.clamp(-30.0, 30.0), e.z_min + 0.9);
+        e.fly_to(lon, lat, z, 1600.0);
+    });
+}
+
+/// Css px per metre on the ground at a zoom.
+pub fn px_per_m(z: f64) -> f64 {
+    2f64.powf(z) / M_PER_PX_Z0
+}
 
 fn fmt_coord(v: f64, pos: char, neg: char) -> String {
     format!("{:.4}°{}", v.abs(), if v >= 0.0 { pos } else { neg })
 }
 
 /// What one screen pixel spans on the ground under the camera.
-fn ground_scale(lat: f64, z: f64) -> String {
-    let m = 40_075_016.7 * lat.to_radians().cos() / (256.0 * 2f64.powf(z));
+fn ground_scale(z: f64) -> String {
+    let m = 1.0 / px_per_m(z);
     if m >= 1000.0 {
         format!("{:.0} km/px", m / 1000.0)
     } else if m >= 1.0 {
         format!("{m:.0} m/px")
     } else {
-        format!("{:.0} cm/px", m * 100.0)
+        format!("{:.1} cm/px", m * 100.0)
     }
 }
 
+/// The camera as the page sees it: lat, lon, zoom, layer width and height in css px.
+pub type Cam = (f64, f64, f64, f64, f64);
+
+/// The globe as a layer: a canvas and its markers, filling the positioned parent.
+/// It reports the camera into `cam` on every drawn frame.
 #[component]
-pub fn GlobePage() -> impl IntoView {
+pub fn GlobeLayer(
+    cam: RwSignal<Cam>,
+    picked: RwSignal<Option<usize>>,
+    /// (lon, lat, metres to fit) when the page opens on a place
+    home: Option<(f64, f64, f64)>,
+) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let overlay_ref = NodeRef::<leptos::html::Div>::new();
-    let hud = RwSignal::new((12.0f64, 100.0f64, 0.0f64));
-    let picked = RwSignal::new(None::<usize>);
     let error = RwSignal::new(None::<String>);
-    let started = StoredValue::new(false);
+    let engine_id = StoredValue::new(0u32);
 
     Effect::new(move |_| {
-        document().set_title("Cyberia — the globe");
         let (Some(canvas), Some(overlay)) = (canvas_ref.get(), overlay_ref.get()) else { return };
-        if started.get_value() {
+        if engine_id.get_value() != 0 {
             return;
         }
-        started.set_value(true);
         let overlay: HtmlElement = overlay.unchecked_into();
         let res = start(
             canvas,
             overlay,
-            Box::new(move |lat, lon, z| hud.set((lat, lon, z))),
-            Rc::new(move |i| picked.set(Some(i))),
+            home,
+            Box::new(move |lat, lon, z, w, h| {
+                let _ = cam.try_set((lat, lon, z, w, h));
+            }),
+            Rc::new(move |i| {
+                let _ = picked.try_set(Some(i));
+            }),
         );
-        if let Err(e) = res {
-            error.set(Some(e));
+        match res {
+            Ok(id) => engine_id.set_value(id),
+            Err(e) => error.set(Some(e)),
         }
     });
-    on_cleanup(|| {
-        with_engine(|e| e.alive = false);
-        ENGINE.with(|g| g.borrow_mut().take());
+    on_cleanup(move || {
+        // only this layer's engine: a new page may already have started its own
+        let id = engine_id.try_get_value().unwrap_or(0);
+        ENGINE.with(|g| {
+            let mine = g.borrow().as_ref().map(|e| e.borrow().id == id).unwrap_or(false);
+            if mine {
+                if let Some(e) = g.borrow_mut().take() {
+                    e.borrow_mut().alive = false;
+                }
+            }
+        });
     });
 
-    let near_valley = move || {
-        let (lat, lon, z) = hud.get();
-        z > 13.0 && (lat + 8.2998).abs() < 0.05 && (lon - 115.0898).abs() < 0.05
-    };
+    view! {
+        <canvas node_ref=canvas_ref class="globe-canvas"></canvas>
+        <div node_ref=overlay_ref class="globe-overlay"></div>
+        {move || error.get().map(|e| view! { <div class="globe-error">{e}</div> })}
+    }
+}
+
+/// What the layer shows over the planet: the cities, the way to found one,
+/// the zoom buttons and the readout. The host hides it once the land console is on.
+#[component]
+pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl IntoView {
+    let founding = RwSignal::new(false);
+    let name = RwSignal::new(String::new());
 
     view! {
-        <div class="globe-shell">
-            <canvas node_ref=canvas_ref class="globe-canvas"></canvas>
-            <div node_ref=overlay_ref class="globe-overlay"></div>
+        <div class="globe-ui globe-zoom">
+            <button type="button" title="zoom in" on:click=move |_| cam_zoom(1.0, None)>"+"</button>
+            <button type="button" title="zoom out" on:click=move |_| cam_zoom(-1.0, None)>"−"</button>
+            <button type="button" title="the whole earth" on:click=move |_| { picked.set(None); cam_world(); }>"◯"</button>
+        </div>
 
-            <div class="site-chrome cyberia-chrome globe-chrome">
-                <div class="chrome-inner">
-                    <div class="header-row1">
-                        <div class="logo-zone">
-                            <h1 class="logo">
-                                <a href=format!("{BASE}/") class="brand-flag" title="the globe" inner_html=FLAG_SVG></a>
-                                <span style="color: var(--cyber-green);">"cyber"</span>
-                                <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
-                                <span style="color: #fff;">"ia"</span>
-                            </h1>
-                        </div>
-                        <div class="cyberia-phase-pill">
-                            <span class="phase-dot"></span>
-                            {format!("{} CITIES", CITIES.len())}
-                        </div>
-                        <CyberiaNav active="" />
-                    </div>
-                </div>
-            </div>
-
-            {move || error.get().map(|e| view! { <div class="globe-error">{e}</div> })}
-
-            <div class="globe-zoom">
-                <button type="button" title="zoom in" on:click=move |_| with_engine(|e| { let (w, h) = e.size(); e.zoom_at(1.0, w / 2.0, h / 2.0); })>"+"</button>
-                <button type="button" title="zoom out" on:click=move |_| with_engine(|e| { let (w, h) = e.size(); e.zoom_at(-1.0, w / 2.0, h / 2.0); })>"−"</button>
-                <button type="button" title="the whole earth" on:click=move |_| { picked.set(None); with_engine(|e| { let (lon, lat, z) = (e.lon, e.lat.clamp(-30.0, 30.0), e.z_min + 0.9); e.fly_to(lon, lat, z, 1600.0); }); }>"◯"</button>
-            </div>
-
-            <div class="globe-cities">
-                <div class="globe-cities-h">"CITIES OF CYBERIA"</div>
-                {CITIES.iter().enumerate().map(|(i, c)| view! {
-                    <button
-                        type="button"
-                        class=move || if picked.get() == Some(i) { "globe-city on" } else { "globe-city" }
-                        on:click=move |_| {
-                            picked.set(Some(i));
-                            with_engine(|e| e.fly_to(c.lon, c.lat, c.zoom, 2600.0));
-                        }
-                    >
-                        <span class=if c.live { "gc-dot live" } else { "gc-dot" }></span>
-                        <span class="gc-copy">
-                            <span class="gc-name">{c.name}</span>
-                            <span class="gc-sub">{c.sub}</span>
-                        </span>
-                    </button>
-                }).collect_view()}
-                {move || picked.get().map(|i| {
-                    let c = &CITIES[i];
-                    let href = if c.href.starts_with('/') { format!("{BASE}{}", c.href) } else { c.href.to_string() };
-                    view! {
-                        <a class="globe-open" href=href>
-                            {if c.live { "OPEN THE LAND CONSOLE →" } else { "ABOUT THIS CITY →" }}
-                        </a>
+        <div class="globe-ui globe-cities">
+            <div class="globe-cities-h">"CITIES OF CYBERIA"</div>
+            {CITIES.iter().enumerate().map(|(i, c)| view! {
+                <button
+                    type="button"
+                    class=move || if picked.get() == Some(i) { "globe-city on" } else { "globe-city" }
+                    on:click=move |_| {
+                        picked.set(Some(i));
+                        founding.set(false);
+                        cam_fit(c.lon, c.lat, c.fit_m, 2600.0);
                     }
-                })}
-            </div>
-
-            {move || near_valley().then(|| view! {
-                <a class="globe-enter" href=format!("{BASE}/map")>
-                    <span class="ge-title">"CYBER VALLEY"</span>
-                    <span class="ge-sub">"plots · leases · fleets — open the land console →"</span>
-                </a>
+                >
+                    <span class="gc-dot live"></span>
+                    <span class="gc-copy">
+                        <span class="gc-name">{c.name}</span>
+                        <span class="gc-sub">{c.sub}</span>
+                    </span>
+                </button>
+            }).collect_view()}
+            <button
+                type="button"
+                class=move || if founding.get() { "globe-city found on" } else { "globe-city found" }
+                on:click=move |_| founding.update(|f| *f = !*f)
+            >
+                <span class="gc-dot"></span>
+                <span class="gc-copy">
+                    <span class="gc-name">"Found a city"</span>
+                    <span class="gc-sub">"pick a place on the globe"</span>
+                </span>
+            </button>
+            {move || founding.get().then(|| view! {
+                <div class="globe-found">
+                    <div class="gf-step">"1 · THE PLACE"</div>
+                    <div class="gf-note">"move the globe until the crosshair marks it"</div>
+                    <div class="gf-coord">
+                        {move || {
+                            let (lat, lon, ..) = cam.get();
+                            format!("{}  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'))
+                        }}
+                    </div>
+                    <div class="gf-step">"2 · THE NAME"</div>
+                    <input
+                        class="gf-input"
+                        type="text"
+                        maxlength="40"
+                        placeholder="name of the city"
+                        prop:value=move || name.get()
+                        on:input=move |ev| name.set(event_target_value(&ev))
+                    />
+                    <button type="button" class="gf-commit" disabled=true title="founding is not open yet">
+                        "FOUND CITY — SOON"
+                    </button>
+                    <div class="gf-note">"founding is not open yet · nothing is saved"</div>
+                </div>
             })}
+        </div>
 
-            <div class="globe-hud">
-                {move || {
-                    let (lat, lon, z) = hud.get();
-                    format!("{}  {}  ·  z {:.1}  ·  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'), z, ground_scale(lat, z))
-                }}
-            </div>
-            <div class="globe-attrib">
-                "imagery: Sentinel-2 cloudless 2016 by "
-                <a href="https://s2maps.eu" target="_blank" rel="noopener">"EOX"</a>
-                " (CC BY 4.0) · lines: Natural Earth · served by cyberia"
-            </div>
+        {move || founding.get().then(|| view! { <div class="globe-cross"></div> })}
+
+        <div class="globe-ui globe-hud">
+            {move || {
+                let (lat, lon, z, ..) = cam.get();
+                format!("{}  {}  ·  z {:.1}  ·  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'), z, ground_scale(z))
+            }}
+        </div>
+    }
+}
+
+/// The credit the imagery licence asks for; shown at every zoom.
+#[component]
+pub fn GlobeAttrib() -> impl IntoView {
+    view! {
+        <div class="globe-ui globe-attrib">
+            "imagery: Sentinel-2 cloudless 2016 by "
+            <a href="https://s2maps.eu" target="_blank" rel="noopener">"EOX"</a>
+            " (CC BY 4.0) · lines: Natural Earth · served by cyberia"
         </div>
     }
 }

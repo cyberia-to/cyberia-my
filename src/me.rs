@@ -1,7 +1,6 @@
 //! Super dashboard — one screen for everything you hold in Cyberia.
 //! Soft3 local: profile, CX/ETH balance, robots, leases, events, cities, intents.
 
-use crate::cities::{load_found, CityCard};
 use crate::economy::{fmt_qty, good};
 use crate::events::{load_user_events, EventCard};
 use crate::land::FLAG_SVG;
@@ -56,7 +55,6 @@ pub fn MePage() -> impl IntoView {
     let robots = RwSignal::new(load_owned());
     let leases = RwSignal::new(load_leases());
     let events = RwSignal::new(load_user_events());
-    let cities = RwSignal::new(load_found());
     let intents = RwSignal::new(load_intents());
     let stocks = RwSignal::new(load_stocks());
     let orders = RwSignal::new(load_orders());
@@ -74,7 +72,6 @@ pub fn MePage() -> impl IntoView {
         robots.set(load_owned());
         leases.set(load_leases());
         events.set(load_user_events());
-        cities.set(load_found());
         intents.set(load_intents());
         stocks.set(load_stocks());
         orders.set(load_orders());
@@ -85,7 +82,7 @@ pub fn MePage() -> impl IntoView {
             robots.get().len(),
             leases.get().len(),
             events.get().len(),
-            cities.get().len(),
+            0, // cities: founding is not open yet
             intents.get().len(),
             balance.get().depth,
         )
@@ -184,11 +181,6 @@ pub fn MePage() -> impl IntoView {
                         <div class="kpi-lab">"EVENTS"</div>
                         <div class="kpi-val">{move || events.get().len().to_string()}</div>
                         <div class="kpi-sub">"you posted →"</div>
-                    </a>
-                    <a class="kpi me-kpi" href="/cities">
-                        <div class="kpi-lab">"CITIES"</div>
-                        <div class="kpi-val">{move || cities.get().len().to_string()}</div>
-                        <div class="kpi-sub">"you founded →"</div>
                     </a>
                     <a class="kpi me-kpi" href="/map">
                         <div class="kpi-lab">"INTENTS"</div>
@@ -478,39 +470,6 @@ pub fn MePage() -> impl IntoView {
                                         <a class="me-chip event" href="/calendar">
                                             <span class="me-chip-name event">{e.title}</span>
                                             <span class="me-chip-meta">{format!("{} · {} · {}", e.city, e.when, e.status)}</span>
-                                        </a>
-                                    }
-                                }).collect_view()}
-                            </div>
-                        }.into_any()
-                    }}
-                </section>
-
-                // ── CITIES ──
-                <section class="me-section">
-                    <div class="me-section-h">
-                        <span>"CITIES YOU FOUNDED"</span>
-                        <a href="/cities">"catalog →"</a>
-                    </div>
-                    {move || {
-                        let list = cities.get();
-                        if list.is_empty() {
-                            return view! {
-                                <div class="me-empty">
-                                    "No founding entries. "
-                                    <a href="/cities">"Found a city"</a>
-                                    "."
-                                </div>
-                            }.into_any();
-                        }
-                        view! {
-                            <div class="me-chip-grid">
-                                {list.into_iter().map(|c: CityCard| {
-                                    let href = c.href.clone();
-                                    view! {
-                                        <a class="me-chip city" href=href>
-                                            <span class="me-chip-name city">{c.name}</span>
-                                            <span class="me-chip-meta">{format!("{} · {}", c.region, c.status)}</span>
                                         </a>
                                     }
                                 }).collect_view()}

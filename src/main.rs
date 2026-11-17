@@ -1,7 +1,6 @@
 mod admin;
 mod app;
 mod cabinet;
-mod cities;
 mod console;
 mod deals;
 mod docs;
