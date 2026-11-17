@@ -3,7 +3,7 @@ tags: cyberia, project, cyberia-my, map
 alias: globe, the globe, cyberia.my globe, the map engine
 crystal-type: plan
 crystal-domain: cyberia
-status: proposed
+status: executed
 date: 2026-11-17
 owner: master
 serves: land
@@ -62,6 +62,25 @@ Rust to wasm, WebGL2, in the same trunk build as the site — no node, no map li
 2. districts from geoBoundaries and OSM, selection, search, the address.
 3. Sentinel-2 imagery to the chosen zoom.
 4. the land console as the deepest zoom range; /map becomes a view of the globe.
+
+## built, 2026-11-17
+
+live at https://cyberia.my/ — pull requests cyberia-my #6, #7, #8. the four steps above landed as one map:
+
+- the engine is `src/globe.rs`: WebGL2 through web-sys, no map library. one camera from the planet to two metres across; the globe is a ball in the hand — any heading at any zoom, the point under the finger stays under it, a thrown ball keeps turning; keys are held, eased, read by their place on the keyboard, and written on the buttons of one pad.
+- the land console is the deepest zoom range: its plan lies over the imagery and shares the camera; /, /cities, /map, /domains and `/@lat,lon,zoom[,heading]` are the same map.
+- imagery from our own disk: the Sentinel-2 mosaic to zoom 7 for the earth and to zoom 14 for Bali and Armenia; the poles have their own pyramid (north the same mosaic, south of 60°S Blue Marble).
+- the divisions: 1,040,641 units in six levels. geoBoundaries gbOpen for the earth; gbHumanitarian for Indonesia's kecamatan and desa (in place of OpenStreetMap, which the plan named); Natural Earth's breakaway areas and Iraq's northern governorates for the five states cyberstates names. a tap gives the point and the unit under it at every level; each level is selected by its row; the right panel follows the plot panel's plan and shows the area; the lines of the level the zoom reads are drawn; a place is found by name.
+
+where the build left the plan:
+
+- files, not PMTiles: imagery tiles, unit files, index cells, line cells and search shards are plain static files under `/tiles/`. the engine reads them directly, so tippecanoe and vector tiles were not needed.
+- no parent links are stored: every level is asked for the unit under the point.
+- Natural Earth is no longer drawn; states are named as cyberstates names them.
+
+not built yet: names on the map (the glyph atlas), the address `/d/<district>` and a particle per unit, imagery deeper than zoom 7 outside Bali and Armenia, a measured page check of the acceptance list below.
+
+the data is built by `scripts/build-divisions.py` on the build host and copied to the front — never built on the front, which has 4 cores and 8 GiB: on 2026-11-17 a 48-job run there got its container killed and re-created, about two minutes of outage for every site on it.
 
 ## open for the owner
 
