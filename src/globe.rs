@@ -100,6 +100,8 @@ fn turn(axis: V3, ang: f64, v: V3) -> V3 {
 }
 /// The globe is a ball in the hand: below this zoom it keeps any heading it is given.
 const FREE_Z: f64 = 8.5;
+/// The sketch lines of the world (coast, borders, provinces) are gone from this zoom.
+const WORLD_LINES_Z: f64 = 6.5;
 /// From this zoom the map is north-up: a city's plan is drawn that way.
 const LEVEL_Z: f64 = 11.0;
 fn merc_lat(y: f64) -> f64 {
@@ -803,13 +805,15 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         gl.uniform3f(self.line_prog.loc("u_n"), v.north[0] as f32, v.north[1] as f32, v.north[2] as f32);
         gl.uniform3f(self.line_prog.loc("u_up"), v.up[0] as f32, v.up[1] as f32, v.up[2] as f32);
         for l in &self.world {
-            // static f32 unit vectors stop being exact below ~1 m: the deep zooms go without them
-            if self.z < l.min_z || self.z > 17.5 {
+            // the world's lines are a sketch of the planet (1:50m): closer in they would
+            // double the exact boundaries beside them, so they fade out by WORLD_LINES_Z
+            if self.z < l.min_z || self.z >= WORLD_LINES_Z {
                 continue;
             }
+            let near = (1.0 - smooth((self.z - (WORLD_LINES_Z - 1.5)) / 1.5)) as f32;
             let fade = ((self.z - l.min_z) / 0.8).clamp(0.0, 1.0) as f32;
             let c = l.color;
-            gl.uniform4f(self.line_prog.loc("u_color"), c[0], c[1], c[2], c[3] * if l.min_z > 0.0 { fade } else { 1.0 });
+            gl.uniform4f(self.line_prog.loc("u_color"), c[0], c[1], c[2], c[3] * near * if l.min_z > 0.0 { fade } else { 1.0 });
             gl.bind_vertex_array(Some(&l.vao));
             gl.draw_arrays(GL::LINES, 0, l.count);
         }
