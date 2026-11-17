@@ -13,7 +13,7 @@ use crate::terms::{
 use crate::land::FLAG_SVG;
 use crate::friends::friend_sales;
 use crate::globe::{
-    cam_fit, cam_pan, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
+    cam_drag, cam_fit, cam_pan, cam_release, cam_stop, cam_turn, cam_twist, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Unit, BASE,
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
@@ -515,7 +515,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
 
     // ONE camera: the globe's. It reports every frame; near the site the SVG
     // plane follows it exactly, far from it the console steps aside.
-    let cam = RwSignal::new((0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64));
+    let cam = RwSignal::new((0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64));
     let picked = RwSignal::new(None::<usize>);
     // a tap on the globe: the point (lat, lon), every division it is in from the
     // state down, and the one that is selected and outlined
@@ -540,7 +540,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     {
         let bbox = map_bbox.clone();
         Effect::new(move |_| {
-            let (lat, lon, z, w, h) = cam.get();
+            let (lat, lon, z, w, h, _) = cam.get();
             if w < 2.0 || h < 2.0 {
                 return;
             }
@@ -823,6 +823,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 "+" | "=" => { ev.prevent_default(); zoom_by(1.25); }
                                 "-" | "_" => { ev.prevent_default(); zoom_by(1.0 / 1.25); }
                                 "0" => { ev.prevent_default(); reset_cam(); }
+                                "q" | "Q" => { ev.prevent_default(); cam_turn(-std::f64::consts::PI / 8.0); }
+                                "e" | "E" => { ev.prevent_default(); cam_turn(std::f64::consts::PI / 8.0); }
                                 // nothing selected: the region, the city and the plot let go
                                 "Escape" => {
                                     drop_point();
@@ -846,6 +848,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             if on_ui {
                                 return;
                             }
+                            cam_stop(); // a hand on a turning ball stops it
                             touches.update_value(|t| {
                                 t.retain(|p| p.0 != ev.pointer_id());
                                 t.push((ev.pointer_id(), ev.client_x() as f64, ev.client_y() as f64));
@@ -927,6 +930,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     .unwrap_or((0.0, 0.0));
                                 zoom_at(after / before, (cx + other.1) / 2.0 - ox, (cy + other.2) / 2.0 - oy);
                                 pan_by((cx - me.1) / 2.0, (cy - me.2) / 2.0);
+                                // the two fingers turn about each other: the view turns with them
+                                cam_twist((cy - other.2).atan2(cx - other.1) - (me.2 - other.2).atan2(me.1 - other.1));
                                 touches.update_value(|t| {
                                     if let Some(p) = t.iter_mut().find(|p| p.0 == ev.pointer_id()) {
                                         *p = (ev.pointer_id(), cx, cy);
@@ -955,7 +960,18 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     let _ = el.set_pointer_capture(ev.pointer_id());
                                 }
                             }
-                            pan_by(dx, dy);
+                            let (ox, oy, ww, wh) = map_wrap_ref
+                                .get_untracked()
+                                .map(|el| { let r = el.get_bounding_client_rect(); (r.left(), r.top(), r.width(), r.height()) })
+                                .unwrap_or((0.0, 0.0, MAP_W, MAP_H));
+                            if ev.shift_key() {
+                                // shift: twist the view about its centre
+                                let (mx, my) = (ox + ww / 2.0, oy + wh / 2.0);
+                                cam_twist((cy - my).atan2(cx - mx) - (ly - my).atan2(lx - mx));
+                            } else {
+                                // the point under the finger stays under the finger
+                                cam_drag(lx - ox, ly - oy, cx - ox, cy - oy);
+                            }
                             map_drag_last.set((cx, cy));
                         }
                         on:pointerup=move |ev| {
@@ -970,7 +986,10 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             // the finger that stays goes on panning from where it is
                             match touches.with_value(|t| t.first().copied()) {
                                 Some(p) => map_drag_last.set((p.1, p.2)),
-                                None => map_dragging.set(false),
+                                None => {
+                                    map_dragging.set(false);
+                                    cam_release(); // a ball that was moving keeps turning
+                                }
                             }
                             // release now, before the browser synthesizes the click that
                             // follows — otherwise the capturing wrapper (not the plot the

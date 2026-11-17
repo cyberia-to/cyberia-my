@@ -89,11 +89,19 @@ fn smooth(x: f64) -> f64 {
     let t = x.clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)
 }
-/// How strongly the camera is drawn back to north-up: fully below 60°, not at all
-/// above 75°, so the globe turns freely over the poles and stands upright elsewhere.
-fn upright(lat: f64) -> f64 {
-    smooth((75.0 - lat.abs()) / 15.0)
+fn cross(a: V3, b: V3) -> V3 {
+    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 }
+/// Turn a vector about a unit axis by an angle.
+fn turn(axis: V3, ang: f64, v: V3) -> V3 {
+    let (sn, cs) = ang.sin_cos();
+    let (x, k) = (cross(axis, v), dot(axis, v) * (1.0 - cs));
+    [v[0] * cs + x[0] * sn + axis[0] * k, v[1] * cs + x[1] * sn + axis[1] * k, v[2] * cs + x[2] * sn + axis[2] * k]
+}
+/// The globe is a ball in the hand: below this zoom it keeps any heading it is given.
+const FREE_Z: f64 = 8.5;
+/// From this zoom the map is north-up: a city's plan is drawn that way.
+const LEVEL_Z: f64 = 11.0;
 fn merc_lat(y: f64) -> f64 {
     (PI * (1.0 - 2.0 * y)).sinh().atan().to_degrees()
 }
@@ -363,7 +371,7 @@ struct Country {
 
 struct Fly {
     from: (V3, f64, f64), // the point under the camera, zoom, heading
-    to: (V3, f64),
+    to: (V3, f64, f64),
     t0: f64,
     dur: f64,
 }
@@ -392,6 +400,9 @@ struct Engine {
     lon: f64,
     lat: f64,
     hd: f64, // heading, radians from north-up
+    spin: Option<(V3, f64)>,      // the ball keeps turning: axis, radians per ms
+    drag_spin: Option<(V3, f64)>, // the last move of the hand
+    drag_t: f64,
     z: f64,
     z_min: f64,
     last_t: f64,
@@ -419,7 +430,7 @@ struct Engine {
     admin1_asked: bool,
     id: u32,
     fit: Option<f64>,
-    on_view: Box<dyn Fn(f64, f64, f64, f64, f64)>,
+    on_view: Box<dyn Fn(f64, f64, f64, f64, f64, f64)>,
     last_move: f64,
     url_synced: bool,
 }
@@ -452,8 +463,19 @@ impl Engine {
         self.url_synced = false;
     }
 
+    /// Set the camera by the point under it and the direction of the screen's up.
+    fn set_frame(&mut self, up2: V3, n2: V3) {
+        let up2 = norm(up2);
+        self.lat = up2[1].clamp(-1.0, 1.0).asin().to_degrees();
+        if up2[0].abs() + up2[2].abs() > 1e-12 {
+            self.lon = up2[0].atan2(up2[2]).to_degrees();
+        }
+        let (e_t, n_t) = tangent(self.lon, self.lat);
+        self.hd = if self.z >= LEVEL_Z { 0.0 } else { (-dot(n2, e_t)).atan2(dot(n2, n_t)) };
+    }
+
     /// Put the camera over another point of the sphere, carrying the screen's
-    /// orientation along the way (no twist), so a drag can cross a pole.
+    /// orientation along the way (no twist), so a move can cross a pole.
     fn move_to(&mut self, up2: V3) {
         let v = self.view();
         let up2 = norm(up2);
@@ -462,20 +484,61 @@ impl Engine {
             return;
         }
         let k = dot(up2, v.north) / c;
-        let n2 = [v.north[0] - (v.up[0] + up2[0]) * k, v.north[1] - (v.up[1] + up2[1]) * k, v.north[2] - (v.up[2] + up2[2]) * k];
-        self.lat = up2[1].clamp(-1.0, 1.0).asin().to_degrees();
-        if up2[0].abs() + up2[2].abs() > 1e-12 {
-            self.lon = up2[0].atan2(up2[2]).to_degrees();
-        }
-        let (e_t, n_t) = tangent(self.lon, self.lat);
-        // an upright map stays upright below the polar zone, and always at city zooms;
-        // a turned one is left alone while the hand moves it (it stands up once released)
-        let was_upright = self.hd == 0.0;
-        self.hd = if self.z > 9.0 || (was_upright && upright(self.lat) >= 1.0) {
-            0.0
-        } else {
-            (-dot(n2, e_t)).atan2(dot(n2, n_t))
+        self.set_frame(up2, [v.north[0] - (v.up[0] + up2[0]) * k, v.north[1] - (v.up[1] + up2[1]) * k, v.north[2] - (v.up[2] + up2[2]) * k]);
+    }
+
+    /// The hand on the ball: the point of the earth that was under (x0, y0) goes
+    /// to (x1, y1) and stays under the finger. Off the planet's disc it pans.
+    fn drag(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
+        let v = self.view();
+        let (Some(a), Some(b)) = (v.unproject_q(x0, y0), v.unproject_q(x1, y1)) else {
+            self.pan_px(x1 - x0, y1 - y0);
+            return;
         };
+        let axis = cross(b, a);
+        let len = dot(axis, axis).sqrt();
+        if len > 1e-15 {
+            let axis = [axis[0] / len, axis[1] / len, axis[2] / len];
+            let ang = len.atan2(dot(a, b)).min(0.5);
+            self.set_frame(turn(axis, ang, v.up), turn(axis, ang, v.north));
+            let t = now();
+            let dt = (t - self.drag_t).clamp(4.0, 200.0);
+            self.drag_spin = Some((axis, (ang / dt).min(0.004)));
+            self.drag_t = t;
+        }
+        self.fly = None;
+        self.spin = None;
+        self.clamp();
+        self.touch();
+    }
+
+    /// The hand lets go: a ball that was moving keeps turning and slows down.
+    fn release(&mut self) {
+        if let Some(s) = self.drag_spin.take() {
+            if now() - self.drag_t < 70.0 && self.z < FREE_Z && s.1 > 3e-5 {
+                self.spin = Some(s);
+                self.dirty = true;
+            }
+        }
+    }
+
+    /// Turn the view about the point under the camera, at once.
+    fn twist(&mut self, da: f64) {
+        if self.z >= LEVEL_Z {
+            return;
+        }
+        self.hd = (self.hd + da + PI).rem_euclid(2.0 * PI) - PI;
+        self.fly = None;
+        self.spin = None;
+        self.touch();
+    }
+
+    /// Turn the view to a heading, smoothly, the short way or by `delta`.
+    fn turn_by(&mut self, delta: f64, dur: f64) {
+        let q = unit(self.lon, self.lat);
+        self.spin = None;
+        self.fly = Some(Fly { from: (q, self.z, self.hd), to: (q, self.z, self.hd + delta), t0: now(), dur });
+        self.dirty = true;
     }
 
     fn covered(&self, k: Key) -> bool {
@@ -618,18 +681,29 @@ impl Engine {
                 self.lon = q[0].atan2(q[2]).to_degrees();
             }
             self.z = fl.from.1 + (fl.to.1 - fl.from.1) * s - dip;
-            self.hd = fl.from.2 * (1.0 - s);
+            self.hd = fl.from.2 + (fl.to.2 - fl.from.2) * s;
             if k >= 1.0 {
                 self.fly = None;
+                self.hd = (self.hd + PI).rem_euclid(2.0 * PI) - PI;
             }
             self.clamp();
             self.touch();
-        } else if self.hd != 0.0 && t - self.last_move > 250.0 {
-            // released away from the poles, the map stands back up by itself
-            let w = if self.z > 9.0 { 1.0 } else { upright(self.lat) };
-            if w > 0.0 {
-                self.hd *= (-(t - self.last_t).clamp(0.0, 100.0) / 1000.0 * 6.0 * w).exp();
-                if self.hd.abs() < 0.0005 {
+        } else {
+            let dt = (t - self.last_t).clamp(0.0, 100.0);
+            // the turn the hand left the ball with
+            if let Some((axis, rate)) = self.spin {
+                let v = self.view();
+                self.set_frame(turn(axis, rate * dt, v.up), turn(axis, rate * dt, v.north));
+                let rate = rate * (-dt / 900.0).exp();
+                self.spin = (rate > 4e-6 && self.z < FREE_Z).then_some((axis, rate));
+                self.clamp();
+                self.touch();
+            }
+            // coming down to a city the map levels: its plan is drawn north-up
+            if self.hd != 0.0 && self.z > FREE_Z {
+                let w = smooth((self.z - FREE_Z) / (LEVEL_Z - FREE_Z));
+                self.hd *= (-dt / 1000.0 * 10.0 * w).exp();
+                if self.z >= LEVEL_Z || self.hd.abs() < 0.0005 {
                     self.hd = 0.0;
                 }
                 self.dirty = true;
@@ -662,7 +736,8 @@ impl Engine {
             self.url_synced = true;
             if let Some(hist) = web_sys::window().and_then(|w| w.history().ok()) {
                 let search = web_sys::window().and_then(|w| w.location().search().ok()).unwrap_or_default();
-                let url = format!("{BASE}/@{:.6},{:.6},{:.2}z{search}", self.lat, self.lon, self.z);
+let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees()) } else { String::new() };
+                let url = format!("{BASE}/@{:.6},{:.6},{:.2}z{turned}{search}", self.lat, self.lon, self.z);
                 let _ = hist.replace_state_with_url(&JsValue::NULL, "", Some(&url));
             }
         }
@@ -820,7 +895,7 @@ impl Engine {
             }
         }
 
-        (self.on_view)(self.lat, self.lon, self.z, w, h);
+        (self.on_view)(self.lat, self.lon, self.z, w, h, self.hd);
 
         // few at a time, the coarse first
         loads.sort();
@@ -894,10 +969,12 @@ impl Engine {
     fn fly_to(&mut self, lon: f64, lat: f64, z: f64, dur: f64) {
         self.fly = Some(Fly {
             from: (unit(self.lon, self.lat), self.z, self.hd),
-            to: (unit(lon, lat), z.clamp(self.z_min, Z_MAX)),
+            // a flight to a city lands north-up; one over the planet keeps the heading
+            to: (unit(lon, lat), z.clamp(self.z_min, Z_MAX), if z > FREE_Z { 0.0 } else { self.hd }),
             t0: now(),
             dur,
         });
+        self.spin = None;
         self.dirty = true;
     }
 
@@ -910,6 +987,7 @@ impl Engine {
             self.move_to([up[0] + b[0] - a[0], up[1] + b[1] - a[1], up[2] + b[2] - a[2]]);
         }
         self.fly = None;
+        self.spin = None;
         self.clamp();
         self.touch();
     }
@@ -925,6 +1003,7 @@ impl Engine {
             v.up[2] - v.e[2] * a + v.north[2] * b,
         ]);
         self.fly = None;
+        self.spin = None;
         self.clamp();
         self.touch();
     }
@@ -1129,14 +1208,16 @@ fn cyberia_layers() -> Vec<PreciseLayer> {
     vec![PreciseLayer { pts: districts, color: [1.0, 0.84, 0.0, 0.85], min_z: 10.5, max_z: SVG_Z }]
 }
 
-fn initial_view() -> Option<(f64, f64, f64)> {
+/// An address of the globe: /@lat,lon,zoomz and, when the view is turned, ,headingh.
+fn initial_view() -> Option<(f64, f64, f64, f64)> {
     let path = web_sys::window()?.location().pathname().ok()?;
     let at = path.split("/@").nth(1)?;
     let mut it = at.trim_end_matches('/').split(',');
     let lat: f64 = it.next()?.parse().ok()?;
     let lon: f64 = it.next()?.parse().ok()?;
     let z: f64 = it.next()?.trim_end_matches('z').parse().ok()?;
-    Some((lat, lon, z))
+    let hd: f64 = it.next().and_then(|h| h.trim_end_matches('h').parse().ok()).unwrap_or(0.0);
+    Some((lat, lon, z, hd.to_radians()))
 }
 
 /// Start the engine on a canvas. `home` is (lon, lat, metres to fit) when the page
@@ -1146,7 +1227,7 @@ fn start(
     canvas: HtmlCanvasElement,
     overlay: HtmlElement,
     home: Option<(f64, f64, f64)>,
-    on_view: Box<dyn Fn(f64, f64, f64, f64, f64)>,
+    on_view: Box<dyn Fn(f64, f64, f64, f64, f64, f64)>,
     on_pick: Rc<dyn Fn(usize)>,
 ) -> Result<u32, String> {
     let gl: GL = canvas
@@ -1194,9 +1275,9 @@ fn start(
 
     let doc = web_sys::window().and_then(|w| w.document()).ok_or("no document")?;
     let addressed = initial_view();
-    let (lat, lon, z) = addressed.unwrap_or(match home {
-        Some((lon, lat, _)) => (lat, lon, 15.0),
-        None => (12.0, 100.0, 0.0),
+    let (lat, lon, z, hd) = addressed.unwrap_or(match home {
+        Some((lon, lat, _)) => (lat, lon, 15.0, 0.0),
+        None => (12.0, 100.0, 0.0, 0.0),
     });
     let fit = if addressed.is_some() { None } else { home.map(|h| h.2) };
     let id = NEXT_ID.with(|n| {
@@ -1210,7 +1291,10 @@ fn start(
         alive: true,
         lon,
         lat,
-        hd: 0.0,
+        hd,
+        spin: None,
+        drag_spin: None,
+        drag_t: 0.0,
         z,
         z_min: 0.0,
         last_t: 0.0,
@@ -1362,6 +1446,46 @@ pub fn cam_zoom(dz: f64, at: Option<(f64, f64)>) {
         let (w, h) = e.size();
         let (x, y) = at.unwrap_or((w / 2.0, h / 2.0));
         e.zoom_at(dz, x, y);
+    });
+}
+
+/// The hand on the ball: the point that was under (x0, y0) follows the finger to (x1, y1).
+pub fn cam_drag(x0: f64, y0: f64, x1: f64, y1: f64) {
+    with_engine(|e| e.drag(x0, y0, x1, y1));
+}
+
+/// The hand lets go: the ball keeps the turn it had.
+pub fn cam_release() {
+    with_engine(|e| e.release());
+}
+
+/// A hand on the ball stops it.
+pub fn cam_stop() {
+    with_engine(|e| {
+        e.spin = None;
+        e.drag_spin = None;
+    });
+}
+
+/// Turn the view about its centre by an angle (radians, clockwise), at once.
+pub fn cam_twist(da: f64) {
+    with_engine(|e| e.twist(da));
+}
+
+/// Turn the view about its centre by an angle, smoothly.
+pub fn cam_turn(delta: f64) {
+    with_engine(|e| {
+        if e.z < LEVEL_Z {
+            e.turn_by(delta, 420.0);
+        }
+    });
+}
+
+/// North up again, the short way round.
+pub fn cam_north() {
+    with_engine(|e| {
+        let d = -e.hd;
+        e.turn_by(d, 600.0);
     });
 }
 
@@ -1566,8 +1690,9 @@ fn ground_scale(z: f64) -> String {
     }
 }
 
-/// The camera as the page sees it: lat, lon, zoom, layer width and height in css px.
-pub type Cam = (f64, f64, f64, f64, f64);
+/// The camera as the page sees it: lat, lon, zoom, layer width and height in css px,
+/// and the heading (radians the screen's up is turned clockwise from north).
+pub type Cam = (f64, f64, f64, f64, f64, f64);
 
 /// The globe as a layer: a canvas and its markers, filling the positioned parent.
 /// It reports the camera into `cam` on every drawn frame.
@@ -1593,8 +1718,8 @@ pub fn GlobeLayer(
             canvas,
             overlay,
             home,
-            Box::new(move |lat, lon, z, w, h| {
-                let _ = cam.try_set((lat, lon, z, w, h));
+            Box::new(move |lat, lon, z, w, h, hd| {
+                let _ = cam.try_set((lat, lon, z, w, h, hd));
             }),
             Rc::new(move |i| {
                 let _ = picked.try_set(Some(i));
@@ -1637,7 +1762,14 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl Int
             <button type="button" title="zoom in" on:click=move |_| cam_zoom(1.0, None)>"+"</button>
             <button type="button" title="zoom out" on:click=move |_| cam_zoom(-1.0, None)>"−"</button>
             <button type="button" title="the whole earth" on:click=move |_| { picked.set(None); cam_world(); }>"◯"</button>
+            <span class="gz-sep"></span>
+            <button type="button" title="turn left (Q)" on:click=move |_| cam_turn(-PI / 8.0)>"⟲"</button>
+            <button type="button" class="gz-compass" title="north up" on:click=move |_| cam_north()>
+                <span class="gz-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
+            </button>
+            <button type="button" title="turn right (E)" on:click=move |_| cam_turn(PI / 8.0)>"⟳"</button>
         </div>
+        <div class="globe-ui globe-hint">"drag: turn the globe · shift-drag or two fingers: twist · wheel or pinch: zoom · tap: select"</div>
 
         <div class="globe-ui globe-cities">
             <div class="globe-cities-h">"CITIES OF CYBERIA"</div>
@@ -1705,8 +1837,9 @@ pub fn GlobeFar(cam: RwSignal<Cam>, picked: RwSignal<Option<usize>>) -> impl Int
 
         <div class="globe-ui globe-hud">
             {move || {
-                let (lat, lon, z, ..) = cam.get();
-                format!("{}  {}  ·  z {:.1}  ·  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'), z, ground_scale(z))
+let (lat, lon, z, _, _, hd) = cam.get();
+                let turned = if hd.abs() > 0.009 { format!("  ·  north {:.0}°", hd.to_degrees().rem_euclid(360.0)) } else { String::new() };
+                format!("{}  {}  ·  z {:.1}  ·  {}{turned}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'), z, ground_scale(z))
             }}
         </div>
     }

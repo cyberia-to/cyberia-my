@@ -4537,3 +4537,12 @@ button.city-card:hover {
 /* a division reads as a map: north up and still, where a plot's slab spins */
 .division-panel .plot-slab { transform: none; animation: none; }
 .division-panel .plot-slab-path { stroke-width: 1.4; }
+
+/* the globe's own controls: turn, north up, the hint */
+.gz-sep { height: 6px; }
+.gz-compass { color: #ff3b30 !important; }
+.gz-needle { display: inline-block; font-size: 15px; line-height: 1; }
+.globe-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); font: 10px/1.2 'Play', sans-serif; letter-spacing: .06em; color: #7c7c7c; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 6px; z-index: 4; white-space: nowrap; pointer-events: none; }
+.globe-host:not(.globe-far) .globe-hint { display: none; }
+@media (max-width: 900px) { .globe-hint { display: none; } }
+@media (max-width: 640px) { .globe-zoom button { width: 36px; height: 36px; } .globe-zoom { top: 30%; } }
