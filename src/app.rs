@@ -9,6 +9,7 @@ use crate::admin::AdminPage;
 use crate::cabinet::CabinetPage;
 use crate::docs::{DocPage, DocsPage};
 use crate::genetics::GeneticsPage;
+use crate::globe::{GlobePage, BASE};
 use crate::me::MePage;
 use crate::nav::{CyberiaNav, MenuPage};
 use crate::orgs::OrgsPage;
@@ -30,17 +31,22 @@ use leptos_router::path;
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <Router>
+        <Router base=BASE>
             <Routes fallback=|| {
+                // an address of the globe: /@lat,lon,zoom
+                let path = window().location().pathname().unwrap_or_default();
+                if path.contains("/@") {
+                    return view! { <GlobePage /> }.into_any();
+                }
                 view! {
                     <div class="page-shell" style="padding:40px;">
                         <h1 style="color: var(--cyber-red);">"404"</h1>
                         <p style="color:#777777; margin-top:12px;">"City or page not found."</p>
                         <a href="/studio" style="color: var(--cyber-green);">"← Signal Studio"</a>
                     </div>
-                }
+                }.into_any()
             }>
-                <Route path=path!("/") view=CitiesPage />
+                <Route path=path!("/") view=GlobePage />
                 <Route path=path!("/cities") view=CitiesPage />
                 <Route path=path!("/me") view=MePage />
                 <Route path=path!("/you") view=MePage />
