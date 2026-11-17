@@ -455,7 +455,33 @@ struct Engine {
     url_synced: bool,
 }
 
+/// What the map shows, one bit a layer; the page keeps the choice, the engine reads it.
+pub mod layer {
+    pub const SATELLITE: u32 = 1;
+    pub const GRID: u32 = 1 << 1;
+    pub const STATES: u32 = 1 << 2;
+    pub const REGIONS: u32 = 1 << 3;
+    pub const SUBREGIONS: u32 = 1 << 4;
+    pub const LOCAL: u32 = 1 << 5;
+    pub const CITIES: u32 = 1 << 6;
+    pub const FRANCHISE: u32 = 1 << 7;
+    pub const OUTLINE: u32 = 1 << 8;
+    pub const PLOTS: u32 = 1 << 9;
+    /// everything but the grid
+    pub const DEFAULT: u32 = 0x3FF & !GRID;
+    /// the bit of a level of the divisions
+    pub fn of_level(level: u8) -> u32 {
+        match level {
+            0 => STATES,
+            1 => REGIONS,
+            2 => SUBREGIONS,
+            _ => LOCAL,
+        }
+    }
+}
+
 thread_local! {
+    static LAYERS: std::cell::Cell<u32> = const { std::cell::Cell::new(layer::DEFAULT) };
     static ENGINE: RefCell<Option<Rc<RefCell<Engine>>>> = const { RefCell::new(None) };
     static NEXT_ID: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
 }
@@ -633,6 +659,52 @@ impl Engine {
         );
         let out = (buf, idx.len() as i32);
         self.index.insert(grid, out.clone());
+        out
+    }
+
+    /// Parallels and meridians across the view, at a step that keeps them a hand apart.
+    fn grid(&self, v: &View) -> Vec<V3> {
+        const STEPS: [f64; 15] = [30.0, 15.0, 10.0, 5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001];
+        let want = 110.0 * 360.0 / (256.0 * 2f64.powf(self.z));
+        let step = STEPS.iter().rev().copied().find(|s| *s >= want).unwrap_or(30.0);
+        let theta = v.cap();
+        let (lat0, td) = (self.lat.to_radians(), theta.to_degrees());
+        let all_lon = lat0.abs() + theta >= PI / 2.0 - 0.02 || theta.sin() >= lat0.cos();
+        let (a, b) = if all_lon {
+            (-180.0, 180.0)
+        } else {
+            let dl = (theta.sin() / lat0.cos()).asin().to_degrees();
+            (((self.lon - dl) / step).floor() * step, ((self.lon + dl) / step).ceil() * step)
+        };
+        let s0 = (((self.lat - td) / step).floor() * step).max(-90.0);
+        let s1 = (((self.lat + td) / step).ceil() * step).min(90.0);
+        let mut out = Vec::new();
+        let n_lat = ((s1 - s0) / step).round() as i64;
+        let n_lon = ((b - a) / step).round() as i64;
+        let seg_lon = if all_lon { 120 } else { 32 };
+        for j in 0..=n_lat {
+            let lat = s0 + j as f64 * step;
+            if lat.abs() > 89.999 {
+                continue;
+            }
+            for i in 0..seg_lon {
+                let (l0, l1) = (a + (b - a) * i as f64 / seg_lon as f64, a + (b - a) * (i + 1) as f64 / seg_lon as f64);
+                out.push(unit(l0, lat));
+                out.push(unit(l1, lat));
+            }
+        }
+        let seg_lat = if s1 - s0 > 60.0 { 60 } else { 24 };
+        for i in 0..=n_lon {
+            if all_lon && i == n_lon {
+                break; // 180° is −180°
+            }
+            let lon = a + i as f64 * step;
+            for j in 0..seg_lat {
+                let (l0, l1) = (s0 + (s1 - s0) * j as f64 / seg_lat as f64, s0 + (s1 - s0) * (j + 1) as f64 / seg_lat as f64);
+                out.push(unit(lon, l0));
+                out.push(unit(lon, l1));
+            }
+        }
         out
     }
 
@@ -827,10 +899,14 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         gl.bind_vertex_array(Some(&self.tile_vao));
         let frame = self.frame;
         let mut scratch: Vec<f32> = Vec::new();
-        for k in north.into_iter().chain(wanted) {
-            self.draw_tile(&v, k, &mut loads, &mut scratch);
+        let lay = LAYERS.with(|l| l.get());
+        let sat = lay & layer::SATELLITE != 0;
+        if sat {
+            for k in north.into_iter().chain(wanted) {
+                self.draw_tile(&v, k, &mut loads, &mut scratch);
+            }
         }
-        if !south.is_empty() {
+        if sat && !south.is_empty() {
             gl.enable(GL::BLEND);
             gl.blend_func(GL::SRC_ALPHA, GL::ONE_MINUS_SRC_ALPHA);
             gl.uniform1f(self.tile_prog.loc("u_tone"), 1.0);
@@ -862,6 +938,9 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
             while level >= 0 && drawn < 2 {
                 let l = level as u8;
                 level -= 1;
+                if lay & layer::of_level(l) == 0 {
+                    continue;
+                }
                 let cells = self.cells_in_view(360.0 / (1u32 << LINE_GRID[l as usize]) as f64, theta);
                 if cells.len() > 48 {
                     continue; // too fine for this view
@@ -910,8 +989,20 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         gl.uniform1f(self.vline_prog.loc("u_h"), (1.0 - 1.0 / v.d) as f32);
         gl.bind_vertex_array(Some(&self.vline_vao));
         gl.uniform2f(self.vline_prog.loc("u_off"), 0.0, 0.0);
+        if lay & layer::GRID != 0 {
+            scratch.clear();
+            let pts = self.grid(&v);
+            for q in &pts {
+                let p = v.to_view(*q);
+                scratch.extend_from_slice(&[p[0] as f32, p[1] as f32, p[2] as f32]);
+            }
+            gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.vline_vbo));
+            gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &js_sys::Float32Array::from(scratch.as_slice()), GL::DYNAMIC_DRAW);
+            gl.uniform4f(self.vline_prog.loc("u_color"), 0.0, 1.0, 0.25, if sat { 0.28 } else { 0.4 });
+            gl.draw_arrays(GL::LINES, 0, pts.len() as i32);
+        }
         for l in &self.cyberia {
-            if self.z < l.min_z || self.z > l.max_z || l.pts.is_empty() || !v.visible(l.pts[0]) {
+            if lay & layer::OUTLINE == 0 || self.z < l.min_z || self.z > l.max_z || l.pts.is_empty() || !v.visible(l.pts[0]) {
                 continue;
             }
             scratch.clear();
@@ -931,7 +1022,7 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
             gl.uniform4f(self.vline_prog.loc("u_color"), l.color[0], l.color[1], l.color[2], l.color[3] * fade * out);
             gl.draw_arrays(GL::LINES, 0, l.pts.len() as i32);
         }
-        let open_a = (1.0 - smooth((self.z - 6.5) / 2.0)) as f32 * 0.7;
+        let open_a = if lay & layer::FRANCHISE == 0 { 0.0 } else { (1.0 - smooth((self.z - 6.5) / 2.0)) as f32 * 0.7 };
         let px = (2.0 / (v.w * dpr) as f32, 2.0 / (v.h * dpr) as f32);
         for (pts, color, bold) in [(&self.open, [0.0f32, 1.0, 0.25, open_a], false), (&self.highlight, [1.0f32, 0.84, 0.0, 1.0], true)] {
             if pts.is_empty() || color[3] <= 0.0 {
@@ -961,7 +1052,7 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         // markers ride the same camera
         for m in &self.markers {
             let style = m.el.style();
-            match v.to_screen(m.q).filter(|_| self.z < SVG_Z) {
+            match v.to_screen(m.q).filter(|_| self.z < SVG_Z && lay & layer::CITIES != 0) {
                 Some((x, y)) => {
                     let _ = style.set_property("display", "flex");
                     let _ = style.set_property("transform", &format!("translate({x:.1}px,{y:.1}px)"));
@@ -1630,6 +1721,97 @@ fn with_engine(f: impl FnOnce(&mut Engine)) {
             f(&mut e.borrow_mut());
         }
     });
+}
+
+// ─── layers ───────────────────────────────────────────────────────────
+
+const LAYERS_KEY: &str = "cyberia.layers";
+
+/// The layers the visitor chose last time, or the default.
+pub fn layers_saved() -> u32 {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|ls| ls.get_item(LAYERS_KEY).ok().flatten())
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(layer::DEFAULT)
+}
+
+/// Show these layers, and remember the choice.
+pub fn set_layers(mask: u32) {
+    LAYERS.with(|l| l.set(mask));
+    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        let _ = ls.set_item(LAYERS_KEY, &mask.to_string());
+    }
+    with_engine(|e| e.dirty = true);
+}
+
+/// The tree of layers: a group, then its leaves as (name, bit, what it is).
+const LAYER_TREE: [(&str, &[(&str, u32, &str)]); 3] = [
+    ("EARTH", &[("satellite", layer::SATELLITE, "Sentinel-2 imagery"), ("grid", layer::GRID, "parallels and meridians")]),
+    (
+        "BORDERS",
+        &[
+            ("states", layer::STATES, "from afar"),
+            ("regions", layer::REGIONS, "closer"),
+            ("subregions", layer::SUBREGIONS, "closer still"),
+            ("local", layer::LOCAL, "districts and villages"),
+        ],
+    ),
+    (
+        "CYBERIA",
+        &[
+            ("cities", layer::CITIES, "markers of the cities"),
+            ("franchise", layer::FRANCHISE, "states where it is open"),
+            ("city outline", layer::OUTLINE, "the districts of a city"),
+            ("plots", layer::PLOTS, "the land plan"),
+        ],
+    ),
+];
+
+/// The tree of layers as a panel: a group switches its leaves together.
+#[component]
+pub fn LayersPanel(layers: RwSignal<u32>, open: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <div class="layers globe-ui" class:open=move || open.get() aria-label="map layers">
+            <div class="ly-head">
+                <span>"LAYERS"</span>
+                <button type="button" class="ly-reset" title="back to the default" on:click=move |_| layers.set(layer::DEFAULT)>"RESET"</button>
+                <button type="button" class="ly-x" title="close · L" on:click=move |_| open.set(false)>"×"</button>
+            </div>
+            {LAYER_TREE
+                .iter()
+                .map(|(group, leaves)| {
+                    let all: u32 = leaves.iter().map(|l| l.1).sum();
+                    view! {
+                        <button type="button" class="ly-row ly-group" role="checkbox"
+                            class:on=move || layers.get() & all == all
+                            class:some=move || { let m = layers.get() & all; m != 0 && m != all }
+                            on:click=move |_| layers.update(|m| *m = if *m & all == all { *m & !all } else { *m | all })
+                        >
+                            <span class="ly-box"></span>
+                            <span class="ly-name">{*group}</span>
+                        </button>
+                        {leaves
+                            .iter()
+                            .map(|(name, bit, what)| {
+                                let bit = *bit;
+                                view! {
+                                    <button type="button" class="ly-row ly-leaf" role="checkbox"
+                                        class:on=move || layers.get() & bit != 0
+                                        on:click=move |_| layers.update(|m| *m ^= bit)
+                                    >
+                                        <span class="ly-box"></span>
+                                        <span class="ly-name">{*name}</span>
+                                        <span class="ly-what">{*what}</span>
+                                    </button>
+                                }
+                            })
+                            .collect_view()}
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
 }
 
 // ─── the camera, for the page that hosts the layer ────────────────────
