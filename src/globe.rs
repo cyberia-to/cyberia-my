@@ -441,6 +441,8 @@ struct Engine {
     tiles: HashMap<Key, Tile>,
     inflight: usize,
     regions: Vec<(u8, u32, u32, u32, u32)>,
+    /// zoom → one bit per tile of the deep zooms: the tile exists
+    have: HashMap<u8, Vec<u8>>,
     div_lines: HashMap<(u8, u32, u32), DivLines>,
     div_loading: usize,
     div_wanted: Vec<(u8, u32, u32)>, // cells to fetch, taken by the frame loop
@@ -560,6 +562,10 @@ impl Engine {
         k.0 >= GEO
             || k.0 <= WORLD_ZOOM
             || self.regions.iter().any(|r| r.0 == k.0 && k.1 >= r.1 && k.1 <= r.3 && k.2 >= r.2 && k.2 <= r.4)
+            || self.have.get(&k.0).is_some_and(|bits| {
+                let i = ((k.2 as usize) << k.0) + k.1 as usize;
+                bits.get(i >> 3).is_some_and(|b| b >> (i & 7) & 1 == 1)
+            })
     }
 
     fn tile(&mut self, k: Key) -> &mut Tile {
@@ -1283,6 +1289,41 @@ async fn fetch_i16(url: String) -> Option<Vec<i16>> {
     Some(js_sys::Int16Array::new(&buf).to_vec())
 }
 
+async fn fetch_u8(url: String) -> Option<Vec<u8>> {
+    let resp = JsFuture::from(web_sys::window()?.fetch_with_str(&url)).await.ok()?;
+    let resp: web_sys::Response = resp.dyn_into().ok()?;
+    if !resp.ok() {
+        return None;
+    }
+    let buf = JsFuture::from(resp.array_buffer().ok()?).await.ok()?;
+    Some(js_sys::Uint8Array::new(&buf).to_vec())
+}
+
+/// A bitmap of `n` bits from run lengths: absent first, then present,
+/// alternating, each a LEB128 varint.
+fn unpack_runs(rle: &[u8], n: usize) -> Vec<u8> {
+    let mut bits = vec![0u8; n.div_ceil(8)];
+    let (mut at, mut on, mut v, mut shift) = (0usize, false, 0usize, 0u32);
+    for &b in rle {
+        v |= ((b & 0x7F) as usize) << shift;
+        if b & 0x80 != 0 {
+            shift += 7;
+            continue;
+        }
+        let end = (at + v).min(n);
+        if on {
+            for i in at..end {
+                bits[i >> 3] |= 1 << (i & 7);
+            }
+        }
+        at = end;
+        on = !on;
+        v = 0;
+        shift = 0;
+    }
+    bits
+}
+
 async fn fetch_text(url: String) -> Option<String> {
     let resp = JsFuture::from(web_sys::window()?.fetch_with_str(&url)).await.ok()?;
     let resp: web_sys::Response = resp.dyn_into().ok()?;
@@ -1295,6 +1336,13 @@ async fn fetch_text(url: String) -> Option<String> {
 #[derive(Deserialize)]
 struct Manifest {
     ranges: Vec<Range>,
+    /// the zooms fetched only where there is something to see
+    deep: Option<Deep>,
+}
+#[derive(Deserialize)]
+struct Deep {
+    from: u8,
+    to: u8,
 }
 #[derive(Deserialize)]
 struct Range {
@@ -1445,6 +1493,7 @@ fn start(
         tiles: HashMap::new(),
         inflight: 0,
         regions: Vec::new(),
+        have: HashMap::new(),
         div_lines: HashMap::new(),
         div_loading: 0,
         div_wanted: Vec::new(),
@@ -1484,9 +1533,20 @@ fn start(
         let eng = engine.clone();
         wasm_bindgen_futures::spawn_local(async move {
             if let Some(m) = fetch_manifest().await {
-                let mut e = eng.borrow_mut();
-                e.regions = m.ranges.iter().filter(|r| r.z > WORLD_ZOOM).map(|r| (r.z, r.x0, r.y0, r.x1, r.y1)).collect();
-                e.dirty = true;
+                {
+                    let mut e = eng.borrow_mut();
+                    e.regions = m.ranges.iter().filter(|r| r.z > WORLD_ZOOM).map(|r| (r.z, r.x0, r.y0, r.x1, r.y1)).collect();
+                    e.dirty = true;
+                }
+                // the deep zooms, coarse first: which of their tiles exist
+                if let Some(d) = m.deep {
+                    for z in d.from..=d.to.min(MAX_TILE_ZOOM) {
+                        let Some(rle) = fetch_u8(format!("{TILES}/have/{z}.rle")).await else { break };
+                        let mut e = eng.borrow_mut();
+                        e.have.insert(z, unpack_runs(&rle, 1usize << (2 * z as usize)));
+                        e.dirty = true;
+                    }
+                }
             }
         });
     }
