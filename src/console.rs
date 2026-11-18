@@ -278,7 +278,7 @@ fn line_path(coords: &[[f64; 2]], bbox: &BBox, w: f64, h: f64, pad: f64) -> Stri
     s
 }
 
-/// Roads, paths and canyons between the plots — synced from the valley map
+/// Roads and paths between the plots — synced from the valley map
 /// by `scripts/sync-plot-terms.py`.
 #[derive(Clone, Debug, Deserialize)]
 struct Trail {
@@ -1449,10 +1449,10 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         }
                                     }).collect_view()}
 
-                                    // roads, paths and canyons — true width in metres, over the plots
+                                    // roads and paths — true width in metres, over the plots
                                     {
                                         let upm = svg_per_m(&m_trails.bbox, W, H, PAD);
-                                        // paths first, roads over them, canyons on top
+                                        // paths first, roads over them
                                         let mut list: Vec<&Trail> = trails().iter().collect();
                                         list.sort_by_key(|t| match t.kind.as_str() { "path" => 0, "road" => 1, _ => 2 });
                                         list.into_iter().map(|t| {
@@ -1460,7 +1460,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                             // paths wear their colour from the valley map, see-through
                                             let (stroke, dash, opacity) = match t.kind.as_str() {
                                                 "road" => ("#777777".to_string(), "none", "0.95"),
-                                                "canyon" => ("#304ffe".to_string(), "6 4", "0.85"),
                                                 _ if !t.color.is_empty() => (t.color.clone(), "none", "0.5"),
                                                 _ => ("#4b4b4d".to_string(), "none", "0.5"),
                                             };
@@ -1680,7 +1679,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         <span class="leg dim">"lines"</span>
                         <span class="leg line" style:--sw="#777777">"ROAD"</span>
                         <span class="leg line thin" style:--sw="#097138">"PATH"</span>
-                        <span class="leg line dashed" style:--sw="#304ffe">"CANYON"</span>
                         </div>
                     </div>
                 </section>
