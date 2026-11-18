@@ -78,13 +78,23 @@ where the build left the plan:
 - no parent links are stored: every level is asked for the unit under the point.
 - Natural Earth is no longer drawn; states are named as cyberstates names them.
 
-not built yet: names on the map (the glyph atlas), the address `/d/<district>` and a particle per unit, imagery deeper than zoom 7 outside Bali and Armenia, a measured page check of the acceptance list below.
+not built yet: names on the map (the glyph atlas), the address `/d/<district>` and a particle per unit, imagery deeper than zoom 11 outside Bali and Armenia, a measured page check of the acceptance list below.
+
+### deep imagery and layers, 2026-11-18
+
+pull requests cyberia-my #17, #18.
+
+- the world's land to zoom 11 (76 m a pixel at the equator, sixteen times the old zoom 7). `scripts/fetch-imagery.py` descends by content: every tile with a picture to zoom 9, beyond it the children of a rich tile (a JPEG over 2,600 bytes, which open sea is not). the source answers with a blank white tile where it has nothing — deep sea, the ice sheets; those are not kept. measured: 52,532 tiles at zoom 8, 206,121 at 9, 247,828 at 10, 944,264 at 11; 1,497,617 asked, 15.6 GB kept, 19 GB for the whole pyramid on the front. 26 tiles the source refuses (http 403); the engine shows their parents.
+- `have/{z}.rle` says which tiles of a deep zoom exist — run lengths over the zoom's tiles, 47 KB for zoom 11 — so the engine asks for nothing in vain and falls back to the parent. `manifest.json` names the span as `deep`.
+- the source gives about fifty tiles a second to one address whatever the threads, so the fetch took eleven hours. it ran on the build host; the tiles went to the front by rsync straight between the two machines, with a key made for the push, bound on the front to that one directory, and removed after.
+- layers: a tree on the pad (key L). earth: satellite, grid; borders: states, regions, subregions, local; cyberia: cities, franchise, city outline, plots. a group switches its leaves together; the choice is kept in the browser. the grid is drawn by the engine at a step that follows the zoom.
+- the source stays Sentinel-2 cloudless 2016 (CC BY 4.0): the later years are CC BY-NC-SA.
 
 the data is built by `scripts/build-divisions.py` on the build host and copied to the front — never built on the front, which has 4 cores and 8 GiB: on 2026-11-17 a 48-job run there got its container killed and re-created, about two minutes of outage for every site on it.
 
 ## open for the owner
 
-- the imagery budget: zoom 12 (~50 GB, ~38 m per pixel at the equator) or zoom 13 (~200 GB, ~19 m). the default here is zoom 12.
+- the imagery budget: the land of the earth is at zoom 11 in 19 GB. zoom 12 would be about four times that and does not fit the front's disk (98 GB) beside the rest; a state at a time fits — Indonesia to zoom 14 is the next candidate, the franchise being open there.
 - the share-alike layers (ODbL, CC BY-SA countries) oblige the tiles built from them to carry the same licence; the default here is to accept that and say so in the attribution panel.
 
 ## acceptance
