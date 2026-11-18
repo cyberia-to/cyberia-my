@@ -438,6 +438,8 @@ struct Engine {
     drag_t: f64,
     z: f64,
     z_min: f64,
+    /// where the layer's middle stood on the page, and the window's size then
+    mid: Option<(f64, f64, f64, f64)>,
     last_t: f64,
     highlight: Vec<V3>, // the selected unit's outline
     open: Vec<V3>,      // the outlines of the states whose franchise is open
@@ -894,6 +896,32 @@ impl Engine {
             }
             self.clamp();
             self.dirty = true;
+        }
+        // the page's layout moved the layer (a panel opened beside the map): the
+        // ground stays where it was on the screen, under the pointer. A flight has
+        // its own aim, and a window that changed size is a different screen
+        {
+            let r = self.canvas.get_bounding_client_rect();
+            let win = web_sys::window();
+            let ww = win.as_ref().and_then(|w| w.inner_width().ok()).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let wh = win.as_ref().and_then(|w| w.inner_height().ok()).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let now_mid = (r.left() + r.width() / 2.0, r.top() + r.height() / 2.0, ww, wh);
+            if let Some((mx, my, pw, ph)) = self.mid {
+                let (dx, dy) = (now_mid.0 - mx, now_mid.1 - my);
+                if pw == ww && ph == wh && self.fly.is_none() && (dx.abs() > 0.01 || dy.abs() > 0.01) {
+                    let v = self.view();
+                    let ppr = v.fpx / (v.d - 1.0);
+                    let (a, b) = ((-dx / ppr).clamp(-1.0, 1.0), (-dy / ppr).clamp(-1.0, 1.0));
+                    self.move_to([
+                        v.up[0] - v.e[0] * a + v.north[0] * b,
+                        v.up[1] - v.e[1] * a + v.north[1] * b,
+                        v.up[2] - v.e[2] * a + v.north[2] * b,
+                    ]);
+                    self.clamp();
+                    self.dirty = true;
+                }
+            }
+            self.mid = Some(now_mid);
         }
 
         // idle: put the view into the address once the camera rests
@@ -1626,6 +1654,7 @@ fn start(
         drag_t: 0.0,
         z,
         z_min: 0.0,
+        mid: None,
         last_t: 0.0,
         highlight: Vec::new(),
         open: Vec::new(),
