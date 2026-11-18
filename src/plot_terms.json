@@ -638,21 +638,21 @@
  },
  "etherland-4": {
   "fill": "#ffea00",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-4",
   "kind": "commerce",
   "ares": 17.2
  },
  "etherland-5": {
   "fill": "#ffea00",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-5",
   "kind": "private",
   "ares": 10.4
  },
  "etherland-6": {
   "fill": "#fbc02d",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-6",
   "kind": "private",
   "ares": 15.3
@@ -666,7 +666,7 @@
  },
  "etherland-8": {
   "fill": "#ffea00",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-8",
   "kind": "private",
   "ares": 13.4
@@ -680,35 +680,35 @@
  },
  "etherland-10": {
   "fill": "#fbc02d",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-10",
   "kind": "private",
   "ares": 8.2
  },
  "etherland-11": {
   "fill": "#ffea00",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-11",
   "kind": "private",
   "ares": 9.6
  },
  "etherland-12": {
   "fill": "#fbc02d",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-12",
   "kind": "private",
   "ares": 6.1
  },
  "etherland-13": {
   "fill": "#ffea00",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-13",
   "kind": "commerce",
   "ares": 12.8
  },
  "etherland-14": {
   "fill": "#fbc02d",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-14",
   "kind": "private",
   "ares": 10.8
@@ -722,7 +722,7 @@
  },
  "etherland-16": {
   "fill": "#fbc02d",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "etherland-16",
   "kind": "private",
   "ares": 9.7
@@ -921,7 +921,7 @@
  },
  "asgard-7": {
   "fill": "#ffea00",
-  "land_use": "dual",
+  "land_use": "venture",
   "address": "asgard-7",
   "ares": 27.0
  },

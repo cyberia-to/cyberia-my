@@ -32,10 +32,9 @@ CITY = "cyber valley"
 # land use → (label, colour, one line), the map's legend in prysm hues
 LAND_USE = {
     "lease": ("residence", "#00fe00", "a home on a 25-year leasehold"),
-    "dual": ("dual use", "#fcf000", "business and housing on one plot"),
     "venture": ("business", "#ff5b00", "ground for a business"),
-    "hgb": ("for sale", "#00acff", "the whole district sold as one HGB title"),
-    "commons": ("city land", "#d500f9", "belongs to the city, shared by everyone"),
+    "hgb": ("any use", "#00acff", "any use, the whole district sold as one HGB title"),
+    "commons": ("public", "#d500f9", "public land, belongs to the city, shared by everyone"),
     "special": ("special place", "#ff0000", "high-energy ground held by the valley"),
 }
 
@@ -136,9 +135,9 @@ def status(t: dict, lu: str) -> str:
     priced = (t.get("plot_price_usd") or 0) > 0 and not city
     if lu == "venture" and t.get("address", "").startswith("avalon"):
         return "on request"
-    if lu in ("lease", "dual", "venture") and priced:
+    if lu in ("lease", "venture") and priced:
         return "available"
-    if lu in ("lease", "dual") and not city:
+    if lu == "lease" and not city:
         return "available"
     if lu == "venture":
         return "on request"

@@ -20,14 +20,14 @@ const LEGACY_DEALS_KEY: &str = "cyberia.deals.v1";
 /// land use (`terms::LandUse`); this is what you can do with the flat.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FlatStatus {
-    /// residence / business / dual use, priced and free
+    /// residence / business, priced and free
     Available,
     /// Avalon joint venture, unpriced business ground, a whole-district HGB sale
     OnRequest,
     /// a live deal in this browser
     Transfer,
     Owned,
-    /// city land, no price, or no land use set
+    /// public land, no price, or no land use set
     Closed,
 }
 
@@ -205,9 +205,9 @@ pub fn flat_status(id: &str, deals: &HashMap<String, Deal>) -> FlatStatus {
     match t.land_use() {
         // Avalon is one special project — joint venture only, whatever the price
         LandUse::Venture if id.starts_with("avalon") => FlatStatus::OnRequest,
-        LandUse::Lease | LandUse::Dual | LandUse::Venture if priced_and_free => FlatStatus::Available,
+        LandUse::Lease | LandUse::Venture if priced_and_free => FlatStatus::Available,
         // on sale with the price agreed on request
-        LandUse::Lease | LandUse::Dual if !t.is_city_land() => FlatStatus::Available,
+        LandUse::Lease if !t.is_city_land() => FlatStatus::Available,
         // business ground with no price yet, the city's construction business
         LandUse::Venture => FlatStatus::OnRequest,
         LandUse::Hgb if !t.is_city_land() => FlatStatus::OnRequest,
