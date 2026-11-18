@@ -4805,6 +4805,8 @@ button.city-card:hover {
 }
 
 /* nothing selected: the right panel is the city's — its plan and what its land is for */
+.plot-slab.city-plan { transform: none; animation: none; }
+.city-plan-land { fill: rgba(255, 255, 255, 0.05); stroke: rgba(255, 255, 255, 0.4); stroke-width: 0.8; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
 .city-plan-path { stroke: #000; stroke-width: 0.35; fill-opacity: 0.9; }
 .city-uses { display: flex; flex-direction: column; gap: inherit; margin-top: 4px; padding-top: 8px; border-top: 1px solid #111; }
 .city-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
