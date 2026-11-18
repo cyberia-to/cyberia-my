@@ -12,7 +12,11 @@ is skipped):
           --rich-bytes, which open sea is not. The source answers with a
           blank white tile (under --blank-bytes) where it has nothing — deep
           sea, the ice sheets; those are not kept;
-  region  each --region box to --region-zoom, everything.
+  region  each --region box to --region-zoom, everything;
+  box     each --box from --deep-zoom on to --box-zoom, by content as in
+          deep: a state at a time, where the whole earth would not fit.
+          It starts from the tiles of --deep-zoom already on disk and does
+          nothing else; the manifest on disk gets its deep span extended.
 
 Writes manifest.json (the x/y ranges per zoom, and the deep span) and
 have/{z}.rle for each deep zoom — which tiles exist: the tiles of the zoom
@@ -21,6 +25,8 @@ present, alternating, each a LEB128 varint.
 
     python3 fetch-imagery.py OUT [--world-zoom 7] [--full-zoom 9] [--deep-zoom 11]
         [--region-zoom 14] [--region name:min_lon,min_lat,max_lon,max_lat ...]
+    python3 fetch-imagery.py OUT --deep-zoom 11 --box-zoom 14
+        --box indonesia:95,-11.1,141.1,6.1
 
 Without --region the region ranges of an existing manifest are kept.
 Light work — network and disk only — and memory stays small: jobs go to the
@@ -162,6 +168,8 @@ def main():
     ap.add_argument("--blank-bytes", type=int, default=200)
     ap.add_argument("--region-zoom", type=int, default=14)
     ap.add_argument("--region", action="append", default=[])
+    ap.add_argument("--box", action="append", default=[])
+    ap.add_argument("--box-zoom", type=int, default=14)
     ap.add_argument("--threads", type=int, default=8, help="per process")
     ap.add_argument("--procs", type=int, default=1)
     a = ap.parse_args()
@@ -169,6 +177,8 @@ def main():
     global BLANK, WORLD
     BLANK, WORLD = a.blank_bytes, a.world_zoom
     run = Run(a.out, a.threads, a.procs)
+    if a.box:
+        return boxes(a, run)
     ranges = []
     sizes = {}  # (x, y) -> bytes, of the zoom just fetched
     for z in range(a.world_zoom + 1):
@@ -218,6 +228,44 @@ def main():
     with open(manifest_path + ".part", "w") as f:
         json.dump(manifest, f)
     os.replace(manifest_path + ".part", manifest_path)
+    print(f"done: {run.done} tiles, {run.failed} failed, {run.size >> 20} MB on disk", flush=True)
+    sys.exit(1 if run.failed else 0)
+
+
+def boxes(a, run):
+    """Each box from the deep zoom on disk down to --box-zoom, by content."""
+    sizes, names = {}, []
+    for spec in a.box:
+        name, box = spec.split(":")
+        names.append(name)
+        lon0, lat0, lon1, lat1 = (float(v) for v in box.split(","))
+        x0, y1 = tile_xy(lon0, lat0, a.deep_zoom)
+        x1, y0 = tile_xy(lon1, lat1, a.deep_zoom)
+        for x in range(x0, x1 + 1):
+            for y in range(y0, y1 + 1):
+                try:
+                    sizes[(x, y)] = os.path.getsize(os.path.join(a.out, str(a.deep_zoom), str(x), f"{y}.jpg"))
+                except OSError:
+                    pass
+    print(f"{', '.join(names)}: {len(sizes)} tiles at z{a.deep_zoom} on disk", flush=True)
+    os.makedirs(os.path.join(a.out, "have"), exist_ok=True)
+    for z in range(a.deep_zoom + 1, a.box_zoom + 1):
+        parents = sorted(k for k, s in sizes.items() if s > a.rich_bytes)
+        print(f"z{z}: {4 * len(parents)} tiles to ask", flush=True)
+        jobs = ((z, 2 * x + i, 2 * y + j) for x, y in parents for i in (0, 1) for j in (0, 1))
+        sizes = {(j[1], j[2]): s for j, s in run.fetch(jobs, f"box z{z}") if s > a.blank_bytes}
+        with open(os.path.join(a.out, "have", f"{z}.rle"), "wb") as f:
+            f.write(runs(sizes.keys(), 1 << z))
+        print(f"z{z}: {len(sizes)} tiles kept", flush=True)
+    manifest_path = os.path.join(a.out, "manifest.json")
+    if os.path.exists(manifest_path):
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+        manifest.setdefault("deep", {"from": a.world_zoom + 1, "to": a.deep_zoom})["to"] = a.box_zoom
+        manifest["boxes"] = sorted(set(manifest.get("boxes", []) + names))
+        with open(manifest_path + ".part", "w") as f:
+            json.dump(manifest, f)
+        os.replace(manifest_path + ".part", manifest_path)
     print(f"done: {run.done} tiles, {run.failed} failed, {run.size >> 20} MB on disk", flush=True)
     sys.exit(1 if run.failed else 0)
 

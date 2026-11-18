@@ -441,8 +441,12 @@ struct Engine {
     tiles: HashMap<Key, Tile>,
     inflight: usize,
     regions: Vec<(u8, u32, u32, u32, u32)>,
-    /// zoom → one bit per tile of the deep zooms: the tile exists
-    have: HashMap<u8, Vec<u8>>,
+    /// zoom → the tiles of a deep zoom that exist, as runs [start, end) over y·2^z + x
+    have: HashMap<u8, Vec<(u32, u32)>>,
+    /// the next deep zoom whose map is not asked yet, and the last there is;
+    /// the maps past zoom 11 cover a state, and come when the camera nears them
+    have_next: u8,
+    have_last: u8,
     div_lines: HashMap<(u8, u32, u32), DivLines>,
     div_loading: usize,
     div_wanted: Vec<(u8, u32, u32)>, // cells to fetch, taken by the frame loop
@@ -588,9 +592,10 @@ impl Engine {
         k.0 >= GEO
             || k.0 <= WORLD_ZOOM
             || self.regions.iter().any(|r| r.0 == k.0 && k.1 >= r.1 && k.1 <= r.3 && k.2 >= r.2 && k.2 <= r.4)
-            || self.have.get(&k.0).is_some_and(|bits| {
-                let i = ((k.2 as usize) << k.0) + k.1 as usize;
-                bits.get(i >> 3).is_some_and(|b| b >> (i & 7) & 1 == 1)
+            || self.have.get(&k.0).is_some_and(|runs| {
+                let i = (k.2 << k.0) + k.1;
+                let at = runs.partition_point(|r| r.0 <= i);
+                at > 0 && i < runs[at - 1].1
             })
     }
 
@@ -1390,29 +1395,26 @@ async fn fetch_u8(url: String) -> Option<Vec<u8>> {
     Some(js_sys::Uint8Array::new(&buf).to_vec())
 }
 
-/// A bitmap of `n` bits from run lengths: absent first, then present,
+/// The present runs [start, end) from run lengths: absent first, then present,
 /// alternating, each a LEB128 varint.
-fn unpack_runs(rle: &[u8], n: usize) -> Vec<u8> {
-    let mut bits = vec![0u8; n.div_ceil(8)];
-    let (mut at, mut on, mut v, mut shift) = (0usize, false, 0usize, 0u32);
+fn unpack_runs(rle: &[u8]) -> Vec<(u32, u32)> {
+    let mut runs = Vec::new();
+    let (mut at, mut on, mut v, mut shift) = (0u32, false, 0u32, 0u32);
     for &b in rle {
-        v |= ((b & 0x7F) as usize) << shift;
+        v |= ((b & 0x7F) as u32) << shift;
         if b & 0x80 != 0 {
             shift += 7;
             continue;
         }
-        let end = (at + v).min(n);
         if on {
-            for i in at..end {
-                bits[i >> 3] |= 1 << (i & 7);
-            }
+            runs.push((at, at + v));
         }
-        at = end;
+        at += v;
         on = !on;
         v = 0;
         shift = 0;
     }
-    bits
+    runs
 }
 
 async fn fetch_text(url: String) -> Option<String> {
@@ -1585,6 +1587,8 @@ fn start(
         inflight: 0,
         regions: Vec::new(),
         have: HashMap::new(),
+        have_next: 1,
+        have_last: 0,
         div_lines: HashMap::new(),
         div_loading: 0,
         div_wanted: Vec::new(),
@@ -1629,14 +1633,13 @@ fn start(
                     e.regions = m.ranges.iter().filter(|r| r.z > WORLD_ZOOM).map(|r| (r.z, r.x0, r.y0, r.x1, r.y1)).collect();
                     e.dirty = true;
                 }
-                // the deep zooms, coarse first: which of their tiles exist
+                // the deep zooms: which of their tiles exist; the frame loop asks for
+                // each map as the camera comes within reach of its zoom
                 if let Some(d) = m.deep {
-                    for z in d.from..=d.to.min(MAX_TILE_ZOOM) {
-                        let Some(rle) = fetch_u8(format!("{TILES}/have/{z}.rle")).await else { break };
-                        let mut e = eng.borrow_mut();
-                        e.have.insert(z, unpack_runs(&rle, 1usize << (2 * z as usize)));
-                        e.dirty = true;
-                    }
+                    let mut e = eng.borrow_mut();
+                    e.have_next = d.from;
+                    e.have_last = d.to.min(MAX_TILE_ZOOM);
+                    e.dirty = true;
                 }
             }
         });
@@ -1694,6 +1697,27 @@ fn start(
             start_load(&eng, k);
         }
         // the boundary cells the frame found missing
+        // the map of the next deep zoom, once the camera is within three levels of it
+        let next = {
+            let mut e = eng.borrow_mut();
+            let z = e.have_next;
+            if z <= e.have_last && (z <= 11 || e.z + 3.0 >= z as f64) {
+                e.have_next += 1;
+                Some(z)
+            } else {
+                None
+            }
+        };
+        if let Some(z) = next {
+            let e2 = eng.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                if let Some(rle) = fetch_u8(format!("{TILES}/have/{z}.rle")).await {
+                    let mut e = e2.borrow_mut();
+                    e.have.insert(z, unpack_runs(&rle));
+                    e.dirty = true;
+                }
+            });
+        }
         let cells: Vec<(u8, u32, u32)> = std::mem::take(&mut eng.borrow_mut().div_wanted);
         for key in cells {
             let e2 = eng.clone();
