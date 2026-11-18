@@ -13,7 +13,7 @@ Two sources, both owned by the valley:
 
 Land-use legend (the map's colours, aligned with the sheet 2026-09-28):
     green  → residence (sheet: private)     orange → business (sheet: community)
-    violet → city land (sheet: commons)     yellow → dual use (business + housing)
+    violet → public (sheet: commons)        yellow → business (the old dual use)
     crimson → special place                 blue   → HGB sale of a whole district
                                                       (bridge, $3,500 / are)
 Valley rulings layered on top:
@@ -68,8 +68,8 @@ LAND_USE = {
     "#f57c00": "venture",
     "#e65100": "venture",
     "#9c27b0": "commons",
-    "#ffea00": "dual",
-    "#fbc02d": "dual",
+    "#ffea00": "venture",
+    "#fbc02d": "venture",
     "#c2185b": "special",
 }
 

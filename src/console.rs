@@ -1986,7 +1986,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     (FlatStatus::Available, _) => view! {
                                         <a class="intent-commit lease flat-cta" href=lease_href>
                                             {match lu {
-                                                LandUse::Dual => "LEASE THIS FLAT · business or home",
                                                 LandUse::Venture => "LEASE FOR A BUSINESS",
                                                 _ => "LEASE THIS FLAT",
                                             }}

@@ -22,15 +22,13 @@ pub enum LandUse {
     Venture,
     Commons,
     Hgb,
-    Dual,
     Special,
     Unclassified,
 }
 
 impl LandUse {
-    pub const ALL: [LandUse; 7] = [
+    pub const ALL: [LandUse; 6] = [
         LandUse::Lease,
-        LandUse::Dual,
         LandUse::Hgb,
         LandUse::Venture,
         LandUse::Commons,
@@ -44,7 +42,8 @@ impl LandUse {
             "venture" => LandUse::Venture,
             "commons" => LandUse::Commons,
             "hgb" => LandUse::Hgb,
-            "dual" => LandUse::Dual,
+            // the old dual use: any use is allowed on business ground
+            "dual" => LandUse::Venture,
             "special" => LandUse::Special,
             _ => LandUse::Unclassified,
         }
@@ -54,9 +53,8 @@ impl LandUse {
         match self {
             LandUse::Lease => "RESIDENCE",
             LandUse::Venture => "BUSINESS",
-            LandUse::Commons => "CITY LAND",
-            LandUse::Hgb => "HGB SALE · WHOLE DISTRICT",
-            LandUse::Dual => "DUAL USE",
+            LandUse::Commons => "PUBLIC",
+            LandUse::Hgb => "ANY USE · HGB · WHOLE DISTRICT",
             LandUse::Special => "SPECIAL PLACE",
             LandUse::Unclassified => "UNCLASSIFIED",
         }
@@ -67,9 +65,8 @@ impl LandUse {
         match self {
             LandUse::Lease => "RESIDENCE",
             LandUse::Venture => "BUSINESS",
-            LandUse::Commons => "CITY LAND",
-            LandUse::Hgb => "FOR SALE",
-            LandUse::Dual => "DUAL USE",
+            LandUse::Commons => "PUBLIC",
+            LandUse::Hgb => "ANY",
             LandUse::Special => "SPECIAL",
             LandUse::Unclassified => "UNSET",
         }
@@ -79,9 +76,8 @@ impl LandUse {
         match self {
             LandUse::Lease => "a home on a 25-year leasehold",
             LandUse::Venture => "ground for a business",
-            LandUse::Commons => "belongs to the city · shared by everyone",
-            LandUse::Hgb => "the whole district sold as one HGB title",
-            LandUse::Dual => "business and housing on one flat",
+            LandUse::Commons => "public land · belongs to the city · shared by everyone",
+            LandUse::Hgb => "any use · the whole district sold as one HGB title",
             LandUse::Special => "high-energy ground · held by the valley",
             LandUse::Unclassified => "land use not set on the map yet",
         }
@@ -93,7 +89,6 @@ impl LandUse {
             LandUse::Venture => "#ff5b00",
             LandUse::Commons => "#d500f9",
             LandUse::Hgb => "#00acff",
-            LandUse::Dual => "#fcf000",
             LandUse::Special => "#ff0000",
             LandUse::Unclassified => "#4b4b4d",
         }
@@ -161,12 +156,12 @@ impl Terms {
     }
 
     /// The sheet's type in the valley's words: private → residence,
-    /// community / commerce → business, commons → city land.
+    /// community / commerce → business, commons → public.
     pub fn kind_word(&self) -> &'static str {
         match self.kind.as_str() {
             "private" => "residence",
             "community" | "commerce" => "business",
-            "commons" => "city land",
+            "commons" => "public",
             _ => "",
         }
     }

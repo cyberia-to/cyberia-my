@@ -67,7 +67,7 @@ fn head(id: &str, st: FlatStatus, deal: &Option<Deal>) -> (String, String) {
             "NOT ON OFFER".into(),
             match (lu, book) {
                 (_, Some(t)) if t.in_reregistration() => "the title is being re-registered".into(),
-                (LandUse::Commons, _) => "city land · shared by everyone".into(),
+                (LandUse::Commons, _) => "public land · shared by everyone".into(),
                 (LandUse::Special, _) => "special place · held by the valley".into(),
                 (_, Some(t)) if t.is_city_land() => "held by the valley".into(),
                 _ => "opens with the next wave".into(),
