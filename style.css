@@ -4803,3 +4803,8 @@ button.city-card:hover {
   .layers.open { animation: none; }
   .ly-row { padding: 9px 4px; font-size: 13px; }
 }
+
+/* nothing selected: the right panel is the city's — its plan and what its land is for */
+.city-plan-path { stroke: #000; stroke-width: 0.35; fill-opacity: 0.9; }
+.city-uses { display: flex; flex-direction: column; gap: inherit; margin-top: 4px; padding-top: 8px; border-top: 1px solid #111; }
+.city-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }

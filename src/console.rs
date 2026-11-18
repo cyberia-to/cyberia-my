@@ -439,8 +439,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
             });
         from_q
             .filter(|id| map.phase0.iter().any(|f| f.id == *id))
-            .or_else(|| map.phase0.first().map(|f| f.id.clone()))
-            .or_else(|| Some("sinwood".into()))
     });
     // the `?plot=` initializer above races leptos_router's own URL update on
     // client-side nav (e.g. a `/plots` card linking to `/map?plot=X`) — the
@@ -715,6 +713,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
         document().set_title(title);
     });
 
+    let site_plots = map.stats.plot_count.max(map.phase0.len() as u32);
+    let site_plot_ha = map.stats.plot_ha;
+    let site_ha = map.stats.district_ha;
     let map_for_svg = map.clone();
     let nav_active = if domains_board { "domains" } else { "map" };
     // split clones so left-rail closure and map markers don't fight over ownership
@@ -773,6 +774,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 picked.set(None);
                                 cam_world();
                             } else {
+                                // the city itself, not one of its flats
+                                selected_flat.set(None);
                                 reset_cam();
                             }
                         })
@@ -1707,20 +1710,57 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         <span class="sh-sub"><span style:color=lu.color()>{lu.label()}</span>{format!(" · {line}")}</span>
                                     }.into_any()
                                 }
-                                None => view! { <span class="sh-name dim">"tap a flat on the map"</span> }.into_any(),
+                                None => view! {
+                                    <span class="sh-name">"Cyber Valley"</span>
+                                    <span class="sh-sub">"the city · tap a flat on the map"</span>
+                                }.into_any(),
                             }}
                         </span>
                         <span class="sh-chev">{move || if sheet.get() { "▾" } else { "▴" }}</span>
                     </button>
                     <div class="cyberia-panel-h">
                         <span class="panel-kicker">"RENDER"</span>
-                        <span class="panel-sub">"flat · 3d"</span>
+                        <span class="panel-sub">{move || if selected_flat.get().is_some() { "flat · 3d" } else { "city · plan" }}</span>
                     </div>
                     <div class="render-3d">
                         {move || {
                             let fid = selected_flat.get().unwrap_or_default();
                             let list = flats.get();
                             let flat = list.iter().find(|f| f.id == fid).cloned();
+                            if flat.is_none() {
+                                // no flat is selected: the plan of the whole city, every flat in its colour
+                                let (mut a, mut b, mut c, mut d) = (f64::MAX, f64::MIN, f64::MAX, f64::MIN);
+                                for f in list.iter() {
+                                    let (x0, x1, y0, y1) = poly_bbox(&f.coords);
+                                    a = a.min(x0);
+                                    b = b.max(x1);
+                                    c = c.min(y0);
+                                    d = d.max(y1);
+                                }
+                                let bb = BBox { min_lon: a, max_lon: b, min_lat: c, max_lat: d };
+                                let paths = list
+                                    .iter()
+                                    .map(|f| {
+                                        let lu = land_use(&f.id);
+                                        view! { <path d=poly_path(&f.coords, &bb, 120.0, 120.0, 6.0) class="city-plan-path" fill=lu.color() /> }
+                                    })
+                                    .collect_view();
+                                return view! {
+                                    <div class="render-stage">
+                                        <div class="plot-slab city-plan">
+                                            <svg class="plot-slab-svg" viewBox="0 0 120 120">{paths}</svg>
+                                        </div>
+                                        <div class="prism-meta">
+                                            <div class="prism-name">"CYBER VALLEY"</div>
+                                            <div class="prism-sub">
+                                                <span style="color: var(--cyber-green);">"GENESIS CITY"</span>
+                                                {format!(" · phase 0 · {site_plots} plots")}
+                                            </div>
+                                            <a class="prism-link" href="https://cybervalley.io" target="_blank" rel="noopener">"CYBERVALLEY.IO →"</a>
+                                        </div>
+                                    </div>
+                                }.into_any();
+                            }
                             let flat_name = flat
                                 .as_ref()
                                 .map(|f| bare_name(&f.name))
@@ -1766,13 +1806,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         <a class="prism-link" href=format!("/plot/{fid}")>"OPEN FLAT →"</a>
                                     </div>
                                 </div>
-                            }
+                            }.into_any()
                         }}
                     </div>
 
                     <div class="cyberia-panel-h" style="margin-top: 24px;">
-                        <span class="panel-kicker">"FLAT"</span>
-                        <span class="panel-sub">"pick on the map · lease or ask for its papers"</span>
+                        <span class="panel-kicker">{move || if selected_flat.get().is_some() { "FLAT" } else { "CITY" }}</span>
+                        <span class="panel-sub">{move || if selected_flat.get().is_some() { "lease or ask for its papers" } else { "pick a flat on the map" }}</span>
                         {move || selected_flat.get().is_some().then(|| view! {
                             <button class="panel-x" type="button" title="deselect (Esc)" on:click=move |_| selected_flat.set(None)>"✕"</button>
                         })}
@@ -1783,7 +1823,75 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             let list = flats.get();
                             let flat = list.iter().find(|f| f.id == fid).cloned();
                             let Some(flat) = flat else {
-                                return view! { <div class="intent-empty">"tap a flat on the map"</div> }.into_any();
+                                // the city: what it is, where it lies, what its land is for
+                                let d = deals.get();
+                                let (mut open, mut ask, mut held) = (0, 0, 0);
+                                let mut uses: Vec<(LandUse, u32, f64)> = LandUse::ALL.iter().map(|u| (*u, 0, 0.0)).collect();
+                                for f in list.iter() {
+                                    match flat_status(&f.id, &d) {
+                                        FlatStatus::Available => open += 1,
+                                        FlatStatus::OnRequest => ask += 1,
+                                        FlatStatus::Owned | FlatStatus::Transfer => held += 1,
+                                        FlatStatus::Closed => {}
+                                    }
+                                    let lu = land_use(&f.id);
+                                    if let Some(u) = uses.iter_mut().find(|u| u.0 == lu) {
+                                        u.1 += 1;
+                                        u.2 += area_m2(&f.coords) / 100.0;
+                                    }
+                                }
+                                let n_domains = domains.get().len();
+                                return view! {
+                                    <div class="intent-row">
+                                        <span class="intent-k">"city"</span>
+                                        <span class="intent-v">"CYBER VALLEY"</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"place"</span>
+                                        <span class="intent-v dim">"Gesing · Buleleng · Bali"</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"state"</span>
+                                        <span class="intent-v dim">"Indonesia"</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"at"</span>
+                                        <span class="intent-v dim">{format!("{:.4}°S {:.4}°E", -site_lat, site_lon)}</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"site"</span>
+                                        <span class="intent-v">{format!("{site_ha:.0} ha")}</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"plots"</span>
+                                        <span class="intent-v dim">{format!("{site_plots} · {site_plot_ha:.1} ha")}</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"domains"</span>
+                                        <span class="intent-v dim">{format!("{n_domains} of cybics")}</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"land"</span>
+                                        <span class="intent-v price">{format!("{open} open · {ask} on request · {held} held")}</span>
+                                    </div>
+                                    <div class="city-uses">
+                                        {uses.into_iter().filter(|u| u.1 > 0).map(|(lu, n, ares)| view! {
+                                            <div class="intent-row">
+                                                <span class="intent-k" style:color=lu.color()>{lu.short()}</span>
+                                                <span class="intent-v dim">{format!("{n} flats · {ares:.0} ares")}</span>
+                                            </div>
+                                        }).collect_view()}
+                                    </div>
+                                    <div class="use-card" style="--use: #00fe00;">
+                                        <span class="use-t">"PICK A FLAT ON THE MAP"</span>
+                                        <span class="use-s">"lease it or ask for its papers — every flat answers on its own page"</span>
+                                        <span class="use-s city-links">
+                                            <a class="prism-link" href=format!("{BASE}/plots")>"ALL PLOTS →"</a>
+                                            <a class="prism-link" href=format!("{BASE}/domains")>"DOMAINS →"</a>
+                                            <a class="prism-link" href=format!("{BASE}/docs")>"DOCS →"</a>
+                                        </span>
+                                    </div>
+                                }.into_any();
                             };
                             let all_deals = deals.get();
                             let status = flat_status(&flat.id, &all_deals);
