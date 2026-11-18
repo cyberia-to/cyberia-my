@@ -716,6 +716,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let site_plots = map.stats.plot_count.max(map.phase0.len() as u32);
     let site_plot_ha = map.stats.plot_ha;
     let site_ha = map.stats.district_ha;
+    let site_districts = map.districts.clone();
+    let map_districts_n = map.districts.len();
     let map_for_svg = map.clone();
     let nav_active = if domains_board { "domains" } else { "map" };
     // split clones so left-rail closure and map markers don't fight over ownership
@@ -1728,9 +1730,10 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             let list = flats.get();
                             let flat = list.iter().find(|f| f.id == fid).cloned();
                             if flat.is_none() {
-                                // no flat is selected: the plan of the whole city, every flat in its colour
+                                // no flat is selected: the plan of the whole city, north up — all its
+                                // land by district, every flat in its colour
                                 let (mut a, mut b, mut c, mut d) = (f64::MAX, f64::MIN, f64::MAX, f64::MIN);
-                                for f in list.iter() {
+                                for f in list.iter().chain(site_districts.iter()) {
                                     let (x0, x1, y0, y1) = poly_bbox(&f.coords);
                                     a = a.min(x0);
                                     b = b.max(x1);
@@ -1738,6 +1741,10 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     d = d.max(y1);
                                 }
                                 let bb = BBox { min_lon: a, max_lon: b, min_lat: c, max_lat: d };
+                                let land = site_districts
+                                    .iter()
+                                    .map(|f| view! { <path d=poly_path(&f.coords, &bb, 120.0, 120.0, 6.0) class="city-plan-land" /> })
+                                    .collect_view();
                                 let paths = list
                                     .iter()
                                     .map(|f| {
@@ -1748,7 +1755,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 return view! {
                                     <div class="render-stage">
                                         <div class="plot-slab city-plan">
-                                            <svg class="plot-slab-svg" viewBox="0 0 120 120">{paths}</svg>
+                                            <svg class="plot-slab-svg" viewBox="0 0 120 120">{land}{paths}</svg>
                                         </div>
                                         <div class="prism-meta">
                                             <div class="prism-name">"CYBER VALLEY"</div>
@@ -1841,6 +1848,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     }
                                 }
                                 let n_domains = domains.get().len();
+                                let n_districts = map_districts_n;
                                 return view! {
                                     <div class="intent-row">
                                         <span class="intent-k">"city"</span>
@@ -1855,12 +1863,12 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         <span class="intent-v dim">"Indonesia"</span>
                                     </div>
                                     <div class="intent-row">
-                                        <span class="intent-k">"at"</span>
-                                        <span class="intent-v dim">{format!("{:.4}°S {:.4}°E", -site_lat, site_lon)}</span>
-                                    </div>
-                                    <div class="intent-row">
                                         <span class="intent-k">"site"</span>
                                         <span class="intent-v">{format!("{site_ha:.0} ha")}</span>
+                                    </div>
+                                    <div class="intent-row">
+                                        <span class="intent-k">"districts"</span>
+                                        <span class="intent-v dim">{format!("{n_districts}")}</span>
                                     </div>
                                     <div class="intent-row">
                                         <span class="intent-k">"plots"</span>
