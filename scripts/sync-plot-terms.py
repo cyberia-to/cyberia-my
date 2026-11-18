@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build src/cyberia_map.json's plots — the polygons as drawn on the map —
 src/plot_terms.json — the lease book, one entry per map plot — and
-src/cyberia_trails.json — the roads, paths and canyons between the plots — and
+src/cyberia_trails.json — the roads and paths between the plots — and
 src/friend_sales.json — land our friends sell beside the valley.
 
 Two sources, both owned by the valley:
@@ -171,10 +171,10 @@ def kml_plots(kml: str):
 
 
 def kml_trails(kml: str):
-    """The map's `trails` folder → roads, paths and canyons with a width in metres.
+    """The map's `trails` folder → roads and paths with a width in metres.
 
     concrete / gravel roads and anything named road · street → road (5 m,
-    3.5 m for small vehicles); the canyon colours (teal) → canyon; the rest are
+    3.5 m for small vehicles); the rest, the canyon lines among them, are
     walking paths (2 m)."""
     root = ET.fromstring(kml)
     styles = {}
@@ -204,9 +204,7 @@ def kml_trails(kml: str):
         sid = pm.find(NS + "styleUrl").text.lstrip("#")
         colour = styles.get(normal.get(sid, sid))
         low = f"{name} {desc}".lower()
-        if colour in ("#0097a7", "#006064"):
-            kind, width = "canyon", 3.0
-        elif colour in ("#bdbdbd", "#757575") or re.search(r"\broad\b|street|\bstr\b|\bst\b|concrete|gravel", low):
+        if colour in ("#bdbdbd", "#757575") or re.search(r"\broad\b|street|\bstr\b|\bst\b|concrete|gravel", low):
             kind = "road"
             width = 3.5 if "small vehicles" in low else 5.0
         else:
