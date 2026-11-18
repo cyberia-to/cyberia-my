@@ -57,7 +57,7 @@ const DIV_GRID: [u32; 6] = [0, 4, 6, 7, 8, 9];
 /// States whose franchise is open, by three-letter code.
 const FRANCHISE_OPEN: &[&str] = &["IDN"];
 const WORLD_ZOOM: u8 = 7; // the whole earth is present to this zoom
-const MAX_TILE_ZOOM: u8 = 14;
+const MAX_TILE_ZOOM: u8 = 16; // the deepest pictures: a city's region, built from this year's scenes
 const FOV_Y: f64 = 30.0 * PI / 180.0;
 /// The fog of war comes in when the view is this many zooms past the pictures, over this many more.
 const FOG_FROM: f64 = 1.3;
@@ -2680,7 +2680,7 @@ pub fn GlobeAttrib() -> impl IntoView {
         <div class="globe-ui globe-attrib">
             "imagery: Sentinel-2 cloudless 2016 by "
             <a href="https://s2maps.eu" target="_blank" rel="noopener">"EOX"</a>
-            " (CC BY 4.0) · Antarctica: Blue Marble by NASA · divisions: "
+            " (CC BY 4.0) · Bali: contains modified Copernicus Sentinel data 2026 · Antarctica: Blue Marble by NASA · divisions: "
             <a href="https://www.geoboundaries.org" target="_blank" rel="noopener">"geoBoundaries"</a>
             " · served by cyberia"
         </div>
