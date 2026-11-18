@@ -59,6 +59,9 @@ const FRANCHISE_OPEN: &[&str] = &["IDN"];
 const WORLD_ZOOM: u8 = 7; // the whole earth is present to this zoom
 const MAX_TILE_ZOOM: u8 = 14;
 const FOV_Y: f64 = 30.0 * PI / 180.0;
+/// The fog of war comes in when the view is this many zooms past the pictures, over this many more.
+const FOG_FROM: f64 = 1.3;
+const FOG_OVER: f64 = 1.9;
 const Z_MAX: f64 = 26.0; // ≈ 2 m across the screen: tile-planning scale
 /// From this zoom the land console's vector layer takes over from the engine's lines.
 pub const SVG_Z: f64 = 13.5;
@@ -225,19 +228,22 @@ void main(){
   o = vec4(c, 1.0);
 }";
 const TILE_VS: &str = "#version 300 es
-in vec3 a_pos; in vec2 a_uv; in float a_fade;
+in vec3 a_pos; in vec2 a_uv; in float a_fade; in float a_fog;
 uniform float u_fx, u_fy, u_k, u_h; uniform vec3 u_uv;
-out vec2 v_uv; out float v_vis; out float v_fade;
+out vec2 v_uv; out float v_vis; out float v_fade; out float v_fog; out vec3 v_pos;
 void main(){
   gl_Position = vec4(a_pos.x * u_fx, a_pos.y * u_fy, 0.0, -a_pos.z);
   v_vis = (a_pos.z + u_k) / u_h;
   v_uv = (a_uv + u_uv.yz) * u_uv.x;
   v_fade = a_fade;
+  v_fog = a_fog;
+  v_pos = a_pos;
 }";
 const TILE_FS: &str = "#version 300 es
 precision highp float;
-in vec2 v_uv; in float v_vis; in float v_fade; out vec4 o;
-uniform sampler2D u_tex; uniform float u_tone;
+in vec2 v_uv; in float v_vis; in float v_fade; in float v_fog; in vec3 v_pos; out vec4 o;
+uniform sampler2D u_tex; uniform float u_tone; uniform float u_fog;
+uniform vec4 u_city[4]; // a city in the camera's frame, and the radius of what its plan knows
 void main(){
   if (v_vis < 0.0) discard;
   vec3 c = texture(u_tex, v_uv).rgb;
@@ -245,6 +251,16 @@ void main(){
   float sea = u_tone * smoothstep(0.06, 0.22, c.b - c.r);
   c = mix(c, vec3(0.105, 0.165, 0.305) * (0.85 + 0.3 * c.b), sea);
   c *= 0.45 + 0.55 * smoothstep(0.0, 0.45, v_vis);
+  // the fog of war: the land the pictures do not know at this zoom goes dim and grey;
+  // around a city its own plan is the knowledge, and the fog stands back
+  float known = 0.0;
+  for (int i = 0; i < 4; i++) {
+    float r = u_city[i].w;
+    if (r > 0.0) known = max(known, 1.0 - smoothstep(r, r * 2.6, distance(v_pos, u_city[i].xyz)));
+  }
+  float f = u_fog * v_fog * (1.0 - known);
+  float l = dot(c, vec3(0.3, 0.59, 0.11));
+  c = mix(c, vec3(0.010, 0.026, 0.024) + vec3(0.11, 0.17, 0.16) * l, f * 0.9);
   o = vec4(c, v_fade);
 }";
 // world lines: static unit vectors, the camera frame as uniforms
@@ -471,8 +487,9 @@ pub mod layer {
     pub const FRANCHISE: u32 = 1 << 7;
     pub const OUTLINE: u32 = 1 << 8;
     pub const PLOTS: u32 = 1 << 9;
+    pub const FOG: u32 = 1 << 10;
     /// everything but the grid
-    pub const DEFAULT: u32 = 0x3FF & !GRID;
+    pub const DEFAULT: u32 = 0x7FF & !GRID;
     /// the bit of a level of the divisions
     pub fn of_level(level: u8) -> u32 {
         match level {
@@ -597,6 +614,26 @@ impl Engine {
                 let at = runs.partition_point(|r| r.0 <= i);
                 at > 0 && i < runs[at - 1].1
             })
+    }
+
+    /// The deepest zoom the pictures have for the place of a tile.
+    fn depth(&self, k: Key) -> f64 {
+        let mut w = k;
+        while !self.covered(w) && w.0 > 0 {
+            w = (w.0 - 1, w.1 >> 1, w.2 >> 1);
+        }
+        w.0 as f64
+    }
+
+    /// The depth at a corner of the tile grid of a zoom: the mean of the four tiles
+    /// that meet there, so the fog has no edge along a tile's side.
+    fn corner_depth(&self, z: u8, cx: i64, cy: i64) -> f64 {
+        let n = 1i64 << z;
+        let mut sum = 0.0;
+        for (dx, dy) in [(-1, -1), (0, -1), (-1, 0), (0, 0)] {
+            sum += self.depth((z, (cx + dx).rem_euclid(n) as u32, (cy + dy).clamp(0, n - 1) as u32));
+        }
+        sum / 4.0
     }
 
     fn tile(&mut self, k: Key) -> &mut Tile {
@@ -900,6 +937,16 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         gl.uniform1f(self.tile_prog.loc("u_h"), (1.0 - 1.0 / v.d) as f32);
         gl.uniform1i(self.tile_prog.loc("u_tex"), 0);
         gl.uniform1f(self.tile_prog.loc("u_tone"), 0.0);
+        gl.uniform1f(self.tile_prog.loc("u_fog"), if LAYERS.with(|l| l.get()) & layer::FOG != 0 { 1.0 } else { 0.0 });
+        {
+            // each city in the camera's frame, with the radius its plan covers (as a chord of the unit ball)
+            let mut city = [0.0f32; 16];
+            for (i, c) in CITIES.iter().take(4).enumerate() {
+                let p = v.to_view(unit(c.lon, c.lat));
+                city[i * 4..i * 4 + 4].copy_from_slice(&[p[0] as f32, p[1] as f32, p[2] as f32, (c.fit_m * 0.6 / 6_371_000.0) as f32]);
+            }
+            gl.uniform4fv_with_f32_array(self.tile_prog.loc("u_city"), &city);
+        }
         gl.active_texture(GL::TEXTURE0);
         gl.bind_vertex_array(Some(&self.tile_vao));
         let frame = self.frame;
@@ -1318,6 +1365,13 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
         let up = (k.0 - src.0) as u32;
         let scale = 1.0 / (1u32 << up) as f32;
         let off = ((k.1 & ((1 << up) - 1)) as f32, (k.2 & ((1 << up) - 1)) as f32);
+        // how far the view is past what the pictures know, at the tile's four corners
+        let lack = if k.0 >= GEO {
+            [0.0; 4]
+        } else {
+            let (x, y, z) = (k.1 as i64, k.2 as i64, self.z);
+            [(0, 0), (1, 0), (0, 1), (1, 1)].map(|(i, j)| z - self.corner_depth(k.0, x + i, y + j))
+        };
         let grid = {
             let tl = self.tile(k);
             tl.used = frame;
@@ -1325,13 +1379,16 @@ let turned = if self.hd.abs() > 0.009 { format!(",{:.0}h", self.hd.to_degrees())
             let g = tl.grid;
             for (i, q) in tl.verts.iter().enumerate() {
                 let p = v.to_view(*q);
+                let (u, w) = ((i % (g + 1)) as f64 / g as f64, (i / (g + 1)) as f64 / g as f64);
+                let l = (lack[0] * (1.0 - u) + lack[1] * u) * (1.0 - w) + (lack[2] * (1.0 - u) + lack[3] * u) * w;
                 scratch.extend_from_slice(&[
                     p[0] as f32,
                     p[1] as f32,
                     p[2] as f32,
-                    (i % (g + 1)) as f32 / g as f32,
-                    (i / (g + 1)) as f32 / g as f32,
+                    u as f32,
+                    w as f32,
                     tl.fade.get(i).copied().unwrap_or(1.0),
+                    smooth((l - FOG_FROM) / FOG_OVER) as f32,
                 ]);
             }
             g
@@ -1504,7 +1561,7 @@ fn start(
         .ok_or("this browser has no WebGL2")?;
 
     let bg = Prog::new(&gl, BG_VS, BG_FS, &["a_pos"], &["u_r", "u_aspect"])?;
-    let tile_prog = Prog::new(&gl, TILE_VS, TILE_FS, &["a_pos", "a_uv", "a_fade"], &["u_fx", "u_fy", "u_k", "u_h", "u_uv", "u_tex", "u_tone"])?;
+    let tile_prog = Prog::new(&gl, TILE_VS, TILE_FS, &["a_pos", "a_uv", "a_fade", "a_fog"], &["u_fx", "u_fy", "u_k", "u_h", "u_uv", "u_tex", "u_tone", "u_fog", "u_city"])?;
     let line_prog = Prog::new(&gl, LINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_d", "u_e", "u_n", "u_up", "u_color"])?;
     let vline_prog = Prog::new(&gl, VLINE_VS, LINE_FS, &["a_pos"], &["u_fx", "u_fy", "u_k", "u_h", "u_color", "u_off"])?;
 
@@ -1525,11 +1582,13 @@ fn start(
     let tile_vbo = gl.create_buffer().ok_or("vbo")?;
     gl.bind_buffer(GL::ARRAY_BUFFER, Some(&tile_vbo));
     gl.enable_vertex_attrib_array(0);
-    gl.vertex_attrib_pointer_with_i32(0, 3, GL::FLOAT, false, 24, 0);
+    gl.vertex_attrib_pointer_with_i32(0, 3, GL::FLOAT, false, 28, 0);
     gl.enable_vertex_attrib_array(1);
-    gl.vertex_attrib_pointer_with_i32(1, 2, GL::FLOAT, false, 24, 12);
+    gl.vertex_attrib_pointer_with_i32(1, 2, GL::FLOAT, false, 28, 12);
     gl.enable_vertex_attrib_array(2);
-    gl.vertex_attrib_pointer_with_i32(2, 1, GL::FLOAT, false, 24, 20);
+    gl.vertex_attrib_pointer_with_i32(2, 1, GL::FLOAT, false, 28, 20);
+    gl.enable_vertex_attrib_array(3);
+    gl.vertex_attrib_pointer_with_i32(3, 1, GL::FLOAT, false, 28, 24);
 
     let vline_vao = gl.create_vertex_array().ok_or("vao")?;
     gl.bind_vertex_array(Some(&vline_vao));
@@ -1749,7 +1808,7 @@ fn with_engine(f: impl FnOnce(&mut Engine)) {
 
 // ─── layers ───────────────────────────────────────────────────────────
 
-const LAYERS_KEY: &str = "cyberia.layers";
+const LAYERS_KEY: &str = "cyberia.layers.2"; // .2: the fog of war joined the default
 
 /// The layers the visitor chose last time, or the default.
 pub fn layers_saved() -> u32 {
@@ -1771,7 +1830,7 @@ pub fn set_layers(mask: u32) {
 
 /// The tree of layers: a group, then its leaves as (name, bit, what it is).
 const LAYER_TREE: [(&str, &[(&str, u32, &str)]); 3] = [
-    ("EARTH", &[("satellite", layer::SATELLITE, "Sentinel-2 imagery"), ("grid", layer::GRID, "parallels and meridians")]),
+    ("EARTH", &[("satellite", layer::SATELLITE, "Sentinel-2 imagery"), ("grid", layer::GRID, "parallels and meridians"), ("fog of war", layer::FOG, "dim where unknown")]),
     (
         "BORDERS",
         &[
