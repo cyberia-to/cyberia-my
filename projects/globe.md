@@ -78,7 +78,7 @@ where the build left the plan:
 - no parent links are stored: every level is asked for the unit under the point.
 - Natural Earth is no longer drawn; states are named as cyberstates names them.
 
-not built yet: names on the map (the glyph atlas), the address `/d/<district>` and a particle per unit, imagery deeper than zoom 11 outside Bali and Armenia, a measured page check of the acceptance list below.
+not built yet: names on the map (the glyph atlas), the address `/d/<district>` and a particle per unit, imagery deeper than zoom 11 outside Indonesia and Armenia, a measured page check of the acceptance list below.
 
 ### deep imagery and layers, 2026-11-18
 
@@ -90,11 +90,22 @@ pull requests cyberia-my #17, #18.
 - layers: a tree on the pad (key L). earth: satellite, grid; borders: states, regions, subregions, local; cyberia: cities, franchise, city outline, plots. a group switches its leaves together; the choice is kept in the browser. the grid is drawn by the engine at a step that follows the zoom.
 - the source stays Sentinel-2 cloudless 2016 (CC BY 4.0): the later years are CC BY-NC-SA.
 
+### fog of war, fresh Bali, Indonesia, 2026-11-18
+
+pull requests cyberia-my #22, #23.
+
+- fog of war: where the camera is deeper than the imagery on disk, the picture dims and greys, by vertex, from 1.3 zooms past the deepest tile over the next 1.9. around a city the land stays clear: a soft circle of 0.6 of the city's fitting distance, fading to 2.6 times that. a layer of its own in the tree (earth: fog of war).
+- Indonesia to zoom 14 (10 m a pixel): `scripts/fetch-imagery.py --box indonesia:95,-11.1,141.1,6.1 --box-zoom 14` descends from the zoom 11 tiles on disk inside the box. measured: 46,839 tiles kept at zoom 12, 176,567 at 13, 668,620 at 14; 893,632 asked, none failed, 4.5 GB; about five hours at the source's fifty tiles a second. the front's disk stands at 43 GB of 98. the mosaic of 2016 keeps cloud leftovers over Jakarta.
+- Bali from this year's scenes: `scripts/build-fresh-imagery.py` picks, for each of the four Sentinel-2 squares of the island (50LKR, 50LLR, 50LKQ, 50LLQ), the six clearest scenes of May to November 2026 from Earth Search, ranked by the clear share of the island and twice that within 8 km of the valley; a pixel takes the first clear scene in rank order, no averaging, which is what keeps it sharp. warped to the tile grid, sharpened, blended at the edge of the region into the mosaic. measured: 2,542 blocks at zoom 14, 10,168 tiles at 15, 40,672 at 16, 620 at 13, 165 at 12; 54,167 tiles, 505 MB; 99.7 % of the land around the valley filled by clear pixels. the tile over the valley went from 5 KB to 18 KB: fields, houses and roads are read.
+- scenes used — 50LKR: S2A 20260607, S2A 20260710, S2C 20260827, S2C 20260608, S2B 20260812, S2B 20260713. 50LLR: S2A 20260607, S2A 20260925, S2C 20261013, S2C 20260913, S2C 20260903, S2C 20261003. 50LKQ: S2B 20261008, S2A 20260829, S2C 20260913, S2B 20260720, S2A 20260905, S2B 20260819. 50LLQ: S2B 20261107, S2B 20261008, S2C 20261013, S2C 20260903, S2C 20260913, S2B 20260531. attribution: contains modified Copernicus Sentinel data 2026.
+- the limit: 10 m a pixel is the floor of open satellite data; zooms 15 and 16 over Bali are that picture enlarged. a drone survey of the valley is the next ring: the engine reads tiles to zoom 16 and takes deeper ones as a region range in `manifest.json`.
+- the front's `manifest.json` is patched in place (`deep` to 14, `boxes`, the Bali ranges for zooms 15 and 16); the build host's copy lacks the region ranges and is never copied over it.
+
 the data is built by `scripts/build-divisions.py` on the build host and copied to the front — never built on the front, which has 4 cores and 8 GiB: on 2026-11-17 a 48-job run there got its container killed and re-created, about two minutes of outage for every site on it.
 
 ## open for the owner
 
-- the imagery budget: the land of the earth is at zoom 11 in 19 GB. zoom 12 would be about four times that and does not fit the front's disk (98 GB) beside the rest; a state at a time fits — Indonesia to zoom 14 is the next candidate, the franchise being open there.
+- the imagery budget: the land of the earth is at zoom 11 in 19 GB. zoom 12 would be about four times that and does not fit the front's disk (98 GB) beside the rest; a state at a time fits — Indonesia went to zoom 14 in 4.5 GB.
 - the share-alike layers (ODbL, CC BY-SA countries) oblige the tiles built from them to carry the same licence; the default here is to accept that and say so in the attribution panel.
 
 ## acceptance
