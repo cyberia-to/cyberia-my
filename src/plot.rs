@@ -8,7 +8,7 @@ use crate::land::{area_m2, load_map, LandFlat, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::plot_board::LandBoard;
 use crate::plot_side::SideColumn;
-use crate::plot_land::{load_state, Frame};
+use crate::plot_land::Frame;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_params_map};
 use std::sync::Arc;
@@ -46,7 +46,6 @@ fn title_case(s: &str) -> String {
 fn passport_json(flat: &LandFlat, frame: &Frame, status: FlatStatus) -> String {
     let deals = load_deals();
     let deal = deals.get(&flat.id);
-    let st = load_state(&flat.id);
     let doc = serde_json::json!({
         "id": flat.id,
         "name": bare_name(&flat.name),
@@ -59,9 +58,6 @@ fn passport_json(flat: &LandFlat, frame: &Frame, status: FlatStatus) -> String {
         "perimeter_m": (frame.perimeter_m() * 10.0).round() / 10.0,
         "vertices": flat.coords.len(),
         "coords_lonlat": flat.coords,
-        "grid_cell_m": crate::plot_land::CELL_M,
-        "pruned_cells": st.pruned,
-        "placed": st.placed,
         "deal": deal,
         "generated_ms": crate::deals::now_ms(),
         "source": "cyberia.my · phase 0 · soft3 local",
@@ -121,7 +117,6 @@ pub fn PlotPage() -> impl IntoView {
             pdata.set(crate::orders::fetch_plot_data(&fid_data).await);
         });
     }
-    let state = RwSignal::new(load_state(&flat.id));
     let name = bare_name(&flat.name);
     let owner = holder(&flat.id).map(|s| s.to_string());
     let book = terms(&flat.id);
@@ -201,9 +196,8 @@ pub fn PlotPage() -> impl IntoView {
                 <div class=if lease_mode { "plot-stage lease-first" } else { "plot-stage" }>
                     <div class="plot-col plot-col-land">
                         <LandBoard
-                            plot_id=flat.id.clone()
                             frame=frame.clone()
-                            state=state
+                            area_m2=area
                             district_color=dcol
                             status_color=land_use(&flat.id).color()
                         />

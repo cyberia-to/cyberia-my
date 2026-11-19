@@ -4,7 +4,7 @@
 use crate::land::{area_m2, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::plot_board::LandBoard;
-use crate::plot_land::{load_state, Frame};
+use crate::plot_land::Frame;
 use crate::terms::LandUse;
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
@@ -74,8 +74,6 @@ pub fn FriendPage() -> impl IntoView {
     let name = f.name.to_uppercase();
     let plan = area_m2(&f.coords);
     let frame = Arc::new(Frame::new(&f.coords));
-    let pid = format!("friend-{}", f.slug());
-    let state = RwSignal::new(load_state(&pid));
     document().set_title(&format!("Cyberia — {}", f.name));
 
     view! {
@@ -120,9 +118,8 @@ pub fn FriendPage() -> impl IntoView {
                 <div class="plot-stage">
                     <div class="plot-col plot-col-land">
                         <LandBoard
-                            plot_id=pid
                             frame=frame
-                            state=state
+                            area_m2=plan
                             district_color=ink
                             status_color=ink
                         />

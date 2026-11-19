@@ -17,7 +17,7 @@ use crate::globe::{
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
-use crate::wallet::{load_intents, load_leases, push_intent};
+use crate::wallet::{load_leases, push_intent};
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 use serde::{Deserialize, Serialize};
@@ -360,31 +360,6 @@ fn format_zoom_hud(zoom: f64, view_m: f64) -> String {
     format!("{z_s} · {scale}")
 }
 
-/// Map client point (relative to wrap) → world/SVG coords under current camera.
-pub(crate) fn client_to_world(
-    cx: f64,
-    cy: f64,
-    wrap_w: f64,
-    wrap_h: f64,
-    center: (f64, f64),
-    zoom: f64,
-    w: f64,
-    h: f64,
-) -> (f64, f64) {
-    let z = zoom.max(1e-9);
-    let vw = w / z;
-    let vh = h / z;
-    let left = center.0 - vw * 0.5;
-    let top = center.1 - vh * 0.5;
-    // meet: uniform scale of viewBox into wrap
-    let fit = (wrap_w / vw).min(wrap_h / vh);
-    let ox = (wrap_w - vw * fit) * 0.5;
-    let oy = (wrap_h - vh * fit) * 0.5;
-    let wx = left + (cx - ox) / fit;
-    let wy = top + (cy - oy) / fit;
-    (wx, wy)
-}
-
 fn centroid(coords: &[[f64; 2]]) -> (f64, f64) {
     if coords.is_empty() {
         return (0.0, 0.0);
@@ -469,7 +444,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
             deals.update(|d| crate::deals::merge_published(d, &index));
         }
     });
-    let intents = RwSignal::new(load_intents());
     let dd = RwSignal::new(load_dd());
     let jv = RwSignal::new(load_jv());
     let leased = RwSignal::new(
@@ -2060,7 +2034,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                         on:click=move |_| {
                                                             jv.update(|m| request_jv(m, &key));
                                                             push_intent("YOU", req_intent, &target);
-                                                            intents.set(load_intents());
                                                         }
                                                     >
                                                         {if lu == LandUse::Hgb {
@@ -2103,7 +2076,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                 on:click=move |_| {
                                                     dd.update(|m| request_dd(m, &fid_dd));
                                                     push_intent("YOU", "docs", &fid_dd);
-                                                    intents.set(load_intents());
                                                 }
                                             >"REQUEST DOCUMENTS · due diligence"</button>
                                         }.into_any(),
@@ -2112,44 +2084,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 <a class="prism-link flat-open" href=page>"OPEN FLAT PAGE →"</a>
                             }.into_any()
                         }}
-                        <div class="fleet-section" style="margin-top: 10px;">"YOUR REQUESTS"</div>
-                        <div class="intent-queue">
-                            {move || {
-                                let q: Vec<_> = intents.get().into_iter().filter(|i| i.fleet == "YOU").collect();
-                                if q.is_empty() {
-                                    return view! {
-                                        <div class="intent-empty">"nothing asked yet — lease a flat or request its papers"</div>
-                                    }.into_any();
-                                }
-                                view! {
-                                    <div class="intent-list">
-                                        {q.into_iter().take(10).map(|it| {
-                                            let act_cls = match it.action.as_str() {
-                                                "lease" => "ii-act lease",
-                                                "docs" => "ii-act docs",
-                                                "jv" => "ii-act jv",
-                                                "hgb" => "ii-act hgb",
-                                                "build" => "ii-act build",
-                                                _ => "ii-act",
-                                            };
-                                            let label = match it.action.as_str() {
-                                                "docs" => "DUE DILIGENCE".to_string(),
-                                                "jv" => "JOINT VENTURE".to_string(),
-                                                "hgb" => "DISTRICT TITLE".to_string(),
-                                                a => a.to_uppercase(),
-                                            };
-                                            view! {
-                                                <div class="intent-item">
-                                                    <span class="ii-id">{format!("#{:03}", it.id)}</span>
-                                                    <span class=act_cls>{label}</span>
-                                                    <span class="ii-flat">{it.flat.to_uppercase()}</span>
-                                                </div>
-                                            }
-                                        }).collect_view()}
-                                    </div>
-                                }.into_any()
-                            }}
-                        </div>
                     </div>
                 </section>
             </div>
@@ -2167,8 +2101,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 FlatStatus::Closed => {}
                             }
                         }
-                        let mine = intents.get().iter().filter(|i| i.fleet == "YOU").count();
-                        format!("{open} flats open · {ask} on request · {held} held · {mine} your requests")
+                        format!("{open} flats open · {ask} on request · {held} held")
                     }}
                 </span>
                 <div class="cyberia-cta-bar dock-ctas">
