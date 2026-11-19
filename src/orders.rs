@@ -203,6 +203,16 @@ pub async fn fetch_index() -> std::collections::HashMap<String, PublishedDeal> {
     fetch_json("/plot-data/index.json").await.unwrap_or_default()
 }
 
+/// Today's century index fix — dollars per CX — from the published fix on
+/// this same origin (`/cx/cx.json`, rebuilt daily from cyberia-to/cx).
+pub async fn fetch_cx_level() -> Option<f64> {
+    #[derive(Deserialize)]
+    struct Fix {
+        level: f64,
+    }
+    fetch_json::<Fix>("/cx/cx.json").await.map(|f| f.level).filter(|l| *l > 0.0)
+}
+
 async fn fetch_json<T: serde::de::DeserializeOwned>(path: &str) -> Option<T> {
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
