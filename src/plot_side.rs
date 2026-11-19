@@ -8,7 +8,7 @@
 //! or the holder — and the flat's papers.
 
 use crate::deals::{
-    cancel_deal, flat_status, fmt_ts, holder, load_jv, open_deal, request_jv, Deal, FlatStatus,
+    cancel_deal, flat_status, fmt_ts, holder, load_jv, request_jv, Deal, FlatStatus,
     STEPS,
 };
 use crate::orders::{
@@ -119,15 +119,9 @@ pub fn SideColumn(
     // a prospective holder orders the survey before paying; the holder after
     let can_order = Memo::new(move |_| status.get() == FlatStatus::Available || mine.get());
 
-    // arrived from the map's LEASE press: the request opens, the flow is up
-    if lease_mode && status.get_untracked() == FlatStatus::Available {
-        let (i, n) = (plot_id.clone(), plot_name.clone());
-        deals.update(|d| open_deal(d, &i, &n));
-    }
-
+    // arrived from the map's LEASE press: the checkout is open, nothing is
+    // requested yet — the flat is spoken for only once the money is sent
     let ink = crate::terms::land_use(&plot_id).color();
-    let id_lease = plot_id.clone();
-    let name_lease = plot_name.clone();
     let id_cancel = plot_id.clone();
     let id_ask = plot_id.clone();
     let ask_href = format!(
@@ -146,8 +140,6 @@ pub fn SideColumn(
             _ => None,
         };
         let live_local = d.as_ref().map(|d| d.published.is_none() && d.is_live()).unwrap_or(false);
-        let id_l = id_lease.clone();
-        let n_l = name_lease.clone();
         let id_c = id_cancel.clone();
         let id_a = id_ask.clone();
         let asked = jv.get().contains_key(&id);
@@ -158,7 +150,6 @@ pub fn SideColumn(
                 {on_offer.then(|| price_text.map(|p| view! { <div class="deal-now-price">{p}</div> }))}
                 {(st == FlatStatus::Available && !live_local && !pay_open.get()).then(|| view! {
                     <button type="button" class="intent-commit lease side-cta" on:click=move |_| {
-                        deals.update(|dd| open_deal(dd, &id_l, &n_l));
                         pay_open.set(true);
                     }>"LEASE THIS FLAT"</button>
                 })}
@@ -198,7 +189,7 @@ pub fn SideColumn(
             || (st == FlatStatus::Transfer && mine.get())
             || deal.get().as_ref().map(|d| d.published.is_none() && d.is_live()).unwrap_or(false);
         (show && st != FlatStatus::Owned && st != FlatStatus::Closed).then(|| view! {
-            <PayPanel plot_id=id_pay.clone() plot_name=name_pay.clone() price=price published=published />
+            <PayPanel plot_id=id_pay.clone() plot_name=name_pay.clone() price=price published=published deals=deals />
         })
     };
 

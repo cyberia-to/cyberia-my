@@ -1822,6 +1822,40 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 let n_domains = domains.get().len();
                                 let n_districts = map_districts_n;
                                 return view! {
+                                    {
+                                        // what can be leased right now, cheapest first — one press selects it
+                                        let mut open_now: Vec<(String, String, f64, f64)> = list
+                                            .iter()
+                                            .filter(|f| flat_status(&f.id, &d) == FlatStatus::Available)
+                                            .filter_map(|f| {
+                                                let p = terms(&f.id).and_then(|t| t.price())?;
+                                                Some((f.id.clone(), bare_name(&f.name), area_m2(&f.coords) / 100.0, p))
+                                            })
+                                            .collect();
+                                        open_now.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap_or(std::cmp::Ordering::Equal));
+                                        let n_open = open_now.len();
+                                        let from = open_now.first().map(|x| x.3);
+                                        (n_open > 0).then(|| view! {
+                                            <div class="open-now">
+                                                <div class="open-now-h">
+                                                    <span>"OPEN NOW"</span>
+                                                    <span class="dim">{format!("{n_open} flats · from {}", from.map(fmt_usd).unwrap_or_default())}</span>
+                                                </div>
+                                                {open_now.into_iter().take(8).map(|(id, name, ares, price)| {
+                                                    let pick = id.clone();
+                                                    let lu = land_use(&id);
+                                                    view! {
+                                                        <button type="button" class="open-now-row" on:click=move |_| selected_flat.set(Some(pick.clone()))>
+                                                            <span class="open-now-dot" style:background=lu.color()></span>
+                                                            <span class="open-now-name">{name}</span>
+                                                            <span class="open-now-size">{format!("{ares:.1} ares")}</span>
+                                                            <span class="open-now-price">{fmt_usd(price)}</span>
+                                                        </button>
+                                                    }
+                                                }).collect_view()}
+                                            </div>
+                                        })
+                                    }
                                     <div class="intent-row">
                                         <span class="intent-k">"city"</span>
                                         <span class="intent-v">"CYBER VALLEY"</span>
@@ -1863,8 +1897,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         }).collect_view()}
                                     </div>
                                     <div class="use-card" style="--use: #00fe00;">
-                                        <span class="use-t">"PICK A FLAT ON THE MAP"</span>
-                                        <span class="use-s">"lease it or ask for its papers — every flat answers on its own page"</span>
+                                        <span class="use-t">"PICK A FLAT"</span>
+                                        <span class="use-s">"from the list or on the map — a 25-year leasehold, paid at once or as a premium and a yearly rent"</span>
                                         <span class="use-s city-links">
                                             <a class="prism-link" href=format!("{BASE}/plots")>"ALL PLOTS →"</a>
                                             <a class="prism-link" href=format!("{BASE}/domains")>"DOMAINS →"</a>

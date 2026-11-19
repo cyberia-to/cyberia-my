@@ -3756,6 +3756,139 @@ button.city-card:hover {
     border: 1px solid #1a1a1a;
     border-radius: 3px;
 }
+/* the map's OPEN NOW list — leasable flats, cheapest first */
+.open-now {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 2px 0 14px;
+}
+.open-now-h {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--cyber-green);
+    margin-bottom: 4px;
+}
+.open-now-h .dim {
+    color: #777;
+    letter-spacing: 0.06em;
+}
+.open-now-row {
+    display: grid;
+    grid-template-columns: 8px 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 8px;
+    background: #0a0a0a;
+    border: 1px solid #151515;
+    border-radius: 2px;
+    color: #d7d7d7;
+    cursor: pointer;
+    text-align: left;
+}
+.open-now-row:hover {
+    border-color: var(--cyber-green);
+}
+.open-now-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+.open-now-size {
+    color: #777;
+}
+.open-now-price {
+    color: var(--cyber-green);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* the checkout's three steps */
+.plot-pay .pay-form {
+    gap: 10px;
+    padding: 0 12px 12px;
+}
+.pay-stepline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #d7d7d7;
+}
+.pay-n {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--cyber-green);
+    color: var(--cyber-green);
+    font-size: 10px;
+    letter-spacing: 0;
+}
+.pay-forms {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.pay-form-opt {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: left;
+    font-family: inherit;
+    padding: 9px 10px;
+    border: 1px solid #333;
+    background: transparent;
+    border-radius: 2px;
+    cursor: pointer;
+}
+.pay-form-t {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #d7d7d7;
+}
+.pay-form-s {
+    font-size: 11px;
+    color: #777;
+}
+.pay-form-opt.is-on {
+    border-color: var(--cyber-green);
+    background: rgba(0, 254, 0, 0.08);
+}
+.pay-form-opt.is-on .pay-form-t {
+    color: var(--cyber-green);
+}
+.pay-sum {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid #1a1a1a;
+    border-radius: 3px;
+    background: #070707;
+}
+.pay-rent .pay-v {
+    color: var(--cyber-cyan);
+    font-weight: 700;
+}
+.pay-after {
+    margin: 2px 0 0 18px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: #777;
+}
 
 /* the wallet guide in the cabinet */
 .wallet-guide {
