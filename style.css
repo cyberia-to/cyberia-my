@@ -1912,9 +1912,6 @@ button.city-card:hover {
 .ii-act.buy {
     color: var(--cyber-orange);
 }
-.ii-act.lease {
-    color: var(--cyber-green);
-}
 
 /* buy / lease sheets */
 .cyberia-sheet-backdrop {
@@ -3097,7 +3094,7 @@ button.city-card:hover {
     stroke-width: 0.6;
     vector-effect: non-scaling-stroke;
 }
-.land-edge {
+.land-side {
     fill: #d7d7d7;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -3325,12 +3322,6 @@ button.city-card:hover {
     margin-top: 8px;
     text-align: center;
 }
-.ii-act.docs {
-    color: #00acff;
-}
-.ii-act.build {
-    color: var(--cyber-cyan);
-}
 
 /* lease book: price + off-book */
 .intent-v.price {
@@ -3412,12 +3403,6 @@ button.city-card:hover {
 }
 .dd-done.use .dd-done-t {
     color: var(--use);
-}
-.ii-act.jv {
-    color: #ff5b00;
-}
-.ii-act.hgb {
-    color: #00acff;
 }
 .mt-use {
     margin-top: 3px;

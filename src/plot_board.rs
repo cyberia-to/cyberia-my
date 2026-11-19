@@ -1,7 +1,7 @@
-//! PLAN — the flat drawn to scale on its 2 m grid, north up, each side
-//! signed in metres. A buyer reads it; nothing on it is a tool.
+//! PLAN — the flat drawn to scale on its 2 m grid, north up, every side wide
+//! enough signed in metres. A buyer reads it; nothing on it is a tool.
 
-use crate::plot_land::{Frame, CELL_M, PX_M};
+use crate::plot_land::{Frame, Side, CELL_M, PX_M};
 use leptos::prelude::*;
 use std::sync::Arc;
 
@@ -16,12 +16,12 @@ pub fn LandBoard(
     let h = frame.svg_h();
     let outline = frame.outline_path();
     let cells = frame.cells();
-    let edges = frame.edges();
+    let sides = frame.sides();
     let perimeter = frame.perimeter_m();
     let width_m = frame.max_x - frame.min_x;
     let depth_m = frame.max_y - frame.min_y;
-    // label size follows the drawing so a 5 are flat and a 50 are flat read alike
-    let font = (w.max(h) / 34.0).clamp(9.0, 40.0);
+    let font = frame.font();
+    let off = frame.sign_off();
 
     view! {
         <section class="plot-card plot-land">
@@ -47,19 +47,21 @@ pub fn LandBoard(
                     }
                 }).collect_view()}
                 <path d=outline fill="none" stroke=district_color stroke-width="2" vector-effect="non-scaling-stroke" />
-                // every side signed with its length, set just outside the line
-                {edges.into_iter().filter(|e| e.len_m >= 1.0).map(|e| {
-                    let off = font * 0.9;
-                    let (x, y) = (e.mid.0 + e.out.0 * off, e.mid.1 + e.out.1 * off + font * 0.35);
-                    view! {
-                        <text
-                            x=format!("{x:.1}")
-                            y=format!("{y:.1}")
-                            text-anchor="middle"
-                            class="land-edge"
-                            font-size=format!("{font:.1}")
-                        >{format!("{:.1} m", e.len_m)}</text>
-                    }
+                // each side that can carry its length is signed just outside its
+                // line; a side too short for its own sign is left bare
+                {sides.into_iter().filter_map(|Side { mid, out, sign, .. }| {
+                    sign.map(|text| {
+                        let (x, y) = (mid.0 + out.0 * off, mid.1 + out.1 * off + font * 0.35);
+                        view! {
+                            <text
+                                x=format!("{x:.1}")
+                                y=format!("{y:.1}")
+                                text-anchor="middle"
+                                class="land-side"
+                                font-size=format!("{font:.1}")
+                            >{text}</text>
+                        }
+                    })
                 }).collect_view()}
             </svg>
         </section>
