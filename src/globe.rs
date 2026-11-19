@@ -31,7 +31,7 @@ pub const BASE: &str = match option_env!("CYBERIA_BASE") {
     None => "",
 };
 /// Where the imagery pyramid lives (same origin by default).
-const TILES: &str = match option_env!("CYBERIA_TILES") {
+pub const TILES: &str = match option_env!("CYBERIA_TILES") {
     Some(t) => t,
     None => "/tiles/s2",
 };

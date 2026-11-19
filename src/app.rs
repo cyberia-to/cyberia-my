@@ -13,6 +13,7 @@ use crate::me::MePage;
 use crate::nav::{CyberiaNav, MenuPage};
 use crate::orgs::OrgsPage;
 use crate::places::PlacesPage;
+use crate::deal::DealPage;
 use crate::plot::PlotPage;
 use crate::plots::PlotsPage;
 use crate::portal::{FactoryPage, GalleryPage, GaragePage};
@@ -103,7 +104,8 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/map") view=ValleyConsole />
                 <Route path=path!("/domains") view=DomainsBoard />
                 <Route path=path!("/plot/:id") view=PlotPage />
-                <Route path=path!("/plot/:id/lease") view=PlotPage />
+                <Route path=path!("/plot/:id/deal") view=DealPage />
+                <Route path=path!("/plot/:id/lease") view=DealPage />
                 <Route path=path!("/friend/:slug") view=FriendPage />
                 <Route path=path!("/cabinet") view=CabinetPage />
                 <Route path=path!("/docs") view=DocsPage />

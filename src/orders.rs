@@ -33,14 +33,6 @@ impl OrderKind {
         }
     }
 
-    pub fn label(self) -> &'static str {
-        match self {
-            OrderKind::Survey => "ORDER SURVEY",
-            OrderKind::Media => "ORDER PHOTO · DRONE VIDEO",
-            OrderKind::Kyc => "SEND KYC",
-        }
-    }
-
     pub fn line(self) -> &'static str {
         match self {
             OrderKind::Survey => "triangulation on the slope by the hard force · the figure goes to the page and the lease",

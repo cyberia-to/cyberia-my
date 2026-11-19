@@ -1694,7 +1694,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                     </button>
                     <div class="cyberia-panel-h">
                         <span class="panel-kicker">"RENDER"</span>
-                        <span class="panel-sub">{move || if selected_flat.get().is_some() { "flat · 3d" } else { "city · plan" }}</span>
+                        <span class="panel-sub">{move || if selected_flat.get().is_some() { "the flat from above" } else { "city · plan" }}</span>
                     </div>
                     <div class="render-3d">
                         {move || {
@@ -1740,61 +1740,87 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     </div>
                                 }.into_any();
                             }
-                            let flat_name = flat
-                                .as_ref()
-                                .map(|f| bare_name(&f.name))
-                                .unwrap_or_else(|| fid.to_uppercase());
-                            let n = flat.as_ref().map(|f| f.coords.len()).unwrap_or(0);
+                            // a flat is selected: the card that makes you open it — the flat from
+                            // above, its price, the stock of its district, one bright way in
                             let lu = land_use(&fid);
                             let status = flat_status(&fid, &deals.get());
-
-                            // real footprint of the selected flat, in its own
-                            // local frame (12% margin so the outline clears the edge)
-                            const RW: f64 = 120.0;
-                            const RH: f64 = 120.0;
-                            const RPAD: f64 = 14.0;
-                            let plot_path = flat
-                                .as_ref()
-                                .map(|f| {
-                                    let (min_lon, max_lon, min_lat, max_lat) = poly_bbox(&f.coords);
-                                    let mlon = ((max_lon - min_lon) * 0.12).max(1e-7);
-                                    let mlat = ((max_lat - min_lat) * 0.12).max(1e-7);
-                                    let bb = BBox {
-                                        min_lon: min_lon - mlon,
-                                        max_lon: max_lon + mlon,
-                                        min_lat: min_lat - mlat,
-                                        max_lat: max_lat + mlat,
-                                    };
-                                    poly_path(&f.coords, &bb, RW, RH, RPAD)
-                                })
-                                .unwrap_or_default();
-
+                            let Some(lf) = crate::land::load_map().phase0.into_iter().find(|f| f.id == fid) else {
+                                return view! { <div></div> }.into_any();
+                            };
+                            let name = bare_name(&lf.name);
+                            let book = terms(&fid);
+                            let price = book.and_then(|t| t.price());
+                            let m2 = crate::land::area_m2(&lf.coords);
+                            let size = size_line(book, m2);
+                            let (open_n, all_n) = crate::aerial::district_stock(&lf.zone, &deals.get());
+                            let near = crate::aerial::nearby_places(&lf).into_iter().next();
+                            // the deck of what can be leased, cheapest first — flip it without leaving the map
+                            let d_now = deals.get();
+                            let mut deck: Vec<(String, f64)> = list
+                                .iter()
+                                .filter(|f| flat_status(&f.id, &d_now) == FlatStatus::Available)
+                                .filter_map(|f| Some((f.id.clone(), terms(&f.id).and_then(|t| t.price())?)))
+                                .collect();
+                            deck.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+                            let at = deck.iter().position(|d| d.0 == fid);
+                            let step = |d: isize| -> Option<String> {
+                                let n = deck.len() as isize;
+                                (n > 0).then(|| deck[(at.map(|a| a as isize + d).unwrap_or(0)).rem_euclid(n) as usize].0.clone())
+                            };
+                            let (prev, next) = (step(-1), step(1));
+                            let open = status == FlatStatus::Available;
+                            let mine = d_now.get(&fid).map(|d| d.published.is_none() && !d.cancelled).unwrap_or(false);
+                            let line = match status {
+                                FlatStatus::Available => lu.line().to_string(),
+                                FlatStatus::OnRequest => "on request — the valley answers".to_string(),
+                                FlatStatus::Transfer => "a deal is open on this flat".to_string(),
+                                FlatStatus::Owned => book.and_then(|t| t.holder()).map(|h| format!("held by {h}")).unwrap_or_else(|| "held".into()),
+                                FlatStatus::Closed => "not on offer now".to_string(),
+                            };
                             view! {
-                                <div class="render-stage">
-                                    <div class="plot-slab" style:--prism-color=lu.color()>
-                                        <svg class="plot-slab-svg" viewBox="0 0 120 120">
-                                            <path d=plot_path class="plot-slab-path" />
-                                        </svg>
+                                <div class="pv" style:--ink=lu.color()>
+                                    <div class="pv-shot">
+                                        <crate::aerial::Aerial flat=lf.clone() radius_m=120.0 deals=deals labels=false />
+                                        <span class=if open { "pv-chip" } else { "pv-chip off" }>{status.label()}</span>
+                                        <span class="pv-left">{format!("{open_n} of {all_n} open · {}", lf.zone.to_uppercase())}</span>
+                                        <button type="button" class="pv-x" title="deselect (Esc)" on:click=move |_| selected_flat.set(None)>"✕"</button>
+                                        <span class="pv-name">{name}</span>
                                     </div>
-                                    <div class="prism-meta">
-                                        <div class="prism-name">{flat_name}</div>
-                                        <div class="prism-sub">
-                                            <span style:color=lu.color()>{lu.label()}</span>
-                                            {format!(" · {} · {n} verts", status.label().to_lowercase())}
-                                        </div>
-                                        <a class="prism-link" href=format!("/plot/{fid}")>"OPEN FLAT →"</a>
+                                    {match price {
+                                        Some(p) if open => view! {
+                                            <div class="pv-price">
+                                                <b>{fmt_usd(p)}</b>
+                                                <span>{book.and_then(|t| t.are_price_usd).map(|a| format!("{} an are", fmt_usd(a))).unwrap_or_default()}</span>
+                                            </div>
+                                            <div class="pv-or">"or "<b>{fmt_usd(p * 0.1)}</b>{format!(" now and {} a year, for 25 years", fmt_usd(crate::pay::yearly_rent(p, 10)))}</div>
+                                        }.into_any(),
+                                        _ => view! { <div class="pv-line">{line.clone()}</div> }.into_any(),
+                                    }}
+                                    <div class="pv-facts">
+                                        <div><span>"use"</span><b style:color=lu.color()>{lu.short()}</b></div>
+                                        <div><span>"size"</span><b>{size}</b></div>
+                                        <div><span>"nearest"</span><b>{near.map(|n| format!("{} · {:.0} m", n.name, n.dist_m)).unwrap_or_else(|| "—".into())}</b></div>
+                                    </div>
+                                    {if mine {
+                                        view! { <a class="pv-cta" href=format!("{BASE}/plot/{fid}/deal")><b>"CONTINUE YOUR DEAL"</b><span>"→"</span></a> }.into_any()
+                                    } else if open {
+                                        view! { <a class="pv-cta" href=format!("{BASE}/plot/{fid}")><b>"SEE THIS FLAT"</b><span>"→"</span></a> }.into_any()
+                                    } else {
+                                        view! { <a class="pv-cta ask" href=format!("{BASE}/plot/{fid}")><b>"OPEN THE FLAT"</b><span>"→"</span></a> }.into_any()
+                                    }}
+                                    <div class="pv-flip">
+                                        {prev.map(|p| view! { <button type="button" on:click=move |_| selected_flat.set(Some(p.clone()))>"‹ cheaper"</button> })}
+                                        <span class="pv-line">{at.map(|a| format!("{} of {} open", a + 1, deck.len())).unwrap_or_default()}</span>
+                                        {next.map(|n| view! { <button type="button" on:click=move |_| selected_flat.set(Some(n.clone()))>"dearer ›"</button> })}
                                     </div>
                                 </div>
                             }.into_any()
                         }}
                     </div>
 
-                    <div class="cyberia-panel-h" style="margin-top: 24px;">
+                    <div class="cyberia-panel-h" style="margin-top: 24px;" style:display=move || if selected_flat.get().is_some() { "none" } else { "flex" }>
                         <span class="panel-kicker">{move || if selected_flat.get().is_some() { "FLAT" } else { "CITY" }}</span>
-                        <span class="panel-sub">{move || if selected_flat.get().is_some() { "lease or ask for its papers" } else { "pick a flat on the map" }}</span>
-                        {move || selected_flat.get().is_some().then(|| view! {
-                            <button class="panel-x" type="button" title="deselect (Esc)" on:click=move |_| selected_flat.set(None)>"✕"</button>
-                        })}
+                        <span class="panel-sub">{move || if selected_flat.get().is_some() { "what it is for" } else { "pick a flat on the map" }}</span>
                     </div>
                     <div class="intent-form">
                         {move || {
@@ -1914,40 +1940,15 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             let zone = zone_key(&flat).to_string();
                             // a deal in this browser means the flat is yours (or on its way)
                             let mine = all_deals.get(&flat.id).map(|d| !d.cancelled).unwrap_or(false);
-                            let holder_line = if mine {
-                                "you".to_string()
-                            } else {
-                                match book {
-                                    Some(t) if t.holder().is_some() => t.holder().unwrap_or_default().to_string(),
-                                    Some(t) if t.is_city_land() || lu == LandUse::Commons => "cyber valley".to_string(),
-                                    _ => "—".to_string(),
-                                }
-                            };
                             let areas: Vec<(String, String, f64)> = list
                                 .iter()
                                 .map(|f| (f.id.clone(), zone_key(f).to_string(), area_m2(&f.coords)))
                                 .collect();
                             let sale = (lu == LandUse::Hgb).then(|| district_sale(&zone, &areas)).flatten();
-                            let price = match lu {
-                                LandUse::Hgb => sale
-                                    .as_ref()
-                                    .map(|d| format!("{} / are · district {}", fmt_usd(d.are_price), fmt_usd(d.total())))
-                                    .unwrap_or_else(|| "—".into()),
-                                LandUse::Venture if status == FlatStatus::OnRequest => {
-                                    if zone == "avalon" { "joint-venture terms".to_string() } else { "on request".to_string() }
-                                }
-                                _ if status == FlatStatus::Closed => "—".to_string(),
-                                _ if status == FlatStatus::Available => {
-                                    book.and_then(price_line).unwrap_or_else(|| "price on request".into())
-                                }
-                                _ => book.and_then(price_line).unwrap_or_else(|| "—".into()),
-                            };
                             let req_key = if lu == LandUse::Hgb { format!("district:{zone}") } else { flat.id.clone() };
                             let req_ts = jv.get().get(&req_key).copied();
                             let req_intent = if lu == LandUse::Hgb { "hgb" } else { "jv" };
                             let dd_ts = dd.get().get(&flat.id).copied();
-                            let size = size_line(book, area_m2(&flat.coords));
-                            let kind = book.map(|t| t.kind_line()).unwrap_or_else(|| "not in the plot sheet".into());
                             let closed_line = match (lu, book) {
                                 (_, Some(t)) if t.in_reregistration() => "the title is being re-registered · off sale until it settles".to_string(),
                                 (LandUse::Commons | LandUse::Special | LandUse::Unclassified, _) => lu.line().to_string(),
@@ -1955,52 +1956,17 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 (_, Some(_)) => "the plot sheet has no price for it yet".to_string(),
                                 (_, None) => "this flat is not in the plot sheet yet".to_string(),
                             };
-                            let page = format!("/plot/{}", flat.id);
-                            let lease_href = format!("/plot/{}/lease", flat.id);
                             let fid_dd = flat.id.clone();
                             let district = zone.to_uppercase();
                             view! {
-                                <div class="intent-row">
-                                    <span class="intent-k">"flat"</span>
-                                    <span class="intent-v">{bare_name(&flat.name)}</span>
-                                </div>
-                                <div class="intent-row">
-                                    <span class="intent-k">"land use"</span>
-                                    <span class="intent-v" style:color=lu.color()>{lu.label()}</span>
-                                </div>
-                                <div class="intent-row">
-                                    <span class="intent-k">"district · size"</span>
-                                    <span class="intent-v dim">{format!("{district} · {size}")}</span>
-                                </div>
-                                <div class="intent-row">
-                                    <span class="intent-k">"sheet"</span>
-                                    <span class="intent-v dim">{kind}</span>
-                                </div>
-                                <div class="intent-row">
-                                    <span class="intent-k">"price"</span>
-                                    <span class=if status == FlatStatus::Available { "intent-v price" } else { "intent-v dim" }>{price}</span>
-                                </div>
-                                <div class="intent-row">
-                                    <span class="intent-k">"status"</span>
-                                    <span class="intent-v">{status.label()}</span>
-                                </div>
-                                <div class="intent-row">
-                                    <span class="intent-k">"holder"</span>
-                                    <span class="intent-v dim">{holder_line}</span>
-                                </div>
                                 {match (status, mine) {
+                                    // the preview card above carries the price and the way in
                                     (FlatStatus::Available, _) => view! {
-                                        <a class="intent-commit lease flat-cta" href=lease_href>
-                                            {match lu {
-                                                LandUse::Venture => "LEASE FOR A BUSINESS",
-                                                _ => "LEASE THIS FLAT",
-                                            }}
-                                            {book.filter(|t| !t.niche.is_empty()).map(|t| format!(" · {}", t.niche.to_uppercase()))}
-                                        </a>
+                                        {book.filter(|t| !t.niche.is_empty()).map(|t| view! {
+                                            <div class="pv-line">{format!("business ground · the valley keeps this flat for a {} niche", t.niche)}</div>
+                                        })}
                                     }.into_any(),
-                                    (_, true) => view! {
-                                        <a class="intent-commit flat-cta" href=page.clone()>"MANAGE · deal, land, papers"</a>
-                                    }.into_any(),
+                                    (_, true) => view! { <span></span> }.into_any(),
                                     (FlatStatus::OnRequest, false) => view! {
                                         <div class="use-card" style:--use=lu.color()>
                                             {match lu {
@@ -2115,7 +2081,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         }.into_any(),
                                     },
                                 }}
-                                <a class="prism-link flat-open" href=page>"OPEN FLAT PAGE →"</a>
                             }.into_any()
                         }}
                     </div>
@@ -2145,7 +2110,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         let Some(flat) = list.iter().find(|f| f.id == fid) else { return };
                         // every flat answers on its own page — open or not, the deal panel says why
                         if let Some(w) = web_sys::window() {
-                            let _ = w.location().set_href(&format!("{BASE}/plot/{}/lease", flat.id));
+                            let _ = w.location().set_href(&format!("{BASE}/plot/{}", flat.id));
                         }
                     }>
                         <span class="cta-ico">"🗺"</span>
