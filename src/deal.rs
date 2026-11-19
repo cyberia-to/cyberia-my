@@ -9,35 +9,22 @@
 //! by date), and what is still ahead. Steps are not locked: KYC and the
 //! dossier are often done side by side, and the track says so.
 
-use crate::deal_docs::{annex_b, annex_c, annex_d, annex_e, open_sheet, Offer};
-use crate::deals::{cancel_deal, fmt_ts, load_deals, now_ms, open_deal};
-use crate::docs::library;
-use crate::eth::{connect, has_provider, load_eth};
+use crate::deal_steps::{panel, Ctx};
+use crate::deals::{cancel_deal, fmt_ts, load_deals};
+use crate::eth::load_eth;
 use crate::globe::BASE;
 use crate::land::{area_m2, load_map, FLAG_SVG};
 use crate::nav::CyberiaNav;
 use crate::orders::{
-    load_orders_log, order_href, ordered, record_order, support_href, OrderKind, PlotData,
-    PublishedDeal, SUPPORT_HANDLE,
+    load_orders_log, ordered, support_href, OrderKind, PlotData, PublishedDeal, SUPPORT_HANDLE,
 };
-use crate::pay::{
-    load_sent, new_sent, record_sent, reference, sent_for, sent_text, yearly_rent, Form, BANK,
-    ETH_ADDRESS, PREMIUM_STEPS, TERM_YEARS,
-};
-use crate::signal::{neuron, sign_document, verify_document, DocSignature};
+use crate::pay::{load_sent, sent_for, yearly_rent, Form, TERM_YEARS};
+use crate::signal::{neuron, DocSignature};
 use crate::terms::{bare_name, fmt_usd, land_use, size_line, terms};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-fn encode(s: &str) -> String {
-    String::from(js_sys::encode_uri_component(s))
-}
-
-fn tg(text: &str) -> String {
-    format!("https://t.me/{SUPPORT_HANDLE}?text={}", encode(text))
-}
 
 // ─── what this browser knows about the deal ───────────────────────────
 
@@ -67,6 +54,12 @@ pub struct DealCfg {
     pub offer_text: Option<String>,
     #[serde(default)]
     pub offer_sig: Option<DocSignature>,
+    /// the moment the offer was made and the index fix read then, frozen
+    /// when it was signed — the text under the signature must not move
+    #[serde(default)]
+    pub offer_ts_ms: Option<f64>,
+    #[serde(default)]
+    pub offer_cx: Option<f64>,
 }
 
 impl Default for DealCfg {
@@ -83,6 +76,8 @@ impl Default for DealCfg {
             notary_asked_ms: None,
             offer_text: None,
             offer_sig: None,
+            offer_ts_ms: None,
+            offer_cx: None,
         }
     }
 }
@@ -113,6 +108,23 @@ fn save_cfg(id: &str, cfg: &DealCfg) {
             let _ = ls.set_item(CFG_KEY, &s);
         }
     }
+}
+
+/// Carry the share the buyer picked on the flat page into their deal. It is
+/// their own choice until the request is sent or the offer signed; after
+/// that the figures the valley holds and the signature covers stand.
+pub fn set_share(id: &str, share: u32) {
+    let mut cfg = load_cfg(id);
+    if cfg.requested_ms.is_some() || cfg.offer_sig.is_some() {
+        return;
+    }
+    if share >= 100 {
+        cfg.form = Form::Upfront;
+    } else {
+        cfg.form = Form::Index;
+        cfg.pct = share.clamp(10, 90);
+    }
+    save_cfg(id, &cfg);
 }
 
 /// Has this browser started a deal on the flat?
@@ -185,26 +197,6 @@ fn states(
     ]
 }
 
-/// What the Holder sends for KYC, by who they are.
-fn kyc_list(cfg: &DealCfg) -> Vec<&'static str> {
-    match (cfg.party.as_str(), cfg.origin.as_str()) {
-        ("company", "id") => vec![
-            "NIB and the deed of establishment with its latest amendment",
-            "NPWP of the company",
-            "KTP of the director who signs",
-            "the board's resolution to take the lease, if the articles ask for one",
-        ],
-        ("company", _) => vec![
-            "certificate of incorporation and the articles",
-            "a register or extract naming the directors",
-            "passport page of the director who signs",
-            "the board's resolution to take the lease",
-        ],
-        (_, "id") => vec!["KTP", "NPWP", "a selfie with the KTP"],
-        _ => vec!["the photo page of your passport", "a selfie with the passport", "your current visa or stay permit, if you are in Indonesia"],
-    }
-}
-
 #[component]
 pub fn DealPage() -> impl IntoView {
     let params = use_params_map();
@@ -266,391 +258,24 @@ pub fn DealPage() -> impl IntoView {
     });
     let done_n = Memo::new(move |_| st.get().iter().filter(|s| matches!(s, State::Done(_))).count());
 
-    let offer = {
-        let (id, name, neuron_id) = (id.clone(), name.clone(), me.bech32.clone());
-        move || {
-            let c = cfg.get_untracked();
-            Offer {
-                plot_id: id.clone(),
-                plot_name: name.clone(),
-                price_usd: price.unwrap_or(0.0),
-                form: c.form,
-                premium_pct: c.pct,
-                party: c.party,
-                origin: c.origin,
-                cx_level: cx.get_untracked(),
-                neuron: neuron_id.clone(),
-                ts_ms: c.requested_ms.unwrap_or_else(now_ms),
-            }
-        }
-    };
-
-    // ── step panels ───────────────────────────────────────────────────
-
-    let pick = move |k: &'static str, field: fn(&mut DealCfg) -> &mut String, v: &'static str, label: &'static str, sub: &'static str| {
-        let on = Memo::new(move |_| {
-            let mut c = cfg.get();
-            *field(&mut c) == v
-        });
-        view! {
-            <button type="button" class=move || if on.get() { "dl-opt is-on" } else { "dl-opt" } data-k=k
-                on:click=move |_| cfg.update(|c| *field(c) = v.to_string())>
-                <span class="dl-opt-t">{label}</span>
-                <span class="dl-opt-s">{sub}</span>
-            </button>
-        }
-    };
-
-    let p_terms = {
-        let (id, name) = (id.clone(), name.clone());
-        let offer = offer.clone();
-        move || {
-            let (id, name) = (id.clone(), name.clone());
-            let offer = offer.clone();
-            let locked = cfg.get().requested_ms.is_some();
-            view! {
-                <div class="dl-q">"who holds the lease"</div>
-                <div class="dl-opts">
-                    {pick("party", |c| &mut c.party, "person", "A PERSON", "you, in your own name")}
-                    {pick("party", |c| &mut c.party, "company", "A COMPANY", "a legal entity signs")}
-                </div>
-                <div class="dl-opts">
-                    {pick("origin", |c| &mut c.origin, "abroad", "FROM ABROAD", "a foreign passport or a foreign company")}
-                    {pick("origin", |c| &mut c.origin, "id", "INDONESIA", "KTP · an Indonesian entity")}
-                </div>
-                <div class="dl-q">"how you pay"</div>
-                <div class="dl-opts">
-                    {[Form::Upfront, Form::Index].into_iter().map(|f| view! {
-                        <button type="button" class=move || if cfg.get().form == f { "dl-opt is-on" } else { "dl-opt" }
-                            on:click=move |_| cfg.update(|c| c.form = f)>
-                            <span class="dl-opt-t">{f.label()}</span>
-                            <span class="dl-opt-s">{f.sub()}</span>
-                        </button>
-                    }).collect_view()}
-                </div>
-                {move || (cfg.get().form == Form::Index).then(|| view! {
-                    <div class="dl-pct">
-                        <span class="dl-k">"premium"</span>
-                        {PREMIUM_STEPS.iter().map(|&s| view! {
-                            <button type="button" class=move || if cfg.get().pct == s { "pay-step is-on" } else { "pay-step" } on:click=move |_| cfg.update(|c| c.pct = s)>{format!("{s}%")}</button>
-                        }).collect_view()}
-                    </div>
-                })}
-                <div class="dl-sum">
-                    <div><span class="dl-k">"price"</span><b>{price.map(fmt_usd).unwrap_or_else(|| "on request".into())}</b></div>
-                    <div><span class="dl-k">{move || format!("at signing · {}%", cfg.get().share())}</span><b class="go">{move || due.get().map(fmt_usd).unwrap_or_default()}</b></div>
-                    {move || (cfg.get().form == Form::Index).then(|| {
-                        let r = rent.get().unwrap_or(0.0);
-                        view! {
-                            <div><span class="dl-k">{format!("rent, each of {TERM_YEARS} years")}</span><b class="cx">{match cx.get() {
-                                Some(l) => format!("{:.0} CX ≈ {}", r / l, fmt_usd(r)),
-                                None => format!("≈ {}", fmt_usd(r)),
-                            }}</b></div>
-                        }
-                    })}
-                </div>
-                {if locked {
-                    view! { <p class="dl-note">"the request is with the valley — change a choice here and tell support in the chat"</p> }.into_any()
-                } else {
-                    view! {
-                        <button type="button" class="dl-go" on:click=move |_| {
-                            cfg.update(|c| c.requested_ms = Some(now_ms()));
-                            deals.update(|d| open_deal(d, &id, &name));
-                            let o = offer();
-                            let text = format!("LEASE REQUEST {}\n{}", o.plot_id, o.canonical());
-                            if let Some(w) = web_sys::window() {
-                                let _ = w.open_with_url_and_target(&tg(&text), "_blank");
-                            }
-                        }>"SEND THE REQUEST →"</button>
-                        <p class="dl-note">"opens a chat with the valley with your terms filled in · the flat is marked as requested by you"</p>
-                    }.into_any()
-                }}
-            }
-        }
-    };
-
-    let p_kyc = move || {
-        let c = cfg.get();
-        let sent_at = ordered(&log.get(), OrderKind::Kyc, "you");
-        let short = { let b = me.bech32.clone(); if b.len() > 22 { format!("{}…{}", &b[..12], &b[b.len() - 6..]) } else { b } };
-        view! {
-            <div class="dl-q">{format!("send these — {}, {}", if c.party == "company" { "a company" } else { "a person" }, if c.origin == "id" { "Indonesia" } else { "from abroad" })}</div>
-            <ul class="dl-list">
-                {kyc_list(&c).into_iter().map(|s| view! { <li>{s}</li> }).collect_view()}
-            </ul>
-            <a class="dl-go" href=order_href(OrderKind::Kyc, "you", "") target="_blank" rel="noopener"
-                on:click=move |_| log.update(|l| record_order(l, OrderKind::Kyc, "you"))>
-                {if sent_at.is_some() { "SEND AGAIN IN A DIRECT MESSAGE →" } else { "SEND IN A DIRECT MESSAGE →" }}
-            </a>
-            <p class="dl-note">"to support, person to person · nothing is stored on our servers"</p>
-            <div class="dl-q">"your keys"</div>
-            <div class="dl-keys">
-                <div><span class="dl-k">"neuron"</span><b class="mono">{short}</b><span class="dl-s">"made in this browser · signs your offer in step 5"</span></div>
-                <div>
-                    <span class="dl-k">"ethereum"</span>
-                    {move || match eth.get() {
-                        Some(w) => view! { <b class="mono">{w.short()}</b><span class="dl-s">"the flat's token goes here"</span> }.into_any(),
-                        None => view! {
-                            <button type="button" class="dl-mini" on:click=move |_| {
-                                if !has_provider() { eth_note.set("no wallet in this browser — optional, add it any time in the cabinet".into()); return; }
-                                leptos::task::spawn_local(async move {
-                                    match connect().await { Ok(w) => eth.set(Some(w)), Err(e) => eth_note.set(e) }
-                                });
-                            }>"CONNECT A WALLET"</button>
-                            <span class="dl-s">{move || { let n = eth_note.get(); if n.is_empty() { "optional · where the flat's token is sent".to_string() } else { n } }}</span>
-                        }.into_any(),
-                    }}
-                </div>
-            </div>
-        }
-    };
-
-    let p_dd = {
-        let (id, name, flat) = (id.clone(), name.clone(), flat.clone());
-        move || {
-            let lib = library();
-            let count = |k: &str| lib.iter().find(|s| s.key == k).map(|s| (s.items.len(), s.items.iter().filter(|i| !i.cid.is_empty()).count())).unwrap_or((0, 0));
-            let (land, land_p) = count("land");
-            let (co, co_p) = count("company");
-            let (sign, _) = count("sign");
-            let survey = pdata.get().and_then(|d| d.survey).map(|s| format!("{:.2} m² · {}", s.m2, s.on))
-                .or_else(|| book.and_then(|t| t.measured_m2.map(|m| format!("{m:.2} m² · {}", t.measured_on))));
-            let read = cfg.get().dd_read_ms;
-            let flat_c = flat.clone();
-            view! {
-                <div class="dl-tiles">
-                    <a class="dl-tile" href=format!("{BASE}/docs#land") target="_blank">
-                        <b>{land}</b><span>"papers of the land"</span><i>{format!("{land_p} on IPFS by content hash")}</i>
-                    </a>
-                    <a class="dl-tile" href=format!("{BASE}/docs#company") target="_blank">
-                        <b>{co}</b><span>"papers of the Company"</span><i>{format!("{co_p} on IPFS · PT Cyber Valley Estate")}</i>
-                    </a>
-                    <a class="dl-tile" href=format!("{BASE}/docs#sign") target="_blank">
-                        <b>{sign}</b><span>"instruments you sign"</span><i>"the agreement and annexes A–G"</i>
-                    </a>
-                </div>
-                <div class="dl-q">"this flat's ground"</div>
-                <div class="dl-rows">
-                    <div><span class="dl-k">"survey"</span>
-                        {match survey {
-                            Some(s) => view! { <b>{s}</b> }.into_any(),
-                            None => view! {
-                                <b class="dim">"not surveyed yet"</b>
-                                <a class="dl-mini" href=order_href(OrderKind::Survey, &id, &name) target="_blank" rel="noopener"
-                                    on:click={ let id = id.clone(); move |_| log.update(|l| record_order(l, OrderKind::Survey, &id)) }>"ORDER A SURVEY"</a>
-                            }.into_any(),
-                        }}
-                    </div>
-                    <div><span class="dl-k">"land office search"</span><b class="dim">"ordered through the notary within 30 days of signing"</b></div>
-                </div>
-                <div class="dl-actions">
-                    <button type="button" class="dl-mini" on:click=move |_| open_sheet(&annex_c(&flat_c, cfg.get_untracked().dd_read_ms))>"OPEN THE INVENTORY · ANNEX C"</button>
-                </div>
-                {match read {
-                    Some(ts) => view! { <p class="dl-note ok">{format!("✓ you marked the dossier as read · {}", fmt_ts(ts))}</p> }.into_any(),
-                    None => view! {
-                        <button type="button" class="dl-go" on:click=move |_| cfg.update(|c| c.dd_read_ms = Some(now_ms()))>"I HAVE READ THE DOSSIER"</button>
-                        <p class="dl-note">"your own mark — it goes into the record of handover, Annex C"</p>
-                    }.into_any(),
-                }}
-            }
-        }
-    };
-
-    let p_pay = {
-        let (id, name) = (id.clone(), name.clone());
-        move || {
-            let (id, name) = (id.clone(), name.clone());
-            let Some(due_usd) = due.get() else {
-                return view! { <p class="dl-note">"the price of this flat is set on request — the valley names it in the chat, then this step opens"</p> }.into_any();
-            };
-            let pd = published.get();
-            let paid = pd.as_ref().map(|p| p.paid_usd).unwrap_or(0.0);
-            let payments = pd.map(|p| p.payments).unwrap_or_default();
-            let mine = sent_for(&sent.get(), &id);
-            let pct = ((paid / due_usd) * 100.0).clamp(0.0, 100.0);
-            let id_ref = id.clone();
-            view! {
-                <div class="dl-meter">
-                    <div class="dl-meter-top"><span>{format!("{} received of {}", fmt_usd(paid), fmt_usd(due_usd))}</span><span>{format!("{pct:.0}%")}</span></div>
-                    <div class="dl-meter-bar"><i style:width=format!("{pct:.1}%")></i></div>
-                </div>
-                <div class="dl-opts">
-                    {pick("rail", |c| &mut c.rail, "bank", "BANK TRANSFER", "USD · EUR · AUD · IDR")}
-                    {pick("rail", |c| &mut c.rail, "eth", "ETHEREUM", "ETH or USDT on mainnet")}
-                </div>
-                {move || if cfg.get().rail == "bank" {
-                    let id_now = id_ref.clone();
-                    view! {
-                        <div class="dl-bank">
-                            <div><span class="dl-k">"account name"</span><b>{BANK.holder}</b></div>
-                            <div><span class="dl-k">"account number"</span><b class="mono">{BANK.number}</b></div>
-                            <div><span class="dl-k">"SWIFT"</span><b class="mono">{BANK.swift}</b></div>
-                            <div><span class="dl-k">"reference"</span><b class="mono">{move || reference(&id_now, cfg.get().share())}</b></div>
-                            <div><span class="dl-k">"bank"</span><b>{format!("{} · {} · {}", BANK.bank, BANK.branch, BANK.bank_address)}</b></div>
-                            <div><span class="dl-k">"currencies"</span><b>{BANK.currencies}</b></div>
-                            <div><span class="dl-k">"holder address"</span><b>{BANK.holder_address}</b></div>
-                        </div>
-                        <p class="dl-note">"USD, EUR and AUD land as sent; IDR settles at Bank Indonesia's JISDOR rate on the invoice date"</p>
-                    }.into_any()
-                } else {
-                    view! {
-                        <div class="dl-bank">
-                            <div><span class="dl-k">"address"</span><b class="mono">{ETH_ADDRESS.unwrap_or("given by support in a direct message")}</b></div>
-                        </div>
-                        <p class="dl-note">"ETH or USDT on Ethereum mainnet · the Company's address, named 2026-10-22"</p>
-                    }.into_any()
-                }}
-                <button type="button" class="dl-go" on:click=move |_| {
-                    let c = cfg.get_untracked();
-                    let p = new_sent(&id, due_usd, c.share(), c.form, &c.rail);
-                    let text = sent_text(&p, &name);
-                    sent.update(|l| record_sent(l, p));
-                    if let Some(w) = web_sys::window() {
-                        let _ = w.open_with_url_and_target(&tg(&text), "_blank");
-                    }
-                }>{format!("I HAVE SENT {} →", fmt_usd(due_usd))}</button>
-                <p class="dl-note">"tells the valley in the chat · the Company confirms the receipt and it shows here as received"</p>
-                {(!mine.is_empty() || !payments.is_empty()).then(|| view! {
-                    <div class="dl-q">"the ledger of this deal"</div>
-                    <div class="dl-ledger">
-                        {payments.into_iter().map(|p| view! {
-                            <div class="ok"><span>"RECEIVED"</span><b>{fmt_usd(p.usd)}</b><i>{format!("{} · {} · {}", p.method, p.reference, p.on)}</i></div>
-                        }).collect_view()}
-                        {mine.into_iter().map(|p| view! {
-                            <div><span>"SENT"</span><b>{fmt_usd(p.usd)}</b><i>{format!("{} · {} · {} · awaiting receipt", p.method, p.reference, fmt_ts(p.ts_ms))}</i></div>
-                        }).collect_view()}
-                    </div>
-                })}
-            }.into_any()
-        }
-    };
-
-    let p_docs = {
-        let flat = flat.clone();
-        let offer = offer.clone();
-        move || {
-            let c = cfg.get();
-            let index_form = c.form == Form::Index;
-            let sig = c.offer_sig.clone();
-            let signed_text = c.offer_text.clone();
-            let valid = match (&signed_text, &sig) {
-                (Some(t), Some(s)) => verify_document(t, s),
-                _ => false,
-            };
-            // the offer changed after it was signed: the signature no longer covers it
-            let stale = signed_text.as_ref().map(|t| *t != offer().canonical()).unwrap_or(false);
-            let (f_b, o_d, o_e, o_sign, o_send) = (flat.clone(), offer.clone(), offer.clone(), offer.clone(), offer.clone());
-            let sig_d = sig.clone();
-            let row = |made: bool, title: &'static str, what: &'static str, key: &'static str| view! {
-                <a class="dl-doc" href=format!("{BASE}/docs/{key}") target="_blank">
-                    <span class=if made { "dl-doc-tag made" } else { "dl-doc-tag" }>{if made { "FOR THIS FLAT" } else { "TEMPLATE" }}</span>
-                    <b>{title}</b><i>{what}</i>
-                </a>
-            };
-            view! {
-                <div class="dl-q">"the set for this deal"</div>
-                <div class="dl-docs">
-                    {row(false, "Lease Agreement", "Perjanjian Hak Sewa · the text the notary draws the deed from", "signable-pack")}
-                    {row(false, "Annex A — Estate Registry", "the Title the flat sits on", "signable-04-annex-a")}
-                    <button type="button" class="dl-doc" on:click=move |_| open_sheet(&annex_b(&f_b))>
-                        <span class="dl-doc-tag made">"MADE FOR THIS FLAT"</span><b>"Annex B — Plot Boundary"</b><i>"corners, sides, neighbours, the drawing · open the filled sheet"</i>
-                    </button>
-                    <button type="button" class="dl-doc" on:click={ let f = flat.clone(); move |_| open_sheet(&annex_c(&f, cfg.get_untracked().dd_read_ms)) }>
-                        <span class="dl-doc-tag made">"MADE FOR THIS DEAL"</span><b>"Annex C — Due Diligence Pack"</b><i>"every paper by its content hash, and your mark of reading"</i>
-                    </button>
-                    <button type="button" class="dl-doc" on:click=move |_| open_sheet(&annex_d(&o_d(), sig_d.as_ref()))>
-                        <span class="dl-doc-tag made">"MADE FOR THIS DEAL"</span><b>"Annex D — Offer of Record"</b><i>"the page and the price you were shown · carries your signature"</i>
-                    </button>
-                    {index_form.then(|| view! {
-                        <button type="button" class="dl-doc" on:click=move |_| open_sheet(&annex_e(&o_e()))>
-                            <span class="dl-doc-tag made">"MADE FOR THIS DEAL"</span><b>"Annex E — Century Index"</b><i>"your rent in CX and the rule that converts it"</i>
-                        </button>
-                    })}
-                    {row(false, "Annex F — Utilities, Access and Mobility", "self-sufficiency norms · filled per flat by the valley", "signable-09-annex-f")}
-                    {row(false, "Annex G — Handover Condition", "the record of handover · filled on the day", "signable-10-annex-g")}
-                </div>
-                <div class="dl-q">"sign the offer"</div>
-                {match (sig, valid && !stale) {
-                    (Some(s), true) => view! {
-                        <div class="dl-signed">
-                            <b>"✓ SIGNED BY YOUR NEURON · THE SIGNATURE VERIFIES"</b>
-                            <span class="mono">{format!("particle {}…{}", &s.particle[..12], &s.particle[s.particle.len() - 8..])}</span>
-                            <span>{format!("{} · {}", fmt_ts(s.ts_ms), s.neuron)}</span>
-                        </div>
-                        <button type="button" class="dl-go" on:click=move |_| {
-                            let o = o_send();
-                            let text = format!("SIGNED OFFER {}\nparticle: {}\nneuron: {}\npubkey: {}\nsignature: {}\n\n{}", o.plot_id, s.particle, s.neuron, s.pubkey_hex, s.sig_hex, o.canonical());
-                            if let Some(w) = web_sys::window() {
-                                let _ = w.open_with_url_and_target(&tg(&text), "_blank");
-                            }
-                        }>"SEND THE SIGNED OFFER →"</button>
-                        <p class="dl-note">"the Company countersigns; the notary draws the Indonesian deed from the same figures"</p>
-                    }.into_any(),
-                    (had, _) => view! {
-                        {had.is_some().then(|| view! { <p class="dl-note warn">"your terms changed after you signed — the old signature no longer covers the offer; sign it again"</p> })}
-                        <button type="button" class="dl-go" on:click=move |_| {
-                            let text = o_sign().canonical();
-                            let s = sign_document(&text);
-                            cfg.update(|c| { c.offer_text = Some(text.clone()); c.offer_sig = Some(s.clone()); });
-                        }>"SIGN THE OFFER WITH YOUR NEURON"</button>
-                        <p class="dl-note">"an electronic signature made in this browser: the offer's text is hashed into a particle and signed with your key (ADR-036) · anyone can verify it · the deed itself is signed at the notary"</p>
-                    }.into_any(),
-                }}
-            }
-        }
-    };
-
-    let p_notary = {
-        let (id, name) = (id.clone(), name.clone());
-        move || {
-            let (id, name) = (id.clone(), name.clone());
-            let asked = cfg.get().notary_asked_ms;
-            view! {
-                <div class="dl-q">"how you sign the deed"</div>
-                <div class="dl-opts">
-                    {pick("notary", |c| &mut c.notary, "person", "IN PERSON", "at the notary's table in Bali, one visit")}
-                    {pick("notary", |c| &mut c.notary, "proxy", "BY PROXY", "a power of attorney, signed where you are")}
-                </div>
-                <ul class="dl-list">
-                    {move || if cfg.get().notary == "proxy" {
-                        view! {
-                            <li>"you sign a power of attorney naming your proxy — notarised and, from abroad, legalised or apostilled"</li>
-                            <li>"the original travels to Bali; the proxy signs the deed for you"</li>
-                            <li>"the notary reads the deed in Bahasa Indonesia; your second-language copy is beside it"</li>
-                        }.into_any()
-                    } else {
-                        view! {
-                            <li>"bring the passport or KTP you sent for KYC"</li>
-                            <li>"the notary reads the deed in Bahasa Indonesia; a sworn interpreter sits with you if you ask"</li>
-                            <li>"both sides sign; you leave with your copy of the deed"</li>
-                        }.into_any()
-                    }}
-                    <li>"the land office search is ordered by the notary within 30 days of signing and pinned to the dossier"</li>
-                </ul>
-                <a class="dl-go" href=tg(&format!("NOTARY {id}\n{name} — I am ready to set a date for the deed.\nhow: {}", if cfg.get_untracked().notary == "proxy" { "by proxy" } else { "in person" }))
-                    target="_blank" rel="noopener" on:click=move |_| cfg.update(|c| c.notary_asked_ms = Some(now_ms()))>
-                    {if asked.is_some() { "ASK AGAIN FOR A DATE →" } else { "SET A DATE WITH THE NOTARY →" }}
-                </a>
-            }
-        }
-    };
-
-    let p_yours = {
-        let id = id.clone();
-        move || {
-            let owned = published.get().map(|p| p.status == "owned").unwrap_or(false);
-            view! {
-                <div class="dl-rows">
-                    <div><span class="dl-k">"handover"</span><b class=if owned { "" } else { "dim" }>{if owned { "the flat is handed over" } else { "Annex G is filled on the ground, with you or your proxy" }}</b></div>
-                    <div><span class="dl-k">"the flat's token"</span><b class="dim">"minted to your Ethereum address once the deed is signed"</b>
-                        <a class="dl-mini" href=format!("/plot/{id}/metadata.json") target="_blank">"TOKEN METADATA"</a></div>
-                    <div><span class="dl-k">"your room"</span><b class="dim">"every flat you hold, with its ledger"</b>
-                        <a class="dl-mini" href=format!("{BASE}/cabinet")>"OPEN THE CABINET"</a></div>
-                </div>
-                {owned.then(|| view! { <p class="dl-note ok">"✓ the leasehold is yours for the term"</p> })}
-            }
-        }
+    let ctx = Ctx {
+        id: id.clone(),
+        name: name.clone(),
+        flat: flat.clone(),
+        book,
+        price,
+        neuron: me.bech32.clone(),
+        cfg,
+        deals,
+        pdata,
+        cx,
+        log,
+        sent,
+        eth,
+        eth_note,
+        published,
+        due,
+        rent,
     };
 
     let id_cancel = id.clone();
@@ -731,15 +356,7 @@ pub fn DealPage() -> impl IntoView {
                         }}</p>
                     </div>
                     <div class="dl-body">
-                        {move || match current.get() {
-                            0 => p_terms().into_any(),
-                            1 => p_kyc().into_any(),
-                            2 => p_dd().into_any(),
-                            3 => p_pay().into_any(),
-                            4 => p_docs().into_any(),
-                            5 => p_notary().into_any(),
-                            _ => p_yours().into_any(),
-                        }}
+                        {move || panel(current.get(), &ctx)}
                     </div>
                     <div class="dl-nav">
                         <button type="button" class="dl-mini" disabled={move || current.get() == 0} on:click=move |_| picked.set(Some(current.get_untracked().saturating_sub(1)))>"← back"</button>

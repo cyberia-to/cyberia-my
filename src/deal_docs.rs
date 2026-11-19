@@ -3,8 +3,9 @@
 //! flat or the deal, and this module fills them from what the page already
 //! knows: Annex B from the flat's boundary, Annex C from the dossier's
 //! inventory, Annex D from the offer the Holder was shown, Annex E from the
-//! index the rent is counted in. Each is a printable sheet, and the offer
-//! also has a canonical text — the thing the Holder's neuron signs.
+//! index the rent is counted in. Each is a printable sheet; the offer's own
+//! canonical text — the thing the Holder's neuron signs — lives in
+//! `offer.rs`, apart from the rendering.
 //!
 //! These are data sheets for reading and for the notary's draft. The
 //! instrument in Bahasa Indonesia, drawn by the notary, is what binds.
@@ -12,75 +13,18 @@
 use crate::deals::fmt_ts;
 use crate::docs::{library, GATEWAY};
 use crate::land::{area_m2, centroid, load_map, LandFlat};
-use crate::pay::{yearly_rent, Form, TERM_YEARS};
+use crate::offer::stamp_utc;
+pub use crate::offer::Offer;
+use crate::pay::{Form, TERM_YEARS};
 use crate::plot_land::Frame;
 use crate::terms::{bare_name, fmt_usd, land_use, terms};
 
-/// What the Holder chose, frozen into the offer.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Offer {
-    pub plot_id: String,
-    pub plot_name: String,
-    pub price_usd: f64,
-    pub form: Form,
-    pub premium_pct: u32,
-    /// `person` | `company`
-    pub party: String,
-    /// `id` | `abroad`
-    pub origin: String,
-    /// dollars per CX on the day of the offer, when the fix was reachable
-    pub cx_level: Option<f64>,
-    pub neuron: String,
-    pub ts_ms: f64,
-}
-
-impl Offer {
-    pub fn share(&self) -> u32 {
-        if self.form == Form::Upfront { 100 } else { self.premium_pct }
-    }
-
-    pub fn at_signing(&self) -> f64 {
-        self.price_usd * self.share() as f64 / 100.0
-    }
-
-    pub fn rent_usd(&self) -> f64 {
-        yearly_rent(self.price_usd, self.share())
-    }
-
-    pub fn rent_cx(&self) -> Option<f64> {
-        self.cx_level.map(|l| self.rent_usd() / l)
-    }
-
-    /// The offer as plain lines, the same on every machine — what is hashed
-    /// into a particle and signed. Whole dollars and whole CX: the figures a
-    /// person reads are the figures under the signature.
-    pub fn canonical(&self) -> String {
-        let mut l = vec![
-            "CYBER VALLEY · OFFER OF RECORD".to_string(),
-            format!("flat: {}", self.plot_id),
-            format!("page: https://cyberia.my/plot/{}/", self.plot_id),
-            format!("leasehold: {TERM_YEARS} years"),
-            format!("price_usd: {:.0}", self.price_usd),
-            format!("form: {}", self.form.key()),
-            format!("at_signing_pct: {}", self.share()),
-            format!("at_signing_usd: {:.0}", self.at_signing()),
-        ];
-        if self.form == Form::Index {
-            l.push(format!("rent_usd_per_year_today: {:.0}", self.rent_usd()));
-            if let (Some(cx), Some(level)) = (self.rent_cx(), self.cx_level) {
-                l.push(format!("rent_cx_per_year: {cx:.0}"));
-                l.push(format!("cx_level_usd: {level:.4}"));
-            }
-        }
-        l.push(format!("holder: {} · {}", self.party, self.origin));
-        l.push(format!("neuron: {}", self.neuron));
-        l.push(format!("offered: {}", fmt_ts(self.ts_ms)));
-        l.join("\n")
-    }
-}
-
 fn esc(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }
 
 fn sheet(title: &str, sub: &str, body: &str) -> String {
@@ -212,7 +156,10 @@ pub fn annex_c(flat: &LandFlat, read_ms: Option<f64>) -> String {
 }
 
 /// Annex D — the offer of record: the page and the price shown to the Holder.
-pub fn annex_d(offer: &Offer, signature: Option<&crate::signal::DocSignature>) -> String {
+/// `signed` is the pair the Holder's neuron made — the exact text and the
+/// signature over it. The sheet prints that text and nothing rebuilt, or the
+/// notary would read figures the signature does not cover.
+pub fn annex_d(offer: &Offer, signed: Option<(&str, &crate::signal::DocSignature)>) -> String {
     let mut rows = format!(
         "<tr><th>flat</th><td>{} ({})</td></tr><tr><th>page shown</th><td>https://cyberia.my/plot/{}/</td></tr>\
          <tr><th>leasehold</th><td>{TERM_YEARS} years · the right to use the flat, never its title</td></tr>\
@@ -238,9 +185,9 @@ pub fn annex_d(offer: &Offer, signature: Option<&crate::signal::DocSignature>) -
         "<tr><th>holder</th><td>{} · {}</td></tr><tr><th>offered</th><td>{}</td></tr>",
         if offer.party == "company" { "a company" } else { "a person" },
         if offer.origin == "id" { "Indonesia" } else { "from abroad" },
-        fmt_ts(offer.ts_ms)
+        stamp_utc(offer.ts_ms)
     ));
-    let sig = match signature {
+    let sig = match signed.map(|(_, s)| s) {
         Some(s) => format!(
             "<h2>Signature</h2><table><tr><th>particle of the text</th><td style=\"word-break:break-all\">{}</td></tr>\
              <tr><th>neuron</th><td style=\"word-break:break-all\">{}</td></tr><tr><th>public key</th><td style=\"word-break:break-all\">{}</td></tr>\
@@ -249,9 +196,10 @@ pub fn annex_d(offer: &Offer, signature: Option<&crate::signal::DocSignature>) -
         ),
         None => "<h2>Signature</h2><p>Not signed yet.</p>".to_string(),
     };
+    let own = offer.canonical();
     let body = format!(
         "<h2>The offer</h2><table>{rows}</table><h2>The text under the signature</h2><pre>{}</pre>{sig}",
-        esc(&offer.canonical())
+        esc(signed.map(|(t, _)| t).unwrap_or(own.as_str()))
     );
     sheet(
         &format!("Annex D — Offer of Record · {}", offer.plot_name),

@@ -18,10 +18,13 @@ use crate::orders::{
 use crate::pay::{yearly_rent, TERM_YEARS};
 use crate::plot_board::LandBoard;
 use crate::plot_land::Frame;
+use crate::plot_files::{boundary_kml, encode, passport_json, text_data_url};
+use crate::plot_money::money_view;
 use crate::terms::{bare_name, fmt_usd, land_use, size_line, terms, LandUse, AVALON_TRACKS};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use std::sync::Arc;
+use wasm_bindgen::JsCast;
 
 fn district_color(zone: &str) -> &'static str {
     let z = zone.to_lowercase();
@@ -53,48 +56,6 @@ fn title_case(s: &str) -> String {
     }
 }
 
-fn encode(s: &str) -> String {
-    String::from(js_sys::encode_uri_component(s))
-}
-
-pub fn text_data_url(mime: &str, body: &str) -> String {
-    format!("data:{mime};charset=utf-8,{}", String::from(js_sys::encode_uri_component(body)))
-}
-
-fn passport_json(flat: &LandFlat, frame: &Frame, status: FlatStatus) -> String {
-    let doc = serde_json::json!({
-        "id": flat.id,
-        "name": bare_name(&flat.name),
-        "holder": holder(&flat.id),
-        "lease_book": terms(&flat.id),
-        "zone": flat.zone,
-        "phase": flat.phase,
-        "status": status.label(),
-        "area_m2": (area_m2(&flat.coords) * 10.0).round() / 10.0,
-        "perimeter_m": (frame.perimeter_m() * 10.0).round() / 10.0,
-        "vertices": flat.coords.len(),
-        "coords_lonlat": flat.coords,
-        "generated_ms": crate::deals::now_ms(),
-        "source": "cyberia.my · phase 0 · soft3 local",
-    });
-    serde_json::to_string_pretty(&doc).unwrap_or_default()
-}
-
-fn boundary_kml(flat: &LandFlat) -> String {
-    let ring: Vec<String> = flat
-        .coords
-        .iter()
-        .map(|c| format!("{},{},0", c[0], c[1]))
-        .collect();
-    format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document><name>{name}</name><Placemark><name>{name}</name><description>{zone} · phase {phase} · cyberia.my</description><Polygon><outerBoundaryIs><LinearRing><coordinates>{coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>\n",
-        name = bare_name(&flat.name),
-        zone = flat.zone,
-        phase = flat.phase,
-        coords = ring.join(" "),
-    )
-}
-
 /// The four views of a flat, in the order a buyer walks them.
 const TABS: &[(&str, &str)] = &[
     ("PLACE", "where it lies"),
@@ -102,9 +63,6 @@ const TABS: &[(&str, &str)] = &[
     ("MONEY", "what it costs you"),
     ("PAPERS", "what stands behind it"),
 ];
-
-/// One money path a buyer can pick with a press.
-const PATHS: &[(u32, &str)] = &[(100, "ALL NOW"), (50, "HALF NOW"), (30, "A THIRD"), (10, "LIGHT START")];
 
 #[component]
 pub fn PlotPage() -> impl IntoView {
@@ -202,6 +160,16 @@ pub fn PlotPage() -> impl IntoView {
         // 1–4 pick a view, ← → flip the deck
         let (ph, nh) = (prev_href.clone(), next_href.clone());
         let handle = window_event_listener(leptos::ev::keydown, move |ev| {
+            // a key pressed inside a control is the control's: the MONEY
+            // view is set with the arrows on its slider
+            let in_control = ev
+                .target()
+                .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+                .map(|e| matches!(e.tag_name().to_uppercase().as_str(), "INPUT" | "TEXTAREA" | "SELECT"))
+                .unwrap_or(false);
+            if in_control || ev.alt_key() || ev.ctrl_key() || ev.meta_key() {
+                return;
+            }
             let nav = |href: &str| {
                 if let Some(w) = web_sys::window() {
                     let _ = w.location().set_href(href);
@@ -227,8 +195,6 @@ pub fn PlotPage() -> impl IntoView {
         "https://t.me/{SUPPORT_HANDLE}?text={}",
         encode(&format!("ASK {} — {}\nhttps://cyberia.my/plot/{}/", flat.id, name, flat.id))
     );
-    let per_day = price.map(|p| p / (TERM_YEARS as f64 * 365.0));
-    let per_m2 = price.map(|p| p / area.max(1.0));
 
     // ── the four views ────────────────────────────────────────────────
 
@@ -268,72 +234,6 @@ pub fn PlotPage() -> impl IntoView {
                 <LandBoard frame=frame.clone() area_m2=area district_color=dcol status_color=ink />
             </div>
         }
-    };
-
-    let v_money = move || {
-        let Some(p) = price else {
-            return view! {
-                <div class="pd-view pd-money">
-                    <div class="pm-none">"the price of this flat is named on request"</div>
-                </div>
-            }.into_any();
-        };
-        view! {
-            <div class="pd-view pd-money">
-                <div class="pm-paths">
-                    {PATHS.iter().map(|&(s, label)| view! {
-                        <button type="button" class=move || if pct.get() == s { "pm-path is-on" } else { "pm-path" } on:click=move |_| pct.set(s)>
-                            <b>{label}</b><span>{format!("{s}% at signing")}</span>
-                        </button>
-                    }).collect_view()}
-                </div>
-                <input type="range" class="pm-slider" min="10" max="100" step="10"
-                    prop:value=move || pct.get().to_string()
-                    on:input=move |ev| pct.set(event_target_value(&ev).parse().unwrap_or(100)) />
-                <div class="pm-tiles">
-                    <div class="pm-tile go">
-                        <span>"at signing"</span>
-                        <b>{move || fmt_usd(p * pct.get() as f64 / 100.0)}</b>
-                        <i>{move || format!("{}% of {}", pct.get(), fmt_usd(p))}</i>
-                    </div>
-                    <div class="pm-tile cx">
-                        <span>"each year after"</span>
-                        <b>{move || { let r = yearly_rent(p, pct.get()); if r <= 0.0 { "nothing".to_string() } else { fmt_usd(r) } }}</b>
-                        <i>{move || {
-                            let r = yearly_rent(p, pct.get());
-                            match (r > 0.0, cx.get()) {
-                                (false, _) => "no rent — it is paid".to_string(),
-                                (true, Some(l)) => format!("{:.0} CX · the century index keeps its value", r / l),
-                                (true, None) => "written in CX, the century index".to_string(),
-                            }
-                        }}</i>
-                    </div>
-                    <div class="pm-tile">
-                        <span>"the whole price, per day of the term"</span>
-                        <b>{per_day.map(|d| format!("${d:.2}")).unwrap_or_default()}</b>
-                        <i>{format!("{} over {TERM_YEARS} years · {} a m²", fmt_usd(p), per_m2.map(|v| format!("${v:.0}")).unwrap_or_default())}</i>
-                    </div>
-                </div>
-                // the 25 years as bars: what leaves your pocket, year by year
-                <div class="pm-years">
-                    {move || {
-                        let first = p * pct.get() as f64 / 100.0;
-                        let r = yearly_rent(p, pct.get());
-                        let top = first.max(r).max(1.0);
-                        let mut bars = vec![view! {
-                            <i class="pm-bar go" style:height=format!("{:.1}%", first / top * 100.0) title=format!("at signing · {}", fmt_usd(first))></i>
-                        }.into_any()];
-                        for y in 1..=TERM_YEARS {
-                            bars.push(view! {
-                                <i class="pm-bar" style:height=format!("{:.1}%", (r / top * 100.0).max(if r > 0.0 { 1.5 } else { 0.0 })) title=format!("year {y} · {}", fmt_usd(r))></i>
-                            }.into_any());
-                        }
-                        bars
-                    }}
-                </div>
-                <div class="pm-axis"><span>"signing"</span><span>{format!("year {TERM_YEARS}")}</span></div>
-            </div>
-        }.into_any()
     };
 
     let v_papers = {
@@ -403,8 +303,8 @@ pub fn PlotPage() -> impl IntoView {
                             <i class="pp-files">
                                 <a href=passport_url.clone() download=format!("{fid}-passport.json")>"passport"</a>
                                 <a href=kml_url.clone() download=format!("{fid}.kml")>"boundary kml"</a>
-                                <a href=format!("/plot/{fid}/plan.svg") target="_blank" rel="noopener">"plan"</a>
-                                <a href=format!("/plot/{fid}/metadata.json") target="_blank" rel="noopener">"token"</a>
+                                <a href=format!("{BASE}/plot/{fid}/plan.svg") target="_blank" rel="noopener">"plan"</a>
+                                <a href=format!("{BASE}/plot/{fid}/metadata.json") target="_blank" rel="noopener">"token"</a>
                             </i>
                         </div>
                     </div>
@@ -416,7 +316,7 @@ pub fn PlotPage() -> impl IntoView {
 
     // ── the rail: price, scarcity, the one thing to do ────────────────
 
-    let fid_rail = flat.id.clone();
+    let (fid_rail, fid_cta) = (flat.id.clone(), flat.id.clone());
     let zone_rail = zone.to_uppercase();
     let rail_cta = move || {
         let st = status.get();
@@ -425,12 +325,18 @@ pub fn PlotPage() -> impl IntoView {
             (_, true) => view! {
                 <a class="pd-cta" href=deal_href.clone()><b>"CONTINUE YOUR DEAL"</b><span>"your track is open →"</span></a>
             }.into_any(),
-            (FlatStatus::Available, _) => view! {
-                <a class=if hot { "pd-cta hot" } else { "pd-cta" } href=deal_href.clone()>
-                    <b>"MAKE IT YOURS"</b>
-                    <span>{match price { Some(p) => format!("from {} at signing →", fmt_usd(p * 0.1)), None => "name your terms →".to_string() }}</span>
-                </a>
-            }.into_any(),
+            (FlatStatus::Available, _) => {
+                // the path pressed in the MONEY view is the one the deal opens on
+                let fid = fid_cta.clone();
+                view! {
+                    <a class=if hot { "pd-cta hot" } else { "pd-cta" } href=deal_href.clone()
+                        on:click=move |_| crate::deal::set_share(&fid, pct.get_untracked())>
+                        <b>"MAKE IT YOURS"</b>
+                        <span>{match price { Some(p) => format!("from {} at signing →", fmt_usd(p * 0.1)), None => "name your terms →".to_string() }}</span>
+                    </a>
+                }
+                .into_any()
+            }
             (FlatStatus::OnRequest, _) => {
                 let fid = fid_rail.clone();
                 view! {
@@ -505,7 +411,7 @@ pub fn PlotPage() -> impl IntoView {
                         {move || match tab.get() {
                             0 => v_place().into_any(),
                             1 => v_plan().into_any(),
-                            2 => v_money().into_any(),
+                            2 => money_view(price, area, pct, cx),
                             _ => v_papers().into_any(),
                         }}
                     </div>

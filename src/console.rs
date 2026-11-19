@@ -1762,10 +1762,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 .filter_map(|f| Some((f.id.clone(), terms(&f.id).and_then(|t| t.price())?)))
                                 .collect();
                             deck.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+                            // the selected flat may not be in the deck at all —
+                            // it is held, or its price is on request
                             let at = deck.iter().position(|d| d.0 == fid);
                             let step = |d: isize| -> Option<String> {
                                 let n = deck.len() as isize;
-                                (n > 0).then(|| deck[(at.map(|a| a as isize + d).unwrap_or(0)).rem_euclid(n) as usize].0.clone())
+                                at.filter(|_| n > 0)
+                                    .map(|a| deck[(a as isize + d).rem_euclid(n) as usize].0.clone())
                             };
                             let (prev, next) = (step(-1), step(1));
                             let open = status == FlatStatus::Available;
@@ -1808,11 +1811,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     } else {
                                         view! { <a class="pv-cta ask" href=format!("{BASE}/plot/{fid}")><b>"OPEN THE FLAT"</b><span>"→"</span></a> }.into_any()
                                     }}
-                                    <div class="pv-flip">
-                                        {prev.map(|p| view! { <button type="button" on:click=move |_| selected_flat.set(Some(p.clone()))>"‹ cheaper"</button> })}
-                                        <span class="pv-line">{at.map(|a| format!("{} of {} open", a + 1, deck.len())).unwrap_or_default()}</span>
-                                        {next.map(|n| view! { <button type="button" on:click=move |_| selected_flat.set(Some(n.clone()))>"dearer ›"</button> })}
-                                    </div>
+                                    {at.map(|a| view! {
+                                        <div class="pv-flip">
+                                            {prev.map(|p| view! { <button type="button" on:click=move |_| selected_flat.set(Some(p.clone()))>"‹ cheaper"</button> })}
+                                            <span class="pv-line">{format!("{} of {} open", a + 1, deck.len())}</span>
+                                            {next.map(|n| view! { <button type="button" on:click=move |_| selected_flat.set(Some(n.clone()))>"dearer ›"</button> })}
+                                        </div>
+                                    })}
                                 </div>
                             }.into_any()
                         }}
