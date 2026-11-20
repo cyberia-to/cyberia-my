@@ -17,7 +17,7 @@ the owner, 2026-11-20: an admin interface and a funnel for the owners who want t
 | field | value |
 |---|---|
 | delivery | a holder, or the holder's agent, puts a held flat on the map for resale or sublease; the valley approves; the offer shows on the flat and on the map |
-| stage | proposed · built and green on a bench with throwaway keys; the gate is not installed on the front until the owner says so |
+| stage | proposed · green on a bench with throwaway keys; the gate runs on front-primary (2026-11-20) with an empty log, the root pinned to the owner |
 
 ## how it works
 
@@ -69,4 +69,4 @@ a local gate with four throwaway keys (root, admin, holder, agent), the built si
 - a buyer's request goes to the seller's Telegram; it is not an act yet, so the desk does not see leads
 - the commission is in the mandate and is not shown to buyers
 - the acts repository is private (it carries addresses); the build's verify step runs there
-- installing on the front: a new private repository, one deploy key, one service, one nginx location — the owner's word
+- installed on the front 2026-11-20: private repository `cyberia-to/cyberia-my-acts`, one deploy key with write on it alone, runit service `market` on 127.0.0.1:8770, one nginx location `/api/acts/`; the production gate refused five unauthorised acts from a throwaway key and committed nothing. the first act is the owner.s: naming an admin

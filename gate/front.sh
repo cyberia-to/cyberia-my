@@ -38,8 +38,11 @@ EOF
   if ! grep -q "location /api/acts/" $conf; then
     cp $conf /srv/edge/backup/cyberia.my.nginx.$(date -u +%Y%m%dT%H%M%SZ)
     # the gate sits before the site's catch-all; everything else on the site is untouched
-    sed -i '0,/^    location \/ {/s##    # the land market'"'"'s gate: signed acts in, commits out (cyberia-my gate/gate.py, projects/listings.md)\n    location /api/acts/ { client_max_body_size 16k; proxy_pass http://127.0.0.1:8770; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_read_timeout 60s; }\n    location / {#' $conf
-    nginx -t && nginx -s reload
+    # `|` as the delimiter: the inserted comment carries a `#`
+    sed -i '0,/^    location \/ {/s|^    location / {|    # the land market: signed acts in, commits out (cyberia-my gate/gate.py, projects/listings.md)\n    location /api/acts/ { client_max_body_size 16k; proxy_pass http://127.0.0.1:8770; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_read_timeout 60s; }\n    location / {|' $conf
+    # a config that does not parse is put back before anything reloads
+    nginx -t || { cp "$(ls -t /srv/edge/backup/cyberia.my.nginx.* | head -1)" $conf; echo "nginx refused the location; the site's config is restored"; exit 1; }
+    nginx -s reload
   fi
   sv restart market 2>/dev/null || true; sleep 2; sv status market ;;
 update)
