@@ -71,6 +71,11 @@ pub struct LandFlat {
 }
 
 pub fn load_map() -> MapData {
+    static MAP: std::sync::OnceLock<MapData> = std::sync::OnceLock::new();
+    MAP.get_or_init(parse_map).clone()
+}
+
+fn parse_map() -> MapData {
     serde_json::from_str(MAP_JSON).expect("cyberia_map.json")
 }
 

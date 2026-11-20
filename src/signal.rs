@@ -680,3 +680,49 @@ pub fn graph_view() -> GraphView {
         committed,
     }
 }
+
+// ─── documents — the neuron's signature under a text ──────────────────
+
+/// A text signed by this browser's neuron: the text's particle (hemera),
+/// who signed, and the ADR-036 signature — the same envelope a signal uses.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DocSignature {
+    pub particle: String,
+    pub neuron: String,
+    pub pubkey_hex: String,
+    pub sig_hex: String,
+    #[serde(default)]
+    pub ts_ms: f64,
+}
+
+/// The particle of a text — its name by content.
+pub fn text_particle(text: &str) -> String {
+    hex(hemera::hash(text.as_bytes()).as_bytes())
+}
+
+/// Sign a text with the domain neuron.
+pub fn sign_document(text: &str) -> DocSignature {
+    let key = domain_key();
+    DocSignature {
+        particle: text_particle(text),
+        neuron: key.bech32.clone(),
+        pubkey_hex: hex(&key.pubkey),
+        sig_hex: hex(&mudra::claim::sign_arbitrary(key.signing_key(), &key.bech32, text.as_bytes())),
+        ts_ms: js_sys::Date::now(),
+    }
+}
+
+/// Does the signature stand under this exact text?
+pub fn verify_document(text: &str, s: &DocSignature) -> bool {
+    if text_particle(text) != s.particle {
+        return false;
+    }
+    let Some(pubkey) = unhex(&s.pubkey_hex).and_then(|v| <[u8; 33]>::try_from(v).ok()) else {
+        return false;
+    };
+    let Some(sig) = unhex(&s.sig_hex).and_then(|v| <[u8; 64]>::try_from(v).ok()) else {
+        return false;
+    };
+    matches!(mudra::cosmos::address(&pubkey, HRP), Ok(a) if a == s.neuron)
+        && mudra::claim::verify_arbitrary(&pubkey, &s.neuron, text.as_bytes(), &sig)
+}

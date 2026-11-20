@@ -59,6 +59,8 @@ web-sys = { version = "0.3", features = [
     "WebGlUniformLocation",
     "WebGlVertexArrayObject",
     "AddEventListenerOptions",
+    "BlobPropertyBag",
+    "Url",
 ] }
 
 [[bin]]
