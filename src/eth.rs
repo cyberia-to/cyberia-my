@@ -120,3 +120,33 @@ pub async fn connect() -> Result<EthWallet, String> {
     save_eth(&w);
     Ok(w)
 }
+
+async fn request_with(eth: &JsValue, method: &str, params: js_sys::Array) -> Result<JsValue, String> {
+    let f: js_sys::Function = js_sys::Reflect::get(eth, &JsValue::from_str("request"))
+        .map_err(|_| "the provider has no request()")?
+        .dyn_into()
+        .map_err(|_| "the provider's request is not a function")?;
+    let args = js_sys::Object::new();
+    js_sys::Reflect::set(&args, &JsValue::from_str("method"), &JsValue::from_str(method))
+        .map_err(|_| "could not build the request")?;
+    js_sys::Reflect::set(&args, &JsValue::from_str("params"), &params).map_err(|_| "could not build the request")?;
+    let p: js_sys::Promise = f
+        .call1(eth, &args)
+        .map_err(|e| js_error(&e))?
+        .dyn_into()
+        .map_err(|_| "the provider returned no promise")?;
+    JsFuture::from(p).await.map_err(|e| js_error(&e))
+}
+
+/// `personal_sign` (EIP-191): the wallet shows `message` as text and signs it
+/// with `address`. Returns the 65-byte signature as `0x…`.
+pub async fn personal_sign(address: &str, message: &str) -> Result<String, String> {
+    let eth = provider().ok_or("no wallet in this browser — install MetaMask or open cyberia.my inside a wallet app")?;
+    let params = js_sys::Array::new();
+    params.push(&JsValue::from_str(message));
+    params.push(&JsValue::from_str(address));
+    request_with(&eth, "personal_sign", params)
+        .await?
+        .as_string()
+        .ok_or_else(|| "the wallet returned no signature".to_string())
+}

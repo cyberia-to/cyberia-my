@@ -101,6 +101,7 @@ pub fn AdminPage() -> impl IntoView {
                 </div>
             </div>
             <div class="cities-stage plot-stage-wrap">
+                <div style="max-width: 1100px; margin: 12px auto 0; padding: 0 12px;"><crate::market_admin::MarketDesk /></div>
                 <div class="cities-hero plot-hero">
                     <div>
                         <div class="cities-kicker">"VALLEY · NOTARY · ADMIN"</div>

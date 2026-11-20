@@ -98,6 +98,10 @@ pub fn PlotPage() -> impl IntoView {
             pdata.set(crate::orders::fetch_plot_data(&fid).await);
         });
     }
+    let offers = RwSignal::new(Vec::<crate::market::Offer>::new());
+    leptos::task::spawn_local(async move {
+        offers.set(crate::market::fetch_offers().await);
+    });
     let cx = RwSignal::new(None::<f64>);
     leptos::task::spawn_local(async move {
         cx.set(crate::orders::fetch_cx_level().await);
@@ -459,7 +463,9 @@ pub fn PlotPage() -> impl IntoView {
                         {TABS.iter().enumerate().map(|(i, _)| view! { <i class=move || if seen.get()[i] { "on" } else { "" }></i> }).collect_view()}
                         <span>{move || { let n = seen.get().iter().filter(|s| **s).count(); if n == TABS.len() { "you have seen all of it".to_string() } else { format!("{n} of {} views seen · keys 1–4", TABS.len()) } }}</span>
                     </div>
+                    <crate::offers::FlatOffers plot=flat.id.clone() offers=offers />
                     {rail_cta}
+                    {move || (status.get() == FlatStatus::Owned).then(|| view! { <a class="pd-ask" href=format!("{BASE}/sell")>"you hold this flat? put it on the map →"</a> })}
                     <a class="pd-ask" href=support_href() target="_blank" rel="noopener">{format!("ask a person · @{SUPPORT_HANDLE}")}</a>
                     <a class="pd-back" href=format!("{BASE}/map?plot={}", flat.id)>"← the valley map"</a>
                 </aside>

@@ -60,6 +60,7 @@ web-sys = { version = "0.3", features = [
     "WebGlVertexArrayObject",
     "AddEventListenerOptions",
     "BlobPropertyBag",
+    "RequestInit",
     "Url",
 ] }
 
