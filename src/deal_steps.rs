@@ -9,7 +9,7 @@ use crate::deal::DealCfg;
 use crate::deal_docs::{annex_c, open_sheet, Offer};
 use crate::deals::{fmt_ts, now_ms, open_deal, Deal};
 use crate::docs::library;
-use crate::eth::{connect, has_provider, EthWallet};
+use crate::eth::EthWallet;
 use crate::globe::BASE;
 use crate::land::LandFlat;
 use crate::orders::{
@@ -47,7 +47,6 @@ pub struct Ctx {
     pub log: RwSignal<Vec<OrderRec>>,
     pub sent: RwSignal<Vec<SentPayment>>,
     pub eth: RwSignal<Option<EthWallet>>,
-    pub eth_note: RwSignal<String>,
     pub published: Memo<Option<PublishedDeal>>,
     pub due: Memo<Option<f64>>,
     pub rent: Memo<Option<f64>>,
@@ -217,7 +216,7 @@ pub fn terms_step(c: &Ctx) -> AnyView {
 
 /// IDENTITY — what the Holder sends, and the two keys of this browser.
 pub fn identity_step(c: &Ctx) -> AnyView {
-    let (cfg, log, eth, eth_note) = (c.cfg, c.log, c.eth, c.eth_note);
+    let (cfg, log, eth) = (c.cfg, c.log, c.eth);
     let neuron_id = c.neuron.clone();
     let p_kyc = move || {
         let c = cfg.get();
@@ -239,15 +238,13 @@ pub fn identity_step(c: &Ctx) -> AnyView {
                 <div>
                     <span class="dl-k">"ethereum"</span>
                     {move || match eth.get() {
-                        Some(w) => view! { <b class="mono">{w.short()}</b><span class="dl-s">"the flat's token goes here"</span> }.into_any(),
+                        Some(w) => view! {
+                            <b class="mono">{w.short()}</b>
+                            <span class="dl-s">{if w.wallet.is_empty() { "the flat's token goes here".to_string() } else { format!("{} · the flat's token goes here", w.wallet) }}</span>
+                        }.into_any(),
                         None => view! {
-                            <button type="button" class="dl-mini" on:click=move |_| {
-                                if !has_provider() { eth_note.set("no wallet in this browser — optional, add it any time in the cabinet".into()); return; }
-                                leptos::task::spawn_local(async move {
-                                    match connect().await { Ok(w) => eth.set(Some(w)), Err(e) => eth_note.set(e) }
-                                });
-                            }>"CONNECT A WALLET"</button>
-                            <span class="dl-s">{move || { let n = eth_note.get(); if n.is_empty() { "optional · where the flat's token is sent".to_string() } else { n } }}</span>
+                            <span class="dl-s">"optional · where the flat's token is sent"</span>
+                            <crate::wallet_ui::WalletConnect on_connected=Callback::new(move |w| eth.set(Some(w))) />
                         }.into_any(),
                     }}
                 </div>
