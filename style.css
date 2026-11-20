@@ -6275,3 +6275,16 @@ a.pp-card:hover .pp-covers img {
 .dl-keys b {
     font-weight: 400;
 }
+
+/* the flat's number on the soft map */
+.flat-num {
+    fill: #fff;
+    fill-opacity: 0.75;
+    font-size: 10px;
+    font-weight: 700;
+    pointer-events: none;
+    font-family: "Play", sans-serif;
+    paint-order: stroke;
+    stroke: rgba(0, 0, 0, 0.6);
+    stroke-width: 2.5px;
+}
