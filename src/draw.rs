@@ -505,13 +505,25 @@ fn area(label: &'static str, hint: &'static str, rows: u32, sig: RwSignal<String
     }
 }
 
-/// Publish a layer's draft in parts small enough for one signature each.
+/// Publish a layer's draft in parts small enough for one signature each. The cap
+/// is on bytes, not on features: the gate refuses a changeset over
+/// `atlas::MAX_FILE` and a body over `atlas::MAX_BODY`, and one plot may be a
+/// ring of 5000 corners — a handful of those passes a cap that a count of 1500
+/// never reaches. So a part is halved until it fits, and it is measured before
+/// the wallet is asked to sign it.
 async fn publish_all(d: Draft) -> Result<Layer, String> {
     const PART: usize = 1500;
     let mut rest = d.clone();
     loop {
         let mut part = rest.clone();
         part.put.truncate(PART);
+        while part.put.len() > 1 && !atlas::fits(&atlas::changeset(&part)) {
+            let n = part.put.len();
+            part.put.truncate(n - n / 2);
+        }
+        if !atlas::fits(&atlas::changeset(&part)) {
+            return Err("one change of this layer is larger than the gate takes (2 MiB): draw its shape with fewer corners, or put less in its props".to_string());
+        }
         rest.put.drain(..part.put.len());
         if !rest.put.is_empty() {
             part.remove.clear();
@@ -531,6 +543,18 @@ fn Dock(atlas: Atlas, cam: RwSignal<Cam>) -> impl IntoView {
     let a = atlas;
     let file_ref = NodeRef::<leptos::html::Input>::new();
     let pending = move || a.store.with(|s| s.drafts.iter().map(|d| d.pending()).sum::<usize>());
+
+    // the rules textarea is seeded once per layer the settings panel opens on. every
+    // store or remote write re-runs what reads a.active(), and a reseed on each of
+    // them would throw away the rules being typed and sign the published ones back.
+    Effect::new(move |prev: Option<Option<String>>| {
+        let l = a.settings.get().then(|| a.active()).flatten();
+        let id = l.as_ref().map(|l| l.id.clone());
+        if id.is_some() && prev.flatten() != id {
+            a.f_rules.set(atlas::rules_text(&l.unwrap().rules));
+        }
+        id
+    });
 
     let new_layer = move || {
         let name = a.f_new.get_untracked().trim().to_string();
@@ -822,7 +846,6 @@ fn Dock(atlas: Atlas, cam: RwSignal<Cam>) -> impl IntoView {
                     on:click=move |_| a.edit_store(|s| atlas::draft_mut(s, &l.id, &l.name).color = c.to_string())></button>
             }
         }).collect_view();
-        a.f_rules.set(atlas::rules_text(&l.rules));
         view! {
             <div class="at-set">
                 <div class="at-q">{format!("{} — settings", l.name)}</div>

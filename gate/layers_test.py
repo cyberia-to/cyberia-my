@@ -136,5 +136,38 @@ class LayersTest(unittest.TestCase):
             self.assertEqual(len(layers.fold(Path(d) / "map")[1]), 1)
 
 
+class BytesTest(unittest.TestCase):
+    """the one literal the browser and the gate must both write.
+
+    `tests/map_bytes.rs` asserts `atlas::changeset` of the same feature is the same
+    string and `atlas::name_of` the same hash. if the two ever drift, one of these
+    two tests fails here instead of every change a person signs being refused as
+    not canonical.
+    """
+    FEATURE = {
+        "id": "7a1d9e02-3b44-4f10-8c2e-5d6f70819a2b",
+        "kind": "building",
+        "geom": [[1150890444, -82973027], [1150886763, -82977116], [1150887313, -82980103]],
+        "props": {"name": "Сосновый дом", "note": 'a wall \\ "as drawn"', "base_cm": -150, "height_cm": 420},
+        "prev": "sha256:" + "ab" * 32,
+    }
+    CHANGESET = {"layer": "0b7e3c1a-2f45-4c8d-9e6b-1a2b3c4d5e6f", "put": [FEATURE], "remove": ["3c2f8d11-6a7b-4c5d-9e8f-0a1b2c3d4e5f"]}
+    GOLDEN = (
+        '{"layer":"0b7e3c1a-2f45-4c8d-9e6b-1a2b3c4d5e6f","put":[{"geom":[[1150890444,-82973027],[1150886763,-82977116],[1150887313,-82980103]],"id":"7a1d9e02-3b44-4f10-8c2e-5d6f70819a2b","kind":"building","prev":"sha256:abababababababababababababababababababababababababababababababab","props":{"base_cm":-150,"height_cm":420,"name":"Сосновый дом","note":"a wall \\\\ \\"as drawn\\""}}],"remove":["3c2f8d11-6a7b-4c5d-9e8f-0a1b2c3d4e5f"]}'
+    )
+    NAME = "sha256:c066aacd18ed15687f771ab728ba64f0ce19c4b1bd83e8f023663364e08bb325"
+
+    def test_a_changeset_is_these_bytes_and_this_name(self):
+        data = layers.canon(self.CHANGESET)
+        self.assertEqual(data.decode(), self.GOLDEN)          # sorted keys, no spaces, non-ascii raw
+        self.assertEqual(layers.name_of(data), self.NAME)
+        # the act is refused unless the file is exactly these bytes
+        self.assertNotEqual(layers.name_of(data + b" "), self.NAME)
+
+    def test_a_features_version_does_not_count_the_version_it_replaces(self):
+        other = dict(self.FEATURE, prev="")
+        self.assertEqual(layers.version(self.FEATURE), layers.version(other))
+
+
 if __name__ == "__main__":
     unittest.main()

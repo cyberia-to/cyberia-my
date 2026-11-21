@@ -545,9 +545,3 @@ pub struct LogRec {
     #[serde(default)]
     pub detail: String,
 }
-
-/// The valley's word on every flat with a deal, as the gate folds it —
-/// public, the same shape the bot's `/plot-data/index.json` has.
-pub async fn fetch_gate_deals() -> std::collections::HashMap<String, crate::orders::PublishedDeal> {
-    call("/deals", None, false).await.ok().and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()
-}

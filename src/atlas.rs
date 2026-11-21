@@ -602,8 +602,11 @@ pub fn to_kml(l: &Shown) -> String {
 
 // ── the gate ──────────────────────────────────────────────────────────
 
-/// The bytes of a value as the gate names them: sorted keys, no spaces.
-fn canon(v: &Value) -> String {
+/// The bytes of a value as the gate names them: sorted keys, no spaces, nothing
+/// escaped that need not be. This must agree with `canon` of `gate/layers.py`
+/// byte for byte, or every change is refused as not canonical — the agreement is
+/// pinned by `tests/map_bytes.rs` and `gate/layers_test.py` against one literal.
+pub fn canon(v: &Value) -> String {
     match v {
         Value::Object(m) => {
             let mut keys: Vec<&String> = m.keys().collect();
@@ -615,7 +618,9 @@ fn canon(v: &Value) -> String {
     }
 }
 
-fn name_of(data: &str) -> String {
+/// A file's name: the sha256 of its bytes, as `name_of` of `gate/layers.py`
+/// writes it and an act names it.
+pub fn name_of(data: &str) -> String {
     use sha2::{Digest, Sha256};
     let h: String = Sha256::digest(data.as_bytes()).iter().map(|b| format!("{b:02x}")).collect();
     format!("sha256:{h}")
@@ -689,9 +694,38 @@ async fn act(kind: &str, layer: &str, fields: &[(&str, String)], file: Option<St
     serde_json::from_value(v["layer"].clone()).map_err(|_| "the gate's answer is not a layer".to_string())
 }
 
+/// The gate's caps on one change: the changeset's own bytes (`MAX_FILE` of
+/// `gate/layers.py`) and the request body that carries them (`MAX_MAP_BODY` of
+/// `gate/gate.py`), where the file travels as a json string.
+pub const MAX_FILE: usize = 2 * 1024 * 1024;
+pub const MAX_BODY: usize = MAX_FILE + 64 * 1024;
+/// what the act's message, its signature and the body's own keys take beside the file
+const ACT_ROOM: usize = 2 * 1024;
+
+/// A draft's changeset in the canonical form the gate names by its hash.
+pub fn changeset(d: &Draft) -> String {
+    canon(&json!({ "layer": d.id, "put": d.put.iter().map(|f| f.wire()).collect::<Vec<_>>(), "remove": d.remove }))
+}
+
+/// What this changeset costs inside the act's body, where it is a json string:
+/// every quote and backslash of it costs two bytes there.
+fn in_body(file: &str) -> usize {
+    2 + file.bytes().map(|b| match b {
+        b'"' | b'\\' | b'\n' | b'\r' | b'\t' | 0x08 | 0x0c => 2,
+        0x00..=0x1f => 6,
+        _ => 1,
+    }).sum::<usize>()
+}
+
+/// Does a changeset of these bytes pass the gate's caps — the file's and the body's?
+/// Asked before a signature is, so nobody signs what the gate will refuse.
+pub fn fits(file: &str) -> bool {
+    file.len() <= MAX_FILE && in_body(file) + ACT_ROOM <= MAX_BODY
+}
+
 /// Publish a layer's draft: one changeset, one signature. The first one founds the layer.
 pub async fn publish(d: &Draft, note: &str) -> Result<Layer, String> {
-    let file = canon(&json!({ "layer": d.id, "put": d.put.iter().map(|f| f.wire()).collect::<Vec<_>>(), "remove": d.remove }));
+    let file = changeset(d);
     let mut fields = vec![("put", d.put.len().to_string()), ("remove", d.remove.len().to_string()), ("note", note.to_string())];
     if d.fresh {
         fields.push(("name", d.name.clone()));

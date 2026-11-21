@@ -4,15 +4,16 @@ The contract of cyberia.my's own cartography: what a layer and a feature are, ho
 they are changed, how a point or a boundary is verified by someone standing on it,
 and how all of it moves onto soft3 without changing shape. The reference
 implementation is `gate/layers.py` (the fold and its rights), `src/atlas.rs` (the
-model in the browser) and `src/draw.rs` (the tools). What was observed is in
-`audit/`; what is planned and in what order is `projects/map.md`.
+model in the browser) and `src/draw.rs` (the tools). What is planned and in what
+order is `projects/map.md`.
 
 ## 1. What it is for
 
-The valley's map was kept in Google My Maps. It holds ten layers, has no snapping,
-no shared boundaries, no height, no history, no offline, no API, and nothing in it
-is anyone's signed word. This replaces it with the same globe the site already
-shows, drawn on by its people:
+The valley's map was kept in Google My Maps. It holds seven layers and 412
+features, as the file itself measures; it has no snapping, no shared boundaries,
+no height, no history, no offline, no API, and nothing in it is anyone's signed
+word. This replaces it with the same globe the site already shows, drawn on by
+its people:
 
 - a person draws on layers of their own — a point, a line, a plot, a building;
 - a layer is shared by its owner with editors, or opened to everyone;
