@@ -18,6 +18,7 @@ use crate::globe::{
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
+use crate::pad::NavPad;
 use crate::wallet::{load_leases, push_intent};
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
@@ -1167,64 +1168,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         <GlobeFar cam=cam picked=picked on_place=go_place />
                         <GlobeAttrib />
 
-                        // the pad: every way to move the camera, each button with its key
-                        <div class="nav-pad globe-ui" aria-label="map navigation">
-                            <button type="button" class="np-key" title="turn the view left · hold Q"
-                                on:pointerdown=move |_| cam_hold(3, -1.0)
-                                on:pointerup=move |_| cam_hold(3, 0.0)
-                                on:pointerleave=move |_| cam_hold(3, 0.0)
-                                on:pointercancel=move |_| cam_hold(3, 0.0)
-                            >"⟲"<kbd>"Q"</kbd></button>
-                            <button type="button" class="np-key" title="up · hold W or ↑ (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(1, 1.0)
-                                on:pointerup=move |_| cam_hold(1, 0.0)
-                                on:pointerleave=move |_| cam_hold(1, 0.0)
-                                on:pointercancel=move |_| cam_hold(1, 0.0)
-                            >"↑"<kbd>"W"</kbd></button>
-                            <button type="button" class="np-key" title="turn the view right · hold E"
-                                on:pointerdown=move |_| cam_hold(3, 1.0)
-                                on:pointerup=move |_| cam_hold(3, 0.0)
-                                on:pointerleave=move |_| cam_hold(3, 0.0)
-                                on:pointercancel=move |_| cam_hold(3, 0.0)
-                            >"⟳"<kbd>"E"</kbd></button>
-                            <button type="button" class="np-key" title="left · hold A or ← (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(0, 1.0)
-                                on:pointerup=move |_| cam_hold(0, 0.0)
-                                on:pointerleave=move |_| cam_hold(0, 0.0)
-                                on:pointercancel=move |_| cam_hold(0, 0.0)
-                            >"←"<kbd>"A"</kbd></button>
-                            <button type="button" class="np-north" title="north up · N" on:click=move |_| cam_north()>
-                                <span class="np-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
-                                <kbd>"N"</kbd>
-                            </button>
-                            <button type="button" class="np-key" title="right · hold D or → (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(0, -1.0)
-                                on:pointerup=move |_| cam_hold(0, 0.0)
-                                on:pointerleave=move |_| cam_hold(0, 0.0)
-                                on:pointercancel=move |_| cam_hold(0, 0.0)
-                            >"→"<kbd>"D"</kbd></button>
-                            <button type="button" class="np-key" title="zoom out · hold −"
-                                on:pointerdown=move |_| cam_hold(2, -1.0)
-                                on:pointerup=move |_| cam_hold(2, 0.0)
-                                on:pointerleave=move |_| cam_hold(2, 0.0)
-                                on:pointercancel=move |_| cam_hold(2, 0.0)
-                            >"−"<kbd>"−"</kbd></button>
-                            <button type="button" class="np-key" title="down · hold S or ↓ (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(1, -1.0)
-                                on:pointerup=move |_| cam_hold(1, 0.0)
-                                on:pointerleave=move |_| cam_hold(1, 0.0)
-                                on:pointercancel=move |_| cam_hold(1, 0.0)
-                            >"↓"<kbd>"S"</kbd></button>
-                            <button type="button" class="np-key" title="zoom in · hold +"
-                                on:pointerdown=move |_| cam_hold(2, 1.0)
-                                on:pointerup=move |_| cam_hold(2, 0.0)
-                                on:pointerleave=move |_| cam_hold(2, 0.0)
-                                on:pointercancel=move |_| cam_hold(2, 0.0)
-                            >"+"<kbd>"+"</kbd></button>
-                            <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯"<span class="np-label">" EARTH"</span><kbd>"0"</kbd></button>
-                            <button type="button" class="np-wide2" title="Cyber Valley · H" on:click=move |_| reset_cam()>"⌂"<kbd>"H"</kbd></button>
-                            <button type="button" class="np-layers" class:on=move || layers_open.get() title="layers · L" on:click=move |_| layers_open.update(|o| *o = !*o)>"▤"<span class="np-label">" LAYERS"</span><kbd>"L"</kbd></button>
-                        </div>
+                        // the pad: every way to move the camera, each button with its key (src/pad.rs)
+                        <NavPad cam=cam picked=picked layers_open=layers_open on_home=Callback::new(move |_: ()| reset_cam()) />
                         <LayersPanel layers=layers open=layers_open />
 
                         {
