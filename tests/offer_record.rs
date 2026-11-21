@@ -126,4 +126,14 @@ fn the_money_due_at_signing_is_the_premium_under_the_index_form() {
     assert_eq!(due_at_signing(26_500.0, Form::Index, 140), 26_500.0);
     // and nothing is due on a price of nothing
     assert_eq!(due_at_signing(0.0, Form::Index, 30), 0.0);
+    // the offer of record holds no second copy of the rule: it is the same call,
+    // so it clamps where pay clamps — a premium past 100 is the whole price, once
+    let mut hot = an_offer();
+    hot.premium_pct = 140;
+    assert_eq!(hot.share(), share_at_signing(Form::Index, 140));
+    assert_eq!(hot.at_signing(), due_at_signing(120_000.0, Form::Index, 140));
+    assert_eq!(hot.at_signing(), 120_000.0);
+    let upfront = Offer { form: Form::Upfront, premium_pct: 30, ..an_offer() };
+    assert_eq!(upfront.share(), share_at_signing(Form::Upfront, 30));
+    assert_eq!(upfront.at_signing(), due_at_signing(120_000.0, Form::Upfront, 30));
 }

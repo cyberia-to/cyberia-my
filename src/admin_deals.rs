@@ -107,6 +107,70 @@ pub fn deal_card(d: Desk, x: DealRec) -> AnyView {
     }.into_any()
 }
 
+/// Everything the hard force bot published about one flat, as the acts that
+/// carry it onto the desk: every payment it recorded, every step it had
+/// confirmed, and then the deal itself — the terms, the status, the holder.
+///
+/// The desk's record overrides the bot's file wherever both speak
+/// (`src/orders.rs`, `fetch_index` and `fetch_plot_data`), so a record taken
+/// onto the desk has to carry what it overrides, or the money the card
+/// itself advertises would disappear from the ledger and from the buyer's
+/// track. The deal act is signed last on purpose: a signature refused half
+/// way leaves the money carried, never a record with nothing in it.
+fn take_onto_desk(plot: &str, pd: &PublishedDeal) -> Vec<(&'static str, Vec<(&'static str, String)>)> {
+    // the gate takes a day or nothing, and writes the day of the act for nothing
+    let day = |s: &str| {
+        let s = s.trim();
+        let shaped = s.len() == 10
+            && s.as_bytes().iter().enumerate().all(|(i, b)| if i == 4 || i == 7 { *b == b'-' } else { b.is_ascii_digit() });
+        if shaped { s.to_string() } else { String::new() }
+    };
+    let mut acts: Vec<(&'static str, Vec<(&'static str, String)>)> = Vec::new();
+    let mut carried = 0.0;
+    for p in pd.payments.iter().filter(|p| p.usd > 0.0) {
+        carried += p.usd;
+        acts.push((
+            "payment",
+            vec![
+                ("plot", plot.to_string()),
+                ("usd", format!("{:.2}", p.usd)),
+                ("method", if p.method == "eth" { "eth".to_string() } else { "bank".to_string() }),
+                ("reference", p.reference.clone()),
+                ("on", day(p.on.as_str())),
+                ("note", "carried from the hard force chat".to_string()),
+            ],
+        ));
+    }
+    // the bot's file keeps the sum beside the receipts: a sum no receipt of its
+    // own accounts for is still money the valley received, and comes across as one
+    if pd.paid_usd - carried > 0.5 {
+        acts.push((
+            "payment",
+            vec![
+                ("plot", plot.to_string()),
+                ("usd", format!("{:.2}", pd.paid_usd - carried)),
+                ("method", "bank".to_string()),
+                ("note", "carried from the hard force chat · the sum it published, with no receipt of its own".to_string()),
+            ],
+        ));
+    }
+    for (step, on) in pd.steps.iter().filter(|(s, _)| STEPS.iter().any(|(k, _)| *k == s.as_str())) {
+        acts.push(("step", vec![("plot", plot.to_string()), ("step", step.clone()), ("on", day(on.as_str()))]));
+    }
+    acts.push((
+        "deal",
+        vec![
+            ("plot", plot.to_string()),
+            ("status", if matches!(pd.status.as_str(), "reserved" | "transfer" | "owned") { pd.status.clone() } else { String::new() }),
+            ("holder", pd.holder.clone()),
+            ("form", if pd.form == "index" || pd.form == "upfront" { pd.form.clone() } else { String::new() }),
+            ("premium_pct", pd.premium_pct.map(|p| p.min(100).to_string()).unwrap_or_default()),
+            ("price_usd", pd.price_usd.filter(|p| *p > 0.0).map(|p| format!("{p:.0}")).unwrap_or_default()),
+        ],
+    ));
+    acts
+}
+
 pub fn deals(d: Desk, v: &View) -> AnyView {
     match d.sub.get() {
         1 => {
@@ -192,14 +256,20 @@ pub fn deals(d: Desk, v: &View) -> AnyView {
                 {(!from_bot.is_empty()).then(|| view! {
                     <div class="dl-q">"published by the hard force bot — not yet on the desk"</div>
                     <div class="sl-cards">
-                        {from_bot.into_iter().map(|(plot, pd)| view! {
-                            <div class="sl-card">
-                                <div class="sl-card-top"><b>{name_of(&plot)}</b><span class="sl-tag">{pd.status.to_uppercase()}</span></div>
-                                <div class="sl-card-line dim">{format!("{} · {} received · written in the hard force chat", if pd.holder.is_empty() { "—" } else { pd.holder.as_str() }, fmt_usd(pd.paid_usd))}</div>
-                                <div class="dl-actions">
-                                    {act(d, "TAKE IT ONTO THE DESK", "dl-mini", "deal", vec![("plot", plot.clone()), ("status", pd.status.clone()), ("holder", pd.holder.clone())])}
+                        {from_bot.into_iter().map(|(plot, pd)| {
+                            let acts = take_onto_desk(&plot, &pd);
+                            let n = acts.len();
+                            view! {
+                                <div class="sl-card">
+                                    <div class="sl-card-top"><b>{name_of(&plot)}</b><span class="sl-tag">{pd.status.to_uppercase()}</span></div>
+                                    <div class="sl-card-line dim">{format!("{} · {} received · written in the hard force chat", if pd.holder.is_empty() { "—" } else { pd.holder.as_str() }, fmt_usd(pd.paid_usd))}</div>
+                                    <div class="dl-actions">
+                                        <button type="button" class="dl-mini" disabled=move || d.busy.get()
+                                            on:click=move |_| d.sign_all(acts.clone())>"TAKE IT ONTO THE DESK"</button>
+                                        <span class="ad-chip">{format!("{n} acts, one signature each — the money and the steps come across")}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         }).collect_view()}
                     </div>
                 })}

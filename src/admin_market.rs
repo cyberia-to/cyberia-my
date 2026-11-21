@@ -2,7 +2,7 @@
 //! take down), the mandates they have given their agents, and the agents the
 //! valley accredits.
 
-use crate::admin::{act, empty, field, name_of, Desk};
+use crate::admin::{act, empty, field, name_of, reject, why, Desk};
 use crate::market::{self, View};
 use crate::terms::fmt_usd;
 use leptos::prelude::*;
@@ -64,7 +64,7 @@ pub fn market_menu(d: Desk, v: &View) -> AnyView {
                             } else {
                                 view! {
                                     {act(d, "APPROVE", "dl-go sm", "approve", vec![("listing", l.id.clone())])}
-                                    {act(d, "REJECT", "dl-mini", "reject", vec![("target", l.id.clone())])}
+                                    {reject(d, l.id.clone(), d.e)}
                                 }.into_any()
                             }}
                         </div>
@@ -74,7 +74,9 @@ pub fn market_menu(d: Desk, v: &View) -> AnyView {
             let card2 = card.clone();
             view! {
                 <div class="dl-q">{format!("waiting for approval · {}", pending.len())}</div>
-                {if pending.is_empty() { empty("nothing waits") } else { view! { <div class="sl-cards">{pending.into_iter().map(|l| card(l, false)).collect_view()}</div> }.into_any() }}
+                {if pending.is_empty() { empty("nothing waits") } else {
+                    view! { {why(d.e)} <div class="sl-cards">{pending.into_iter().map(|l| card(l, false)).collect_view()}</div> }.into_any()
+                }}
                 <div class="dl-q">{format!("live on the map · {}", live.len())}</div>
                 {if live.is_empty() { empty("no offer is live") } else { view! { <div class="sl-cards">{live.into_iter().map(|l| card2(l, true)).collect_view()}</div> }.into_any() }}
                 <p class="dl-note">{format!("{past} past offers — withdrawn, replaced or rejected — are in the trail")}</p>

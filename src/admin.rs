@@ -82,6 +82,28 @@ impl Desk {
         submit(self.view, self.busy, self.err, kind, fields);
     }
 
+    /// Several acts in one press, in order, each with its own signature — the
+    /// next one asked for only after the gate has taken the one before, and
+    /// the first refusal stops the rest. A press that carries a whole record
+    /// across is this: an act never says more than one thing.
+    pub fn sign_all(self, acts: Vec<(&'static str, Vec<(&'static str, String)>)>) {
+        let (view, busy, err) = (self.view, self.busy, self.err);
+        busy.set(true);
+        err.set(String::new());
+        leptos::task::spawn_local(async move {
+            for (kind, fields) in acts {
+                match market::act(kind, &fields).await {
+                    Ok(v) => view.set(Some(v)),
+                    Err(e) => {
+                        err.set(e);
+                        break;
+                    }
+                }
+            }
+            busy.set(false);
+        });
+    }
+
     pub fn go(self, menu: usize, sub: usize) {
         self.menu.set(menu);
         self.sub.set(sub);
@@ -141,6 +163,21 @@ pub fn act(d: Desk, label: impl Into<String>, class: &'static str, kind: &'stati
     view! {
         <button type="button" class=class disabled=move || d.busy.get() on:click=move |_| d.sign(kind, fields.clone())>{label}</button>
     }
+}
+
+/// REJECT — the act carries the reason typed beside the list, read at the
+/// press. Without it the holder's own page prints a bare "not approved" or
+/// "not confirmed" (`src/sell.rs`), which answers nothing.
+pub fn reject(d: Desk, target: String, reason: RwSignal<String>) -> impl IntoView {
+    view! {
+        <button type="button" class="dl-mini" disabled=move || d.busy.get()
+            on:click=move |_| d.sign("reject", vec![("target", target.clone()), ("reason", reason.get_untracked().trim().to_string())])>"REJECT"</button>
+    }
+}
+
+/// The field those REJECT buttons read.
+pub fn why(sig: RwSignal<String>) -> impl IntoView {
+    view! { <div class="sl-grid">{field("the reason you give when rejecting", "not in the lease book", sig)}</div> }
 }
 
 pub fn field(label: &'static str, hint: &'static str, sig: RwSignal<String>) -> impl IntoView {

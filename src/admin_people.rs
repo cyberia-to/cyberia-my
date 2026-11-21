@@ -2,7 +2,7 @@
 //! and then every act with its signer: the log the gate folds, its verify
 //! runs, the public files.
 
-use crate::admin::{act, empty, field, name_of, Desk};
+use crate::admin::{act, empty, field, name_of, reject, why, Desk};
 use crate::market::{short, View};
 use leptos::prelude::*;
 
@@ -11,7 +11,9 @@ pub fn people(d: Desk, v: &View) -> AnyView {
         1 => {
             let list: Vec<_> = v.claims.iter().rev().cloned().collect();
             if list.is_empty() { return empty("nobody has claimed a flat"); }
+            let pending = list.iter().any(|c| c.status == "pending");
             view! {
+                {pending.then(|| why(d.e))}
                 <div class="ad-table">
                     <div class="ad-row head l5"><span>"flat"</span><span>"who"</span><span>"contact"</span><span>"address"</span><span>"state"</span></div>
                     {list.into_iter().map(|c| view! {
@@ -19,7 +21,7 @@ pub fn people(d: Desk, v: &View) -> AnyView {
                             <span>{if c.status == "pending" {
                                 view! {
                                     {act(d, "BIND", "dl-go sm", "holder", vec![("plot", c.plot.clone()), ("address", c.from.clone()), ("name", c.name.clone())])}
-                                    {act(d, "REJECT", "dl-mini", "reject", vec![("target", c.id.clone())])}
+                                    {reject(d, c.id.clone(), d.e)}
                                 }.into_any()
                             } else { view! { <i>{c.status.clone()}</i> }.into_any() }}</span>
                         </div>

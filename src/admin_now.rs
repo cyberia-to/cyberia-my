@@ -3,7 +3,7 @@
 //! valley's approval, the claims an address has made. Its count is the badge
 //! on the menu.
 
-use crate::admin::{act, due_of, in_motion, name_of, next_step, today, Desk};
+use crate::admin::{act, due_of, in_motion, name_of, next_step, reject, today, why, Desk};
 use crate::market::{short, View};
 use crate::terms::{fmt_usd, terms};
 use leptos::prelude::*;
@@ -49,6 +49,7 @@ pub fn now(d: Desk, v: &View) -> AnyView {
         })}
         {(!offers.is_empty()).then(|| view! {
             <div class="dl-q">"offers to approve — a holder or an agent wants a flat on the map"</div>
+            {why(d.d)}
             <div class="sl-cards">
                 {offers.into_iter().map(|l| view! {
                     <div class="sl-card pending">
@@ -57,7 +58,7 @@ pub fn now(d: Desk, v: &View) -> AnyView {
                         {(!l.words.is_empty()).then(|| view! { <div class="sl-card-line dim">{l.words.clone()}</div> })}
                         <div class="dl-actions">
                             {act(d, "APPROVE", "dl-go sm", "approve", vec![("listing", l.id.clone())])}
-                            {act(d, "REJECT", "dl-mini", "reject", vec![("target", l.id.clone())])}
+                            {reject(d, l.id.clone(), d.d)}
                         </div>
                     </div>
                 }).collect_view()}
@@ -65,6 +66,7 @@ pub fn now(d: Desk, v: &View) -> AnyView {
         })}
         {(!claims.is_empty()).then(|| view! {
             <div class="dl-q">"claims — an address says a flat is theirs"</div>
+            {why(d.e)}
             <div class="sl-cards">
                 {claims.into_iter().map(|c| {
                     let book = terms(&c.plot).and_then(|t| t.holder()).map(|h| h.to_string());
@@ -75,7 +77,7 @@ pub fn now(d: Desk, v: &View) -> AnyView {
                             <div class="sl-card-line dim">{match book { Some(h) => format!("the lease book names the holder: {h}"), None => "the lease book names no holder for this flat".to_string() }}</div>
                             <div class="dl-actions">
                                 {act(d, "BIND THE FLAT TO THIS ADDRESS", "dl-go sm", "holder", vec![("plot", c.plot.clone()), ("address", c.from.clone()), ("name", c.name.clone())])}
-                                {act(d, "REJECT", "dl-mini", "reject", vec![("target", c.id.clone())])}
+                                {reject(d, c.id.clone(), d.e)}
                             </div>
                         </div>
                     }

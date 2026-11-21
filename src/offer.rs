@@ -4,7 +4,7 @@
 //! the same on every machine, byte for byte, or the signature under it means
 //! nothing. `tests/offer_record.rs` freezes it.
 
-use crate::pay::{yearly_rent, Form, TERM_YEARS};
+use crate::pay::{due_at_signing, share_at_signing, yearly_rent, Form, TERM_YEARS};
 
 /// What the Holder chose, frozen into the offer.
 #[derive(Clone, Debug, PartialEq)]
@@ -25,12 +25,15 @@ pub struct Offer {
 }
 
 impl Offer {
+    /// The share and the money due at signing are not the offer's own
+    /// arithmetic: they are the one rule the desk counts by (`crate::pay`),
+    /// so the offer of record and the desk can never part.
     pub fn share(&self) -> u32 {
-        if self.form == Form::Upfront { 100 } else { self.premium_pct }
+        share_at_signing(self.form, self.premium_pct)
     }
 
     pub fn at_signing(&self) -> f64 {
-        self.price_usd * self.share() as f64 / 100.0
+        due_at_signing(self.price_usd, self.form, self.premium_pct)
     }
 
     pub fn rent_usd(&self) -> f64 {
