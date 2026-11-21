@@ -191,8 +191,16 @@ pub struct Payment {
 }
 
 /// `/plot-data/index.json` — every flat the valley published a deal for.
+/// The hard force bot's own file, before the desk's acts are laid over it.
+pub async fn fetch_bot_index() -> Option<std::collections::HashMap<String, PublishedDeal>> {
+    fetch_json("/plot-data/index.json").await
+}
+
 pub async fn fetch_index() -> std::collections::HashMap<String, PublishedDeal> {
-    fetch_json("/plot-data/index.json").await.unwrap_or_default()
+    // two writers, one reader: the hard force bot's file, and the desk's signed acts over it — the acts win
+    let mut index: std::collections::HashMap<String, PublishedDeal> = fetch_json("/plot-data/index.json").await.unwrap_or_default();
+    index.extend(crate::market::fetch_gate_deals().await);
+    index
 }
 
 /// Today's century index fix — dollars per CX — from the published fix on
@@ -248,5 +256,10 @@ pub struct Media {
 /// None when the flat has no published data yet (nginx answers a missing
 /// file with index.html, so the body is parsed, never trusted by status).
 pub async fn fetch_plot_data(plot_id: &str) -> Option<PlotData> {
-    fetch_json(&format!("/plot-data/{plot_id}.json")).await
+    let mut data: Option<PlotData> = fetch_json(&format!("/plot-data/{plot_id}.json")).await;
+    // the desk's signed word on the deal outranks the bot's file; the ground (survey, media) stays the bot's
+    if let Some(d) = crate::market::fetch_gate_deals().await.remove(plot_id) {
+        data.get_or_insert_with(PlotData::default).deal = Some(d);
+    }
+    data
 }

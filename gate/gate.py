@@ -14,6 +14,7 @@ it keeps no database and no secret but the one that signs its sessions.
     GET  /api/acts/me      Authorization: Bearer <token>          what this address sees of the market
     POST /api/acts/act     {message,signature} → {ok, id, view}   one act, verified, committed, published
     GET  /api/acts/public                                         the live listings
+    GET  /api/acts/deals                                          the valley's word on every flat with a deal
 
 --static and --dev-keys are for the bench only: the first serves a built site with the api beside it, the second
 answers POST /api/acts/dev/sign with signatures of throwaway keys so a headless browser can walk the funnel.
@@ -51,6 +52,7 @@ class Gate:
         if not self.publish: return
         self.publish.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.publish.with_suffix(".tmp"); tmp.write_text(json.dumps(acts.public(self.state))); tmp.replace(self.publish)
+        deals = self.publish.with_name("deals.json"); tmp = deals.with_suffix(".tmp"); tmp.write_text(json.dumps(acts.public_deals(self.state))); tmp.replace(deals)
 
     # sessions
     def nonce(self):
@@ -144,6 +146,7 @@ def handler(gate, static=None, dev_keys=None):
             try:
                 if p == "/api/acts/nonce": return self.reply(200, {"nonce": gate.nonce()})
                 if p == "/api/acts/public": return self.reply(200, acts.public(gate.state))
+                if p == "/api/acts/deals": return self.reply(200, acts.public_deals(gate.state))
                 if p == "/api/acts/me":
                     who = gate.who(self.headers.get("Authorization"))
                     return self.reply(200, gate.view(who)) if who else self.reply(401, {"error": "sign in"})

@@ -112,6 +112,11 @@ pub struct View {
     pub profiles: Vec<Profile>,
     #[serde(default)]
     pub roles: Vec<Role>,
+    /// the desk only: every flat's deal and the trail of acts
+    #[serde(default)]
+    pub deals: Vec<DealRec>,
+    #[serde(default)]
+    pub log: Vec<LogRec>,
 }
 
 impl View {
@@ -351,4 +356,49 @@ pub async fn act(kind: &str, fields: &[(&str, String)]) -> Result<View, String> 
     }
     let v = call("/act", Some(serde_json::to_string(&Body { message: &message, signature: &signature }).unwrap_or_default()), false).await?;
     serde_json::from_value(v.get("view").cloned().unwrap_or_default()).map_err(|_| "the gate's answer is not a view".to_string())
+}
+
+/// A flat's deal as the desk sees it: the published word plus the flat.
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct DealRec {
+    pub plot: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub holder: String,
+    #[serde(default)]
+    pub form: String,
+    #[serde(default)]
+    pub premium_pct: Option<u32>,
+    #[serde(default)]
+    pub price_usd: Option<f64>,
+    #[serde(default)]
+    pub paid_usd: f64,
+    #[serde(default)]
+    pub payments: Vec<crate::orders::Payment>,
+    #[serde(default)]
+    pub steps: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub opened: String,
+    #[serde(default)]
+    pub updated: String,
+}
+
+/// One line of the trail: an act, what it touched, who signed it.
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct LogRec {
+    pub n: u32,
+    pub kind: String,
+    pub by: String,
+    pub at: String,
+    #[serde(default)]
+    pub what: String,
+    #[serde(default)]
+    pub detail: String,
+}
+
+/// The valley's word on every flat with a deal, as the gate folds it —
+/// public, the same shape the bot's `/plot-data/index.json` has.
+pub async fn fetch_gate_deals() -> std::collections::HashMap<String, crate::orders::PublishedDeal> {
+    call("/deals", None, false).await.ok().and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()
 }
