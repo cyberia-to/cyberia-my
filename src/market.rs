@@ -91,6 +91,116 @@ pub struct Role {
     pub name: String,
 }
 
+/// One signed application: land to add, an agent's accreditation, a franchise, a city.
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct Application {
+    pub id: String,
+    /// `land` · `agent` · `franchise` · `city`
+    pub what: String,
+    pub from: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub contact: String,
+    #[serde(default)]
+    pub territory: String,
+    #[serde(default)]
+    pub place: String,
+    #[serde(default)]
+    pub city: String,
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub code: String,
+    #[serde(default)]
+    pub entity: String,
+    #[serde(default)]
+    pub right: String,
+    #[serde(default)]
+    pub deal: String,
+    #[serde(default)]
+    pub languages: String,
+    #[serde(default)]
+    pub words: String,
+    #[serde(default)]
+    pub lat: Option<f64>,
+    #[serde(default)]
+    pub lon: Option<f64>,
+    #[serde(default)]
+    pub ares: Option<f64>,
+    #[serde(default, rename = "ref")]
+    pub referrer: String,
+    /// `pending` · `accepted` · `rejected` · `withdrawn` · `superseded`
+    pub status: String,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub at: String,
+}
+
+impl Application {
+    /// The thing applied for, in one line.
+    pub fn subject(&self) -> String {
+        let point = match (self.lat, self.lon) {
+            (Some(a), Some(o)) => format!(" · {a:.4}, {o:.4}"),
+            _ => String::new(),
+        };
+        match self.what.as_str() {
+            "land" => format!("{}{}{point}", self.place, self.ares.map(|a| format!(" · {a:.0} ares")).unwrap_or_default()),
+            "agent" => format!("agent · {}", self.territory),
+            "franchise" => format!("{} · {}", self.territory, if self.level.is_empty() { "state" } else { self.level.as_str() }),
+            _ => format!("{}{}{point}", self.city, if self.territory.is_empty() { String::new() } else { format!(" · {}", self.territory) }),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct Referred {
+    pub what: String,
+    pub status: String,
+    #[serde(default)]
+    pub at: String,
+}
+
+/// An accredited agent as a holder picks one.
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct AgentCard {
+    pub address: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub contact: String,
+    #[serde(default)]
+    pub territory: String,
+    #[serde(default)]
+    pub languages: String,
+    /// flats this agent holds a live mandate for
+    #[serde(default)]
+    pub flats: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct Franchise {
+    pub territory: String,
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub code: String,
+    #[serde(default)]
+    pub by: String,
+}
+
+/// What the gate shows everyone: the live offers, the accredited agents, the franchises given.
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct Board {
+    #[serde(default)]
+    pub listings: Vec<Offer>,
+    #[serde(default)]
+    pub agents: Vec<AgentCard>,
+    #[serde(default)]
+    pub franchises: Vec<Franchise>,
+}
+
 /// What one address sees of the market — everything for an admin.
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 pub struct View {
@@ -112,6 +222,12 @@ pub struct View {
     pub profiles: Vec<Profile>,
     #[serde(default)]
     pub roles: Vec<Role>,
+    /// what this address applied for — land, agent, franchise, city; all of them for an admin
+    #[serde(default)]
+    pub applications: Vec<Application>,
+    /// what the people this address sent applied for, and how it stands
+    #[serde(default)]
+    pub referred: Vec<Referred>,
     /// the desk only: every flat's deal and the trail of acts
     #[serde(default)]
     pub deals: Vec<DealRec>,
@@ -268,6 +384,39 @@ pub async fn fetch_offers() -> Vec<Offer> {
         .and_then(|v| serde_json::from_value::<Public>(v).ok())
         .map(|p| p.listings)
         .unwrap_or_default()
+}
+
+/// The public board — no wallet needed.
+pub async fn fetch_board() -> Board {
+    call("/public", None, false).await.ok().and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()
+}
+
+const REF_KEY: &str = "cyberia.ref.v1";
+
+/// A visitor who came by an agent's link (`?ref=0x…`) carries that address
+/// into what they sign next. Called once as the app starts.
+pub fn capture_ref() {
+    let search = web_sys::window().and_then(|w| w.location().search().ok()).unwrap_or_default();
+    if let Some(r) = query_value(&search, "ref") {
+        if r.len() == 42 && r.starts_with("0x") && r[2..].chars().all(|c| c.is_ascii_hexdigit()) {
+            if let Some(ls) = storage() {
+                let _ = ls.set_item(REF_KEY, &r);
+            }
+        }
+    }
+}
+
+/// The agent who sent this visitor, when one did.
+pub fn referrer() -> String {
+    storage().and_then(|ls| ls.get_item(REF_KEY).ok().flatten()).unwrap_or_default()
+}
+
+/// One value of the page's query string, decoded.
+pub fn query_value(search: &str, key: &str) -> Option<String> {
+    search.trim_start_matches('?').split('&').find_map(|kv| {
+        let (k, v) = kv.split_once('=')?;
+        (k == key).then(|| js_sys::decode_uri_component(&v.replace('+', " ")).map(String::from).unwrap_or_default())
+    }).filter(|v| !v.is_empty())
 }
 
 /// What the signed-in address sees, when a session is kept.

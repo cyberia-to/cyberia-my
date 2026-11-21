@@ -2385,8 +2385,35 @@ pub fn GlobeFar(
     let query = RwSignal::new(String::new());
     let found = RwSignal::new(Vec::<Place>::new());
     let asked = StoredValue::new(0u32);
-    let founding = RwSignal::new(false);
+    // what the crosshair marks: nothing, a city to found, land to add (`/?mark=city` opens it marking)
+    let page_query = window().location().search().unwrap_or_default();
+    let marking = RwSignal::new(match crate::market::query_value(&page_query, "mark").as_deref() {
+        Some("city") => "city",
+        Some("land") => "land",
+        _ => "",
+    });
     let name = RwSignal::new(String::new());
+    // the desk shows to the wallets that may sit at it
+    let desk = RwSignal::new(false);
+    leptos::task::spawn_local(async move {
+        if let Some(v) = crate::market::fetch_me().await {
+            desk.set(v.is_admin());
+        }
+    });
+    let act = |href: String, title: &'static str, line: &'static str| view! {
+        <a class="globe-city act" href=href>
+            <span class="gc-dot live"></span>
+            <span class="gc-copy"><span class="gc-name">{title}</span><span class="gc-sub">{line}</span></span>
+        </a>
+    };
+    let mark = move |what: &'static str, title: &'static str, line: &'static str| view! {
+        <button type="button"
+            class=move || if marking.get() == what { "globe-city act found on" } else { "globe-city act found" }
+            on:click=move |_| marking.update(|m| *m = if *m == what { "" } else { what })>
+            <span class="gc-dot"></span>
+            <span class="gc-copy"><span class="gc-name">{title}</span><span class="gc-sub">{line}</span></span>
+        </button>
+    };
 
     view! {
         <div class="globe-ui globe-hint">"drag: turn the globe · shift-drag or two fingers: twist · wheel or pinch: zoom · tap: select · esc: let go"</div>
@@ -2450,7 +2477,7 @@ pub fn GlobeFar(
                             return;
                         }
                         picked.set(Some(i));
-                        founding.set(false);
+                        marking.set("");
                         cam_fit(c.lon, c.lat, c.fit_m, 2600.0);
                     }
                 >
@@ -2461,52 +2488,59 @@ pub fn GlobeFar(
                     </span>
                 </button>
             }).collect_view()}
-            <a class="globe-city sell" href=format!("{BASE}/sell") style="text-decoration: none;">
-                <span class="gc-dot live"></span>
-                <span class="gc-copy">
-                    <span class="gc-name">"Sell or sublease your plot"</span>
-                    <span class="gc-sub">"holders and their agents · put a flat on the map"</span>
-                </span>
-            </a>
-            <button
-                type="button"
-                class=move || if founding.get() { "globe-city found on" } else { "globe-city found" }
-                on:click=move |_| founding.update(|f| *f = !*f)
-            >
-                <span class="gc-dot"></span>
-                <span class="gc-copy">
-                    <span class="gc-name">"Found a city"</span>
-                    <span class="gc-sub">"pick a place on the globe"</span>
-                </span>
-            </button>
-            {move || founding.get().then(|| view! {
-                <div class="globe-found">
-                    <div class="gf-step">"1 · THE PLACE"</div>
-                    <div class="gf-note">"move the globe until the crosshair marks it"</div>
-                    <div class="gf-coord">
-                        {move || {
+            <div class="globe-cities-h">"YOUR LAND"</div>
+            <div class="globe-acts">
+                {act(format!("{BASE}/my"), "My plots", "the flats you hold, follow and buy")}
+                {act(format!("{BASE}/sell"), "Sell or sublease", "holders and their agents · a flat onto the map")}
+                {mark("land", "Add your land", "land that is not on the map yet")}
+            </div>
+            <div class="globe-cities-h">"JOIN CYBERIA"</div>
+            <div class="globe-acts">
+                {act(format!("{BASE}/agent"), "Become an agent", "sell flats for their holders · accredited")}
+                {act(format!("{BASE}/franchise"), "Buy a franchise", "a country or a territory of your own")}
+                {mark("city", "Found a city", "pick a place on the globe")}
+                {move || desk.get().then(|| act(format!("{BASE}/admin"), "The desk", "what waits for the valley"))}
+            </div>
+            {move || {
+                let what = marking.get();
+                (!what.is_empty()).then(|| view! {
+                    <div class="globe-found">
+                        <div class="gf-step">"1 · THE PLACE"</div>
+                        <div class="gf-note">"move the globe until the crosshair marks it"</div>
+                        <div class="gf-coord">
+                            {move || {
+                                let (lat, lon, ..) = cam.get();
+                                format!("{}  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'))
+                            }}
+                        </div>
+                        {(what == "city").then(|| view! {
+                            <div class="gf-step">"2 · THE NAME"</div>
+                            <input
+                                class="gf-input"
+                                type="text"
+                                maxlength="40"
+                                placeholder="name of the city"
+                                prop:value=move || name.get()
+                                on:input=move |ev| name.set(event_target_value(&ev))
+                            />
+                        })}
+                        <a class="gf-commit" href=move || {
                             let (lat, lon, ..) = cam.get();
-                            format!("{}  {}", fmt_coord(lat, 'N', 'S'), fmt_coord(lon, 'E', 'W'))
-                        }}
+                            if what == "city" {
+                                format!("{BASE}/found?lat={lat:.5}&lon={lon:.5}&city={}", String::from(js_sys::encode_uri_component(name.get().trim())))
+                            } else {
+                                format!("{BASE}/land?lat={lat:.5}&lon={lon:.5}")
+                            }
+                        }>
+                            {if what == "city" { "FOUND THE CITY HERE →" } else { "ADD THE LAND HERE →" }}
+                        </a>
+                        <div class="gf-note">"the next page takes the rest and your wallet signs the application"</div>
                     </div>
-                    <div class="gf-step">"2 · THE NAME"</div>
-                    <input
-                        class="gf-input"
-                        type="text"
-                        maxlength="40"
-                        placeholder="name of the city"
-                        prop:value=move || name.get()
-                        on:input=move |ev| name.set(event_target_value(&ev))
-                    />
-                    <button type="button" class="gf-commit" disabled=true title="founding is not open yet">
-                        "FOUND CITY — SOON"
-                    </button>
-                    <div class="gf-note">"founding is not open yet · nothing is saved"</div>
-                </div>
-            })}
+                })
+            }}
         </div>
 
-        {move || founding.get().then(|| view! { <div class="globe-cross"></div> })}
+        {move || (!marking.get().is_empty()).then(|| view! { <div class="globe-cross"></div> })}
 
         <div class="globe-ui globe-hud">
             {move || {
@@ -2697,11 +2731,20 @@ pub fn DivisionPanel(
                             </span>
                         </div>
                         <div class="deal-note division-note">
-                            {if franchise { "cities of cyberia can be founded here" } else { "today the franchise is open in Indonesia only" }}
+                            {if franchise { "cities of cyberia can be founded here" } else { "today cities are founded in Indonesia only · a franchise opens a territory" }}
                         </div>
-                        <button type="button" class="gf-commit division-cta" disabled=true title="founding is not open yet">
-                            {if franchise { "FOUND CITY HERE — SOON" } else { "FRANCHISE NOT OPEN HERE" }}
-                        </button>
+                        {cur.as_ref().map(|u| {
+                            let enc = |v: &str| String::from(js_sys::encode_uri_component(v));
+                            let level = match u.level { 0 => "state", 1 => "region", _ => "district" };
+                            let found = format!("{BASE}/found?lat={lat:.5}&lon={lon:.5}&territory={}", enc(&u.name));
+                            let buy = format!("{BASE}/franchise?territory={}&code={}&level={level}", enc(&u.name), enc(&u.code));
+                            view! {
+                                {franchise.then(|| view! { <a class="gf-commit division-cta" href=found>"FOUND A CITY HERE →"</a> })}
+                                <a class=if franchise { "gf-commit division-cta second" } else { "gf-commit division-cta" } href=buy>
+                                    {format!("BUY THE FRANCHISE OF {} →", u.name.to_uppercase())}
+                                </a>
+                            }
+                        })}
                     }
                 }}
             </div>

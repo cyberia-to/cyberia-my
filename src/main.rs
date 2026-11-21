@@ -38,6 +38,7 @@ mod products;
 mod plots;
 mod orgs;
 mod robots;
+mod apply;
 mod sell;
 mod services;
 mod signal;
@@ -57,5 +58,6 @@ fn main() {
     if let Some(seo) = leptos::prelude::document().get_element_by_id("plot-seo") {
         seo.remove();
     }
+    market::capture_ref();
     leptos::mount::mount_to_body(app::App);
 }

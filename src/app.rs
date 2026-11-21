@@ -5,6 +5,7 @@ use crate::elements::ElementsPage;
 use crate::events::EventsPage;
 use crate::friends::FriendPage;
 use crate::admin::AdminPage;
+use crate::apply::{AgentPage, FoundPage, FranchisePage, LandPage};
 use crate::cabinet::CabinetPage;
 use crate::docs::{DocPage, DocsPage};
 use crate::genetics::GeneticsPage;
@@ -114,6 +115,10 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/docs/:key") view=DocPage />
                 <Route path=path!("/admin") view=AdminPage />
                 <Route path=path!("/sell") view=SellPage />
+                <Route path=path!("/land") view=LandPage />
+                <Route path=path!("/agent") view=AgentPage />
+                <Route path=path!("/franchise") view=FranchisePage />
+                <Route path=path!("/found") view=FoundPage />
                 <Route path=path!("/my") view=MyPlotsPage />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />

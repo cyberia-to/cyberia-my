@@ -94,6 +94,15 @@ pub fn SellPage() -> impl IntoView {
     let until = RwSignal::new(String::new());
     let scope = RwSignal::new("both".to_string());
     let who = RwSignal::new("me".to_string());
+    // the accredited agents a holder picks from; an agent's own link (`/sell?agent=0x…`) names them already
+    let agents = RwSignal::new(Vec::<market::AgentCard>::new());
+    leptos::task::spawn_local(async move { agents.set(market::fetch_board().await.agents) });
+    if let Some(a) = market::query_value(&window().location().search().unwrap_or_default(), "agent") {
+        if a.len() == 42 && a.starts_with("0x") {
+            agent.set(a);
+            who.set("agent".to_string());
+        }
+    }
 
     // a signed-in visitor starts at the flat; the profile fills from what the gate knows
     Effect::new(move |seen: Option<bool>| {
@@ -301,6 +310,28 @@ pub fn SellPage() -> impl IntoView {
             })}
             {move || if i_hold.get() && who.get() == "agent" {
                 view! {
+                    {move || {
+                        let list = agents.get();
+                        if list.is_empty() {
+                            return view! { <p class="dl-note">"no agent is accredited yet — name any address you trust below, or "<a href=format!("{BASE}/agent")>"become one"</a></p> }.into_any();
+                        }
+                        view! {
+                            <div class="dl-q">"accredited agents — pick one, or name another address below"</div>
+                            <div class="dl-opts ap-agents">
+                                {list.into_iter().map(|a| {
+                                    let (addr, addr2) = (a.address.clone(), a.address.clone());
+                                    let line = [a.territory.clone(), a.languages.clone(), a.contact.clone(), format!("{} flats", a.flats)].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" · ");
+                                    view! {
+                                        <button type="button" class=move || if agent.get().eq_ignore_ascii_case(&addr) { "dl-opt is-on" } else { "dl-opt" }
+                                            on:click=move |_| agent.set(addr2.clone())>
+                                            <span class="dl-opt-t">{if a.name.is_empty() { short(&a.address) } else { a.name.clone() }}</span>
+                                            <span class="dl-opt-s">{line}</span>
+                                        </button>
+                                    }
+                                }).collect_view()}
+                            </div>
+                        }.into_any()
+                    }}
                     <div class="sl-grid">
                         {field("the agent's wallet address", "0x…", agent, "text")}
                         {field("commission, %", "5", commission, "number")}

@@ -15,7 +15,7 @@
 use crate::deals::{flat_status, load_deals, FlatStatus};
 use crate::globe::BASE;
 use crate::land::{area_m2, load_map, LandFlat, FLAG_SVG};
-use crate::market::{self, short, DealRec, View};
+use crate::market::{self, short, Application, DealRec, View};
 use crate::nav::CyberiaNav;
 use crate::orders::PublishedDeal;
 use crate::sell::{enter, submit};
@@ -52,6 +52,7 @@ const MENU: &[(&str, &str, &[&str])] = &[
     ("DEALS", "first sales: terms, money, steps", &["PIPELINE", "MONEY", "OPEN A DEAL", "NOTARY SHEET"]),
     ("MARKET", "holders' offers and agents", &["OFFERS", "MANDATES", "AGENTS"]),
     ("PEOPLE", "who holds, who may sign", &["HOLDERS", "CLAIMS", "ADMINS"]),
+    ("REQUESTS", "who wants in: agents, land, franchises, cities", &["AGENTS", "LAND", "FRANCHISES", "CITIES"]),
     ("TRAIL", "every act, and the machine", &["ACTS", "HEALTH"]),
 ];
 
@@ -140,13 +141,65 @@ fn waiting(v: &View) -> usize {
     v.listings.iter().filter(|l| l.status == "pending").count()
         + v.claims.iter().filter(|c| c.status == "pending").count()
         + v.deals.iter().filter(|d| d.status != "owned").count()
+        + v.applications.iter().filter(|a| a.status == "pending").count()
+}
+
+/// One application as the desk reads it: the thing, who asks, what they wrote, and the answer to sign.
+fn app_card(d: Desk, v: &View, a: Application) -> impl IntoView {
+    let pending = a.status == "pending";
+    let class = match a.status.as_str() { "accepted" => "sl-card live", "pending" => "sl-card pending", _ => "sl-card rejected" };
+    let facts: Vec<String> = [("company", &a.entity), ("languages", &a.languages), ("paper", &a.right), ("wants", &a.deal), ("code", &a.code)]
+        .into_iter().filter(|(_, x)| !x.is_empty()).map(|(k, x)| format!("{k} {x}")).collect();
+    let sent = (!a.referrer.is_empty()).then(|| format!("sent by the agent {} ({})", v.name_of(&a.referrer), short(&a.referrer)));
+    let globe = a.lat.zip(a.lon).map(|(lat, lon)| format!("{BASE}/@{lat:.5},{lon:.5},14"));
+    view! {
+        <div class=class>
+            <div class="sl-card-top"><b>{a.subject()}</b><span class="sl-tag">{if pending { a.what.to_uppercase() } else { a.status.to_uppercase() }}</span></div>
+            <div class="sl-card-line">{format!("{} · {} · {}", a.name, a.contact, short(&a.from))}</div>
+            {(!facts.is_empty()).then(|| view! { <div class="sl-card-line dim">{facts.join(" · ")}</div> })}
+            {(!a.words.is_empty()).then(|| view! { <div class="sl-card-line dim">{a.words.clone()}</div> })}
+            {sent.map(|x| view! { <div class="sl-card-line dim">{x}</div> })}
+            {(!a.reason.is_empty()).then(|| view! { <div class="sl-card-line dim">{a.reason.clone()}</div> })}
+            <div class="dl-actions">
+                {pending.then(|| view! {
+                    {act(d, if a.what == "agent" { "ACCREDIT THE AGENT" } else { "ACCEPT" }, "dl-go sm", "approve", vec![("application", a.id.clone())])}
+                    {act(d, "REJECT", "dl-mini", "reject", vec![("target", a.id.clone())])}
+                })}
+                {globe.map(|href| view! { <a class="dl-mini" href=href target="_blank">"SEE THE POINT →"</a> })}
+            </div>
+        </div>
+    }
+}
+
+// ── REQUESTS ──────────────────────────────────────────────────────────
+
+fn requests(d: Desk, v: &View) -> AnyView {
+    let (what, none) = match d.sub.get() {
+        0 => ("agent", "nobody has asked to be an agent"),
+        1 => ("land", "nobody has offered land for the map"),
+        2 => ("franchise", "nobody has asked for a franchise"),
+        _ => ("city", "nobody has asked to found a city"),
+    };
+    let all: Vec<_> = v.applications.iter().rev().filter(|a| a.what == what && a.status != "superseded").cloned().collect();
+    if all.is_empty() { return empty(none); }
+    let (pending, answered): (Vec<_>, Vec<_>) = all.into_iter().partition(|a| a.status == "pending");
+    let (v1, v2) = (v.clone(), v.clone());
+    view! {
+        <div class="dl-q">{format!("waiting for the valley · {}", pending.len())}</div>
+        {if pending.is_empty() { empty("nothing waits") } else { view! { <div class="sl-cards">{pending.into_iter().map(|a| app_card(d, &v1, a)).collect_view()}</div> }.into_any() }}
+        {(!answered.is_empty()).then(|| view! {
+            <div class="dl-q">{format!("answered · {}", answered.len())}</div>
+            <div class="sl-cards">{answered.into_iter().map(|a| app_card(d, &v2, a)).collect_view()}</div>
+        })}
+    }.into_any()
 }
 
 fn now(d: Desk, v: &View) -> AnyView {
     let offers: Vec<_> = v.listings.iter().filter(|l| l.status == "pending").cloned().collect();
     let claims: Vec<_> = v.claims.iter().filter(|c| c.status == "pending").cloned().collect();
     let deals: Vec<_> = v.deals.iter().filter(|x| x.status != "owned").cloned().collect();
-    if offers.is_empty() && claims.is_empty() && deals.is_empty() {
+    let apps: Vec<_> = v.applications.iter().filter(|a| a.status == "pending").cloned().collect();
+    if offers.is_empty() && claims.is_empty() && deals.is_empty() && apps.is_empty() {
         return view! {
             <div class="ad-zero"><b>"0"</b><span>"nothing waits for the valley"</span></div>
         }.into_any();
@@ -191,6 +244,10 @@ fn now(d: Desk, v: &View) -> AnyView {
                 }).collect_view()}
             </div>
         })}
+        {(!apps.is_empty()).then(|| { let va = v.clone(); view! {
+            <div class="dl-q">"requests — an agent, land, a franchise or a city asks in"</div>
+            <div class="sl-cards">{apps.into_iter().map(|a| app_card(d, &va, a)).collect_view()}</div>
+        }})}
         {(!claims.is_empty()).then(|| view! {
             <div class="dl-q">"claims — an address says a flat is theirs"</div>
             <div class="sl-cards">
@@ -748,6 +805,7 @@ pub fn AdminPage() -> impl IntoView {
             2 => v.deals.iter().filter(|x| x.status != "owned").count(),
             3 => v.listings.iter().filter(|l| l.status == "pending").count(),
             4 => v.claims.iter().filter(|c| c.status == "pending").count(),
+            5 => v.applications.iter().filter(|a| a.status == "pending").count(),
             _ => 0,
         };
         (n > 0).then_some(n)
@@ -772,6 +830,7 @@ pub fn AdminPage() -> impl IntoView {
             2 => deals(d, &v),
             3 => market_menu(d, &v),
             4 => people(d, &v),
+            5 => requests(d, &v),
             _ => trail(d, &v),
         }
     };
