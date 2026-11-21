@@ -11,6 +11,7 @@ use crate::terms::{
     bare_name, district_sale, fmt_usd, land_use, price_line, size_line, terms, LandUse, AVALON_TRACKS,
 };
 use crate::land::FLAG_SVG;
+use crate::legend::{LegendMark, LegendReadout, Mark};
 use crate::friends::friend_sales;
 use crate::globe::{
     cam_drag, layer, layers_saved, set_layers, LayersPanel, cam_fit, cam_hold, cam_north, cam_pan, cam_release, cam_stop, cam_twist, cam_world, cam_zoom, clear_region, level_for_zoom, locate, point_at, px_per_m, show_unit, DivisionPanel, GlobeAttrib, GlobeFar, GlobeLayer, Place, Unit, BASE,
@@ -475,6 +476,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let map_zoom = RwSignal::new(1.0_f64);
     let map_center = RwSignal::new((MAP_W * 0.5, MAP_H * 0.5)); // world/SVG units
     let map_hover = RwSignal::new(None::<(String, String, f64)>); // id, label, m2
+    // the legend mark being read: the map lights what wears it and dims the rest
+    let legend_on = RwSignal::new(None::<Mark>);
     let map_dragging = RwSignal::new(false);
     // true once pointer moved past threshold — suppress plot-click select after pan
     let map_did_drag = RwSignal::new(false);
@@ -1278,8 +1281,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                             let d_under = d.clone();
                                             let d_mark = d.clone();
                                             let id_mark = flat.id.clone();
+                                            let id_dim = flat.id.clone();
                                             view! {
-                                                <g class="flat-poly"
+                                                <g
+                                                    class=move || match legend_on.get() {
+                                                        Some(k) if !k.lights_plot(land_use(&id_dim), flat_status(&id_dim, &deals.get())) => "flat-poly is-dim",
+                                                        _ => "flat-poly",
+                                                    }
                                                     on:click=move |ev| {
                                                         // after a pan, browser still fires click — ignore it
                                                         if map_did_drag.get_untracked() {
@@ -1397,7 +1405,11 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         let d = poly_path(&f.coords, &m_friends.bbox, W, H, PAD);
                                         let href = format!("/friend/{}", f.slug());
                                         view! {
-                                            <g class="friend-sale"
+                                            <g
+                                                class=move || match legend_on.get() {
+                                                    Some(k) if !k.lights_friend_sale() => "friend-sale is-dim",
+                                                    _ => "friend-sale",
+                                                }
                                                 on:click=move |ev| {
                                                     if map_did_drag.get_untracked() {
                                                         map_did_drag.set(false);
@@ -1447,7 +1459,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                     stroke-linecap="round"
                                                     stroke-linejoin="round"
                                                     opacity=opacity
-                                                    class=format!("trail {}", t.kind)
+                                                    class={
+                                                        let kind = t.kind.clone();
+                                                        move || {
+                                                            let dim = legend_on.get().map(|k| k.dims_trail(&kind)).unwrap_or(false);
+                                                            format!("trail {kind}{}", if dim { " is-dim" } else { "" })
+                                                        }
+                                                    }
                                                     pointer-events="none"
                                                 />
                                             }
@@ -1642,17 +1660,18 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 .iter()
                                 .filter(|u| list.iter().any(|f| land_use(&f.id) == **u))
                                 .map(|u| view! {
-                                    <span class="leg swatch" title=u.label() style:--sw=u.color()>{u.short()}</span>
+                                    <LegendMark mark=Mark::Use(*u) on=legend_on class="swatch" sw=u.color() />
                                 })
                                 .collect_view()
                         }}
-                        <span class="leg hatch">"OWNED"</span>
-                        <span class="leg dash" title="a lease request you opened in this browser">"IN TRANSFER"</span>
+                        <LegendMark mark=Mark::Owned on=legend_on class="hatch" />
+                        <LegendMark mark=Mark::Transfer on=legend_on class="dash" />
                         </div>
                         <div class="leg-row">
                         <span class="leg dim">"lines"</span>
-                        <span class="leg line" style:--sw="#777777">"ROAD"</span>
-                        <span class="leg line thin" style:--sw="#097138">"PATH"</span>
+                        <LegendMark mark=Mark::Road on=legend_on class="line" sw="#777777" />
+                        <LegendMark mark=Mark::Path on=legend_on class="line thin" sw="#097138" />
+                        <LegendReadout on=legend_on />
                         </div>
                     </div>
                 </section>

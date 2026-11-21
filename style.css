@@ -3537,6 +3537,46 @@ button.city-card:hover {
     border-top-style: dashed;
 }
 
+/* a legend mark reads out what it means at the end of the second line, and the map lights what wears it.
+   the readout keeps to one line on every screen: a legend that grew would move the marks from under the finger */
+.flat-legend .leg.mark {
+    cursor: help;
+    outline: none;
+    border-radius: 3px;
+    transition: text-shadow 150ms ease;
+}
+.flat-legend .leg.mark.is-on {
+    text-shadow: 0 0 8px currentColor;
+}
+.flat-legend .leg.mark:focus-visible {
+    outline: 1px solid #d7d7d7;
+    outline-offset: 3px;
+}
+.flat-legend .leg-read {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #d7d7d7;
+    letter-spacing: 0.5px;
+}
+.flat-legend .leg-read b {
+    letter-spacing: 1px;
+}
+.flat-poly,
+.friend-sale,
+.trail {
+    transition: opacity 200ms ease;
+}
+.flat-poly.is-dim,
+.friend-sale.is-dim {
+    opacity: 0.15;
+}
+.trail.is-dim {
+    opacity: 0.1;
+}
+
 /* friends' sales — the sale blue, solid, like every title for sale */
 .friend-sale {
     cursor: pointer;

@@ -13,6 +13,7 @@ mod friends;
 mod genetics;
 mod globe;
 mod land;
+mod legend;
 mod me;
 mod nav;
 mod orders;
