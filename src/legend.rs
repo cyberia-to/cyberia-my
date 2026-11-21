@@ -32,9 +32,10 @@ impl Mark {
     pub fn meaning(self) -> &'static str {
         match self {
             Mark::Use(u) => u.line(),
-            // flat_status: the lease book names a holder, or a deal is signed
-            Mark::Owned => "held · the lease book names its holder, or its lease is signed",
-            // flat_status: the valley's reserved and transfer deals, and a request opened in this browser
+            // flat_status: a signed deal
+            Mark::Owned => "held · its lease is signed",
+            // flat_status: the valley's reserved and transfer deals, a request opened in this browser, and a
+            // flat the lease book names a holder for
             Mark::Transfer => "a deal is open on this flat · reserved or rights in transfer",
             Mark::Road => "a road · concrete or gravel, 5 m wide, 3.5 m for small vehicles",
             Mark::Path => "a walking path · 2–3 m wide",
