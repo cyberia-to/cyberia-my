@@ -937,6 +937,13 @@ a.kanban-card-link .kanban-card {
     line-height: 1.45;
     margin: 0;
 }
+/* the version this door serves, under the parked surfaces on /menu */
+.menu-version {
+    margin-top: 18px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #555;
+}
 .cities-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

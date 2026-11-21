@@ -7,6 +7,10 @@ use crate::globe::BASE;
 use crate::land::FLAG_SVG;
 use leptos::prelude::*;
 
+/// The version this door serves — the crate's, the same number `index.html` states in its
+/// `version` meta and `CHANGELOG.md` names. Shown on `/menu`; `tests/version.rs` holds them in step.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// Surfaces hidden from the top bar: (slug, label, one-line purpose).
 pub const HIDDEN: &[(&str, &str, &str)] = &[
     ("me", "YOU", "your dashboard — balance, leases, requests"),
@@ -95,6 +99,9 @@ pub fn MenuPage() -> impl IntoView {
                         }
                     }).collect_view()}
                 </div>
+                <p class="cities-lead menu-version" title="the version this door serves">
+                    {format!("cyberia.my {VERSION}")}
+                </p>
             </div>
         </div>
     }
