@@ -7433,7 +7433,7 @@ a.ad-tile:hover {
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { overscroll-behavior: none; -webkit-tap-highlight-color: rgba(0, 255, 65, 0.12); }
 img, video { max-width: 100%; }
-.cities-stage, .cab, .page-shell { overflow-wrap: break-word; }
+.cities-stage, .dl-body, .page-shell { overflow-wrap: break-word; }
 
 @media (max-width: 720px) {
   /* the header: logo left, player right, the four places as one strip under them */
@@ -7446,11 +7446,12 @@ img, video { max-width: 100%; }
   .cyberia-nav .nav-btn.nav-here { border-color: rgba(0, 254, 0, 0.5); background: rgba(0, 254, 0, 0.08); }
   .brand-flag { width: 32px; height: 32px; }
 
-  /* every control is a target */
-  .cta-btn, .cab-btn, button.cab-btn, .intent-commit, .gs-row, .ly-row, .globe-city { min-height: 44px; }
+  /* every control is a target — the classes the views render */
+  .cta-btn, .intent-commit, .gs-row, .ly-row, .globe-city, .dl-step, .pd-cta, .dl-go, .dl-mini, button.ad-tile, a.ad-tile, .mp-links a { min-height: 44px; }
+  .dl-go, .dl-mini, .mp-links a { display: inline-flex; align-items: center; }
   .nav-pad button { height: 44px; }
   .nav-pad { grid-template-columns: 44px; }
-  .gr-x, .panel-x { width: 36px; height: 36px; font-size: 14px; }
+  .panel-x { width: 44px; height: 44px; font-size: 16px; }
   .city-card { min-height: 0; }
   .city-card .city-meta { flex-wrap: wrap; gap: 4px 12px; }
   .cities-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -7467,22 +7468,21 @@ img, video { max-width: 100%; }
   pre, code { overflow-x: auto; max-width: 100%; }
 
   /* the sheet and long lists hand the scroll back to the page edge cleanly */
-  .globe-host .cyberia-right, .gs-list, .cities-stage, .cab { overscroll-behavior: contain; }
-  .cities-stage, .cab { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .globe-host .cyberia-right, .gs-list, .cities-stage, .dl-body { overscroll-behavior: contain; }
+  .cities-stage, .dl-body { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 }
 
 /* a finger has no hover: pressing answers instead */
 @media (hover: none) {
-  .nav-btn:active, .cab-btn:active, .cta-btn:active, .gs-row:active, .globe-city:active, .cab-link:active { transform: scale(0.98); opacity: 0.85; }
-  .city-card:active, .cab-flat:active { border-color: #00ff41; transform: scale(0.99); }
-  .nav-btn, .cab-btn, .cta-btn, .city-card, .cab-flat { transition: transform 0.1s ease, opacity 0.1s ease, border-color 0.15s ease; }
+  .nav-btn:active, .cta-btn:active, .gs-row:active, .globe-city:active, .dl-step:active, .dl-go:active, .dl-mini:active, .pd-cta:active { transform: scale(0.98); opacity: 0.85; }
+  .city-card:active, .ad-tile:active { border-color: #00ff41; transform: scale(0.99); }
+  .nav-btn, .cta-btn, .city-card, .dl-step, .dl-go, .dl-mini, .pd-cta, .ad-tile { transition: transform 0.1s ease, opacity 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
 }
 
 /* the smallest phones */
 @media (max-width: 360px) {
-  .cab-steps { grid-template-columns: minmax(0, 1fr); }
-  .cf-facts { grid-template-columns: minmax(0, 1fr); }
-  .cab-title { font-size: 26px; }
+  .cb-next { min-width: 0; }
+  .mp-links, .dl-tiles { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

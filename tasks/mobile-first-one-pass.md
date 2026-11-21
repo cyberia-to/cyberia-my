@@ -24,13 +24,13 @@ One change, one stylesheet block (`style.css`, last section, "mobile first, one 
 | where | what |
 |---|---|
 | header | the four places become one strip under the logo, 44 px targets, scrolling sideways instead of wrapping under the player; safe-area insets |
-| targets | buttons, rows, the pad, close buttons reach 44 px |
+| targets | buttons, rows, the pad and the close button reach 44 px — named by the classes the views in `src/` render (the cabinet's tiles, its next step, `dl-go`, `dl-mini`, its link grid) |
 | forms | inputs 16 px (no zoom on focus), full width, 44 px high |
 | overflow | tables and code scroll inside themselves; images never wider than the screen |
 | touch | pressed state where only `:hover` existed; no rubber band; tap highlight in the house green |
-| small phones | 360 px: single-column steps and facts |
+| small phones | 360 px: the cabinet's next-step button stops forcing 320 px, its link grid and the deal's tiles go single-column |
 | motion | `prefers-reduced-motion` honoured |
-| `tests/mobile.rs` | the viewport, the braces, the 16 px, the 44 px, the strip, the reduced motion |
+| `tests/mobile.rs` | the viewport, the braces, the 16 px, the strip, the reduced motion; and that the 44 px rule names only classes a view under `src/` renders, the close button being a 44 px square |
 
 ## what is not done here
 
