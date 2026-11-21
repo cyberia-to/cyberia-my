@@ -1,6 +1,6 @@
 //! The map legend: every mark tells what it means. Point at a mark (tap it on a phone, tab to it from the
-//! keyboard) and the legend reads it out at the end of its second line, while the map lights what wears the
-//! mark and dims the rest. Nothing floats over the map. The words come from where the marks are made:
+//! keyboard) and the legend reads it out on its second line, which holds nothing else, while the map lights
+//! what wears the mark and dims the rest. Nothing floats over the map. The words come from where the marks are made:
 //! land uses from `terms::LandUse::line`, the deal marks from `deals::flat_status`, the lines from the
 //! trail sync in `scripts/sync-plot-terms.py`.
 
@@ -131,7 +131,7 @@ pub fn LegendMark(
     }
 }
 
-/// What the mark in hand means, at the end of the legend's second line.
+/// What the mark in hand means, alone on the legend's second line.
 #[component]
 pub fn LegendReadout(on: RwSignal<Option<Mark>>) -> impl IntoView {
     move || {

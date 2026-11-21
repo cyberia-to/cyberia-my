@@ -3537,8 +3537,9 @@ button.city-card:hover {
     border-top-style: dashed;
 }
 
-/* a legend mark reads out what it means at the end of the second line, and the map lights what wears it.
-   the readout keeps to one line on every screen: a legend that grew would move the marks from under the finger */
+/* a legend mark reads out what it means on the legend's second line, which holds nothing else, and the map
+   lights what wears it. that line keeps its height empty or full and never wraps: a legend that grew would
+   move the marks from under the finger */
 .flat-legend .leg.mark {
     cursor: help;
     outline: none;
@@ -3563,6 +3564,17 @@ button.city-card:hover {
 }
 .flat-legend .leg-read b {
     letter-spacing: 1px;
+}
+.flat-legend .leg-row-read {
+    align-self: stretch;
+    height: 13px;
+    line-height: 13px;
+}
+/* the lines ride the first line after the fills, and wrap below them as one group where the panel is narrow */
+.flat-legend .leg-group {
+    display: flex;
+    gap: 14px;
+    white-space: nowrap;
 }
 .flat-poly,
 .friend-sale,

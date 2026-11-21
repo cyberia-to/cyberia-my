@@ -1666,11 +1666,13 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         }}
                         <LegendMark mark=Mark::Owned on=legend_on class="hatch" />
                         <LegendMark mark=Mark::Transfer on=legend_on class="dash" />
+                        <span class="leg-group">
+                            <span class="leg dim">"lines"</span>
+                            <LegendMark mark=Mark::Road on=legend_on class="line" sw="#777777" />
+                            <LegendMark mark=Mark::Path on=legend_on class="line thin" sw="#097138" />
+                        </span>
                         </div>
-                        <div class="leg-row">
-                        <span class="leg dim">"lines"</span>
-                        <LegendMark mark=Mark::Road on=legend_on class="line" sw="#777777" />
-                        <LegendMark mark=Mark::Path on=legend_on class="line thin" sw="#097138" />
+                        <div class="leg-row leg-row-read">
                         <LegendReadout on=legend_on />
                         </div>
                     </div>
