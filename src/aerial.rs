@@ -12,7 +12,7 @@ use leptos::prelude::*;
 use std::collections::HashMap;
 
 /// The deepest zoom our pyramid carries over Bali.
-const TILE_Z: u32 = 16;
+pub(crate) const TILE_Z: u32 = 16;
 
 /// Names on the map that are plumbing, not places a buyer walks to.
 fn is_plumbing(name: &str) -> bool {
@@ -59,14 +59,14 @@ pub fn district_stock(zone: &str, deals: &HashMap<String, Deal>) -> (usize, usiz
 }
 
 /// Web Mercator tile → its north-west corner, degrees.
-fn tile_nw(x: i64, y: i64, z: u32) -> (f64, f64) {
+pub(crate) fn tile_nw(x: i64, y: i64, z: u32) -> (f64, f64) {
     let n = (1u64 << z) as f64;
     let lon = x as f64 / n * 360.0 - 180.0;
     let lat = (std::f64::consts::PI * (1.0 - 2.0 * y as f64 / n)).sinh().atan().to_degrees();
     (lon, lat)
 }
 
-fn tile_of(lon: f64, lat: f64, z: u32) -> (i64, i64) {
+pub(crate) fn tile_of(lon: f64, lat: f64, z: u32) -> (i64, i64) {
     let n = (1u64 << z) as f64;
     let x = ((lon + 180.0) / 360.0 * n).floor() as i64;
     let y = ((1.0 - lat.to_radians().tan().asinh() / std::f64::consts::PI) / 2.0 * n).floor() as i64;

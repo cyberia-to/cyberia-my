@@ -366,3 +366,31 @@ pub fn DealPage() -> impl IntoView {
     }
     .into_any()
 }
+
+/// A deal's track in brief, for places that show many flats at once.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Progress {
+    /// per step: 2 done · 1 the Holder did their part · 0 ahead
+    pub marks: Vec<u8>,
+    pub done: usize,
+    /// the step to do next, by its title
+    pub next: &'static str,
+}
+
+/// Where the deal of a flat stands in this browser, with what the valley
+/// published for it (`None` when nothing is published).
+pub fn progress(id: &str, published: Option<&PublishedDeal>) -> Progress {
+    let cfg = load_cfg(id);
+    let sent_usd: f64 = sent_for(&load_sent(), id).iter().map(|p| p.usd).sum();
+    let due = terms(id).and_then(|t| t.price()).map(|p| p * cfg.share() as f64 / 100.0);
+    let kyc = crate::orders::ordered(&crate::orders::load_orders_log(), crate::orders::OrderKind::Kyc, "you");
+    let st = states(&cfg, &published.cloned(), kyc, sent_usd, due);
+    let marks: Vec<u8> = st.iter().map(|s| match s { State::Done(_) => 2, State::Waiting(_) => 1, State::Todo => 0 }).collect();
+    let next = st.iter().position(|s| *s == State::Todo).map(|i| STEPS[i].1).unwrap_or("YOURS");
+    Progress { done: marks.iter().filter(|m| **m == 2).count(), marks, next }
+}
+
+/// The titles of the track's steps, in order.
+pub fn step_titles() -> Vec<&'static str> {
+    STEPS.iter().map(|s| s.1).collect()
+}

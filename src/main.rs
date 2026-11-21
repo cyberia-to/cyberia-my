@@ -17,6 +17,7 @@ mod market;
 mod market_admin;
 mod legend;
 mod me;
+mod my;
 mod nav;
 mod offers;
 mod orders;

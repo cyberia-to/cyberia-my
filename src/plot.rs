@@ -108,6 +108,7 @@ pub fn PlotPage() -> impl IntoView {
     });
     let log = RwSignal::new(load_orders_log());
     let jv = RwSignal::new(load_jv());
+    let starred = RwSignal::new(crate::my::load_watch().contains(&flat.id));
 
     let name = bare_name(&flat.name);
     let book = terms(&flat.id);
@@ -468,6 +469,9 @@ pub fn PlotPage() -> impl IntoView {
                     <crate::offers::FlatOffers plot=flat.id.clone() offers=offers />
                     {rail_cta}
                     {move || (status.get() == FlatStatus::Owned).then(|| view! { <a class="pd-ask" href=format!("{BASE}/sell")>"you hold this flat? put it on the map →"</a> })}
+                    <button type="button" class=move || if starred.get() { "pd-star on" } else { "pd-star" } on:click={ let id = flat.id.clone(); move |_| starred.set(crate::my::toggle_watch(&id)) }>
+                        {move || if starred.get() { "★ ON YOUR SHELF · MY PLOTS" } else { "☆ WATCH THIS FLAT" }}
+                    </button>
                     <a class="pd-ask" href=support_href() target="_blank" rel="noopener">{format!("ask a person · @{SUPPORT_HANDLE}")}</a>
                     <a class="pd-back" href=format!("{BASE}/map?plot={}", flat.id)>"← the valley map"</a>
                 </aside>
