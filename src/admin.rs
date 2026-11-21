@@ -68,6 +68,8 @@ struct Desk {
     /// the hard force bot's published deals, for the flats the desk has not taken yet
     bot: RwSignal<HashMap<String, PublishedDeal>>,
     q: RwSignal<String>,
+    /// the titles opened in the register
+    groups: RwSignal<Vec<String>>,
     // one set of fields, reused by the form in view
     a: RwSignal<String>,
     b: RwSignal<String>,
@@ -237,14 +239,7 @@ fn flats(d: Desk, v: &View) -> AnyView {
         .collect();
     let n = rows.len();
     let vv = v.clone();
-    view! {
-        <div class="ad-bar">
-            <input class="ad-search" type="text" placeholder="find a flat: sinwood-7, avalon…" prop:value=move || d.q.get() on:input=move |ev| d.q.set(event_target_value(&ev)) />
-            <span class="ad-count">{format!("{n} flats")}</span>
-        </div>
-        <div class="ad-table">
-            <div class="ad-row head"><span>"flat"</span><span>"use"</span><span>"size"</span><span>"price in the book"</span><span>"stands"</span><span>"holder"</span><span>"wallet"</span></div>
-            {rows.into_iter().map(|(f, st)| {
+    let row = move |(f, st): (LandFlat, FlatStatus)| {
                 let id = f.id.clone();
                 let (id_c, id_o) = (id.clone(), id.clone());
                 let book = terms(&id);
@@ -291,6 +286,63 @@ fn flats(d: Desk, v: &View) -> AnyView {
                                 </button>
                             </div>
                         }
+                    })}
+                }
+    };
+    // the upper level: the parcel a flat is a piece of. a group is open when the person opened it,
+    // or when a search or a filter already narrowed the list
+    let narrowed = want != 0 || !q.is_empty();
+    let mut groups: Vec<(Option<&'static crate::titles::Title>, Vec<(LandFlat, FlatStatus)>)> = Vec::new();
+    for (f, st) in rows {
+        let t = crate::titles::title_of(&f.id);
+        match groups.iter_mut().find(|g| g.0.map(|x| &x.name) == t.map(|x| &x.name)) {
+            Some(g) => g.1.push((f, st)),
+            None => groups.push((t, vec![(f, st)])),
+        }
+    }
+    groups.sort_by(|a, b| a.0.is_none().cmp(&b.0.is_none()).then(b.1.len().cmp(&a.1.len())));
+    let n_titles = groups.iter().filter(|g| g.0.is_some()).count();
+    view! {
+        <div class="ad-bar">
+            <input class="ad-search" type="text" placeholder="find a flat: sinwood-7, avalon…" prop:value=move || d.q.get() on:input=move |ev| d.q.set(event_target_value(&ev)) />
+            <span class="ad-count">{format!("{n} flats on {n_titles} titles")}</span>
+            <button type="button" class="dl-mini" on:click=move |_| d.groups.update(|g| if g.is_empty() { *g = crate::titles::book().titles.iter().map(|t| t.name.clone()).chain(["—".to_string()]).collect() } else { g.clear() })>
+                {move || if d.groups.get().is_empty() { "OPEN ALL" } else { "CLOSE ALL" }}
+            </button>
+        </div>
+        <div class="ad-table">
+            {groups.into_iter().map(|(t, list)| {
+                let key = t.map(|t| t.name.clone()).unwrap_or_else(|| "—".to_string());
+                let (k1, k2) = (key.clone(), key.clone());
+                let (mut open_n, mut deal_n, mut held_n, mut ares) = (0, 0, 0, 0.0);
+                for (f, st) in &list {
+                    match st { FlatStatus::Available => open_n += 1, FlatStatus::Transfer => deal_n += 1, FlatStatus::Owned => held_n += 1, _ => {} }
+                    ares += area_m2(&f.coords) / 100.0;
+                }
+                let total = list.len();
+                let row = row.clone();
+                view! {
+                    <button type="button" class=move || if narrowed || d.groups.get().contains(&k1) { "ad-title on" } else { "ad-title" }
+                        on:click=move |_| d.groups.update(|g| if let Some(i) = g.iter().position(|x| x == &k2) { g.remove(i); } else { g.push(k2.clone()); })>
+                        <span class="ad-title-n">
+                            <b>{t.map(|t| t.name.to_uppercase()).unwrap_or_else(|| "NO TITLE ON THE MAP".to_string())}</b>
+                            <i>{t.map(|t| t.held_line()).unwrap_or_else(|| "the map layer draws no parcel under these flats".to_string())}</i>
+                        </span>
+                        <span class="ad-title-f">{t.map(|t| t.facts()).unwrap_or_default()}</span>
+                        <span class="ad-title-c">
+                            <b>{format!("{total} flats · {ares:.0} ares")}</b>
+                            <i>
+                                {(open_n > 0).then(|| view! { <em class="open">{format!("{open_n} open")}</em> })}
+                                {(deal_n > 0).then(|| view! { <em class="deal">{format!("{deal_n} in deal")}</em> })}
+                                {(held_n > 0).then(|| view! { <em class="held">{format!("{held_n} held")}</em> })}
+                            </i>
+                        </span>
+                    </button>
+                    {move || (narrowed || d.groups.get().contains(&key)).then(|| view! {
+                        <div class="ad-title-body">
+                            <div class="ad-row head"><span>"flat"</span><span>"use"</span><span>"size"</span><span>"price in the book"</span><span>"stands"</span><span>"holder"</span><span>"wallet"</span></div>
+                            {list.clone().into_iter().map(|x| row(x)).collect_view()}
+                        </div>
                     })}
                 }
             }).collect_view()}
@@ -672,6 +724,7 @@ pub fn AdminPage() -> impl IntoView {
         focus: RwSignal::new(String::new()),
         bot: RwSignal::new(HashMap::new()),
         q: RwSignal::new(String::new()),
+        groups: RwSignal::new(Vec::new()),
         a: RwSignal::new(String::new()),
         b: RwSignal::new(String::new()),
         c: RwSignal::new(String::new()),

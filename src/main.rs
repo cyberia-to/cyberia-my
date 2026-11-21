@@ -45,6 +45,7 @@ mod signal_pages;
 mod states;
 mod studio;
 mod terms;
+mod titles;
 mod wallet;
 mod wallet_ui;
 mod world;
