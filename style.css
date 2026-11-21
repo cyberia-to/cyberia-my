@@ -6327,3 +6327,54 @@ a.pp-card:hover .pp-covers img {
 .dl-keys b {
     font-weight: 400;
 }
+
+/* CONNECT A WALLET — the wallets of this browser by name */
+.wc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+}
+.wc-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.wc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 10px 14px;
+    border: 1px solid var(--cyber-green);
+    border-radius: 7px;
+    background: rgba(0, 254, 0, 0.08);
+    color: var(--cyber-green);
+    cursor: pointer;
+}
+.wc-btn:hover:not(:disabled) {
+    background: var(--cyber-green);
+    color: #000;
+}
+.wc-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.wc-btn img {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+.wc-none {
+    font-size: 12px;
+    color: #8a8a8a;
+}
+.wc-note {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--cyber-yellow);
+}

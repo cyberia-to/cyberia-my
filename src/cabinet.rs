@@ -3,7 +3,7 @@
 //! Everything here lives in this browser; the valley's files live on IPFS.
 
 use crate::deals::{fmt_ts, load_dd, load_deals, load_jv, Deal, STEPS};
-use crate::eth::{connect, forget_eth, has_provider, load_eth};
+use crate::eth::{forget_eth, load_eth};
 use crate::globe::BASE;
 use crate::land::{load_map, FLAG_SVG};
 use crate::nav::CyberiaNav;
@@ -110,7 +110,6 @@ pub fn CabinetPage() -> impl IntoView {
         index.set(fetch_index().await);
     });
     let eth = RwSignal::new(load_eth());
-    let eth_note = RwSignal::new(String::new());
     let n = neuron();
 
     Effect::new(move |_| {
@@ -118,18 +117,6 @@ pub fn CabinetPage() -> impl IntoView {
     });
 
     let kyc_href = order_href(OrderKind::Kyc, "you", "");
-    let on_connect = move |_| {
-        eth_note.set("asking the wallet…".into());
-        leptos::task::spawn_local(async move {
-            match connect().await {
-                Ok(w) => {
-                    eth_note.set(String::new());
-                    eth.set(Some(w));
-                }
-                Err(e) => eth_note.set(e),
-            }
-        });
-    };
 
     let short_neuron = {
         let b = n.bech32.clone();
@@ -270,7 +257,7 @@ pub fn CabinetPage() -> impl IntoView {
                                         <div class="ci-body">
                                             <div class="ci-name">"ETHEREUM WALLET"</div>
                                             <div class="cabinet-mono ci-val" title=w.address.clone()>{w.short()}</div>
-                                            <div class="ci-note">{format!("{} · connected {}", w.chain_name(), fmt_ts(w.connected_ms))}</div>
+                                            <div class="ci-note">{format!("{}{} · connected {}", if w.wallet.is_empty() { String::new() } else { format!("{} · ", w.wallet) }, w.chain_name(), fmt_ts(w.connected_ms))}</div>
                                             <button type="button" class="cab-btn ghost" on:click=move |_| { forget_eth(); eth.set(None); }>"FORGET"</button>
                                         </div>
                                     </div>
@@ -280,21 +267,8 @@ pub fn CabinetPage() -> impl IntoView {
                                         <span class="ci-dot"></span>
                                         <div class="ci-body">
                                             <div class="ci-name">"ETHEREUM WALLET"</div>
-                                            <div class="ci-note">{if has_provider() { "a wallet is in this browser" } else { "no wallet in this browser yet · bank transfer needs none" }}</div>
-                                            <button type="button" class="cab-btn" on:click=on_connect>"CONNECT WALLET"</button>
-                                            <div class="ci-note">{move || eth_note.get()}</div>
-                                            {(!has_provider()).then(|| view! {
-                                                <details class="cab-how">
-                                                    <summary>"how to get a wallet · 5 minutes"</summary>
-                                                    <ol>
-                                                        <li>"on a computer: add the "<a href="https://metamask.io/download" target="_blank" rel="noopener">"MetaMask"</a>" or "<a href="https://rabby.io" target="_blank" rel="noopener">"Rabby"</a>" extension to your browser"</li>
-                                                        <li>"on a phone: install the MetaMask or Rabby app, then open cyberia.my inside the app's own browser"</li>
-                                                        <li>"create a wallet · write the 12 words on paper · nobody at the valley will ever ask for them"</li>
-                                                        <li>"come back to this page and press CONNECT WALLET · approve in the wallet"</li>
-                                                    </ol>
-                                                    <div class="ci-note">"the wallet holds your plot's token on Ethereum and signs for the DAO"</div>
-                                                </details>
-                                            })}
+                                            <div class="ci-note">"holds your plot's token on Ethereum and signs for the DAO · bank transfer needs none"</div>
+                                            <crate::wallet_ui::WalletConnect on_connected=Callback::new(move |w| eth.set(Some(w))) />
                                         </div>
                                     </div>
                                 }.into_any(),

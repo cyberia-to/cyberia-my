@@ -42,6 +42,7 @@ mod states;
 mod studio;
 mod terms;
 mod wallet;
+mod wallet_ui;
 mod world;
 
 fn main() {
