@@ -43,6 +43,7 @@ pub fn CyberiaNav(#[prop(into)] active: String, #[prop(optional, into)] on_go: O
         <div class="map-zone cyberia-nav">
             <a class=if a == "earth" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/") title="the whole earth" on:click=go("earth")>"EARTH"</a>
             <a class=if a == "map" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/map") title="the land of Cyber Valley" on:click=go("map")>"CYBER VALLEY"</a>
+            <a class=if a == "my" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/my") title="your flats: held, in deal, watching">"MY PLOTS"</a>
             <a class=if a == "cabinet" { "nav-btn nav-here" } else { "nav-btn" } href=format!("{BASE}/cabinet")>"CABINET"</a>
         </div>
     }

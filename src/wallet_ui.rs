@@ -46,7 +46,7 @@ pub fn WalletConnect(#[prop(into)] on_connected: Callback<EthWallet>) -> impl In
                 if list.is_empty() {
                     return view! {
                         <div class="wc-none">"no wallet in this browser yet"</div>
-                        <details class="cab-how" open=true>
+                        <details class="cab-how">
                             <summary>"how to get a wallet · 5 minutes"</summary>
                             <ol>
                                 <li>"on a computer: add the "<a href="https://metamask.io/download" target="_blank" rel="noopener">"MetaMask"</a>" or "<a href="https://rabby.io" target="_blank" rel="noopener">"Rabby"</a>" extension to your browser, then reload this page"</li>
