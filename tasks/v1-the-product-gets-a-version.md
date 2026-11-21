@@ -29,7 +29,7 @@ requests, and a blank where every other product states what is live.
 |---|---|
 | `Cargo.toml` | `version = "0.2.0"` — the first bump of a live product, a minor one: the console of `0.1.0` became the land console |
 | `CHANGELOG.md` | the product's history in two sections: `0.2.0` grouped by what it does, `0.1.0` as the console that was never tagged |
-| `index.html` | `<meta name="version" content="0.2.0" />` — the door states what it serves, where the cockpit reads it |
+| `index.html` | `<meta name="version" content="0.2.0" />` — the door states what it serves in its page source, where the cockpit's `served` scans for a three-number version and matches it against the latest release |
 | `src/nav.rs` | `VERSION` from `CARGO_PKG_VERSION`, shown as one line under the parked surfaces on `/menu` |
 | `tests/version.rs` | the three move together: the meta is the crate's version, the changelog opens with it, and a version is three numbers |
 

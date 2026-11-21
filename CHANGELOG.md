@@ -23,9 +23,10 @@ of leaseholds carried by signed acts, and the papers under them.
   register of two levels (the title, then the flats cut from it)
 - the cabinet — the holder's room at `/cabinet`: steps, flats, identity, help, and how to get a
   wallet when the browser has none
-- the library — the land and company documents on IPFS with their CIDs, every file a book with its
-  cover, the signable pack as PDFs on the letterhead, one Hak Sewa instrument with Annexes A–G, the
-  text in Bahasa Indonesia with fourteen second languages beside it, the content hash as a QR
+- the library — the land and company documents on IPFS with their content hashes, every file a book
+  with its cover, the signable pack as PDFs on the letterhead, one Hak Sewa instrument with Annexes
+  A–G, the text in Bahasa Indonesia with fourteen second languages beside it, the content hash as a
+  QR
 - payment — premium or upfront to the Company's bank account, the ETH rail (ETH or USDT on mainnet),
   sent against received
 - hard force — survey and media orders through `@cybervalley_hardforce_bot`: orders become tasks in
