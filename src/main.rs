@@ -25,6 +25,7 @@ mod my;
 mod nav;
 mod offers;
 mod orders;
+mod pad;
 mod pay;
 mod places;
 mod plot;

@@ -18,6 +18,7 @@ use crate::globe::{
     CITIES, SVG_Z,
 };
 use crate::nav::CyberiaNav;
+use crate::pad::NavPad;
 use crate::wallet::{load_leases, push_intent};
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
@@ -113,24 +114,7 @@ struct BBox {
     max_lat: f64,
 }
 
-/// The pad's own state, kept in the browser: "1" when the keys are hidden.
-const PAD_HIDDEN_KEY: &str = "cyberia.pad_hidden.v1";
-
-fn load_pad_hidden() -> bool {
-    web_sys::window()
-        .and_then(|w| w.local_storage().ok().flatten())
-        .and_then(|ls| ls.get_item(PAD_HIDDEN_KEY).ok().flatten())
-        .map(|s| s == "1")
-        .unwrap_or(false)
-}
-
-fn save_pad_hidden(hidden: bool) {
-    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
-        let _ = ls.set_item(PAD_HIDDEN_KEY, if hidden { "1" } else { "0" });
-    }
-}
-
-fn load_domain_positions() ->HashMap<String, [f64; 2]> {
+fn load_domain_positions() -> HashMap<String, [f64; 2]> {
     web_sys::window()
         .and_then(|w| w.local_storage().ok().flatten())
         .and_then(|ls| ls.get_item(DOMAIN_POS_KEY).ok().flatten())
@@ -540,7 +524,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     // what the map shows: the visitor's last choice, kept by the engine's side
     let layers = RwSignal::new(layers_saved());
     let layers_open = RwSignal::new(false);
-    let pad_hidden = RwSignal::new(load_pad_hidden());
     Effect::new(move |_| set_layers(layers.get()));
     // the plan comes in before the console does: it fades in over the last zoom level of the approach
     let plan_on = RwSignal::new(!planet);
@@ -1185,73 +1168,8 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         <GlobeFar cam=cam picked=picked on_place=go_place />
                         <GlobeAttrib />
 
-                        // the pad: every way to move the camera, each button with its key
-                        <div class="nav-pad globe-ui" class:np-hidden=move || pad_hidden.get() aria-label="map navigation">
-                            <button type="button" class="np-toggle"
-                                title=move || if pad_hidden.get() { "show the pad" } else { "hide the pad" }
-                                aria-expanded=move || (!pad_hidden.get()).to_string()
-                                on:click=move |_| {
-                                    let h = !pad_hidden.get_untracked();
-                                    pad_hidden.set(h);
-                                    save_pad_hidden(h);
-                                }
-                            >{move || if pad_hidden.get() { "▸ PAD" } else { "◂" }}</button>
-                            <button type="button" class="np-key" title="turn the view left · hold Q"
-                                on:pointerdown=move |_| cam_hold(3, -1.0)
-                                on:pointerup=move |_| cam_hold(3, 0.0)
-                                on:pointerleave=move |_| cam_hold(3, 0.0)
-                                on:pointercancel=move |_| cam_hold(3, 0.0)
-                            >"⟲"<kbd>"Q"</kbd></button>
-                            <button type="button" class="np-key" title="up · hold W or ↑ (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(1, 1.0)
-                                on:pointerup=move |_| cam_hold(1, 0.0)
-                                on:pointerleave=move |_| cam_hold(1, 0.0)
-                                on:pointercancel=move |_| cam_hold(1, 0.0)
-                            >"↑"<kbd>"W"</kbd></button>
-                            <button type="button" class="np-key" title="turn the view right · hold E"
-                                on:pointerdown=move |_| cam_hold(3, 1.0)
-                                on:pointerup=move |_| cam_hold(3, 0.0)
-                                on:pointerleave=move |_| cam_hold(3, 0.0)
-                                on:pointercancel=move |_| cam_hold(3, 0.0)
-                            >"⟳"<kbd>"E"</kbd></button>
-                            <button type="button" class="np-key" title="left · hold A or ← (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(0, 1.0)
-                                on:pointerup=move |_| cam_hold(0, 0.0)
-                                on:pointerleave=move |_| cam_hold(0, 0.0)
-                                on:pointercancel=move |_| cam_hold(0, 0.0)
-                            >"←"<kbd>"A"</kbd></button>
-                            <button type="button" class="np-north" title="north up · N" on:click=move |_| cam_north()>
-                                <span class="np-needle" style=move || format!("transform: rotate({:.3}rad)", cam.get().5)>"▲"</span>
-                                <kbd>"N"</kbd>
-                            </button>
-                            <button type="button" class="np-key" title="right · hold D or → (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(0, -1.0)
-                                on:pointerup=move |_| cam_hold(0, 0.0)
-                                on:pointerleave=move |_| cam_hold(0, 0.0)
-                                on:pointercancel=move |_| cam_hold(0, 0.0)
-                            >"→"<kbd>"D"</kbd></button>
-                            <button type="button" class="np-key" title="zoom out · hold −"
-                                on:pointerdown=move |_| cam_hold(2, -1.0)
-                                on:pointerup=move |_| cam_hold(2, 0.0)
-                                on:pointerleave=move |_| cam_hold(2, 0.0)
-                                on:pointercancel=move |_| cam_hold(2, 0.0)
-                            >"−"<kbd>"−"</kbd></button>
-                            <button type="button" class="np-key" title="down · hold S or ↓ (shift: fast)"
-                                on:pointerdown=move |_| cam_hold(1, -1.0)
-                                on:pointerup=move |_| cam_hold(1, 0.0)
-                                on:pointerleave=move |_| cam_hold(1, 0.0)
-                                on:pointercancel=move |_| cam_hold(1, 0.0)
-                            >"↓"<kbd>"S"</kbd></button>
-                            <button type="button" class="np-key" title="zoom in · hold +"
-                                on:pointerdown=move |_| cam_hold(2, 1.0)
-                                on:pointerup=move |_| cam_hold(2, 0.0)
-                                on:pointerleave=move |_| cam_hold(2, 0.0)
-                                on:pointercancel=move |_| cam_hold(2, 0.0)
-                            >"+"<kbd>"+"</kbd></button>
-                            <button type="button" class="np-wide" title="the whole earth · 0" on:click=move |_| { picked.set(None); cam_world(); }>"◯"<span class="np-label">" EARTH"</span><kbd>"0"</kbd></button>
-                            <button type="button" class="np-wide2" title="Cyber Valley · H" on:click=move |_| reset_cam()>"⌂"<kbd>"H"</kbd></button>
-                            <button type="button" class="np-layers" class:on=move || layers_open.get() title="layers · L" on:click=move |_| layers_open.update(|o| *o = !*o)>"▤"<span class="np-label">" LAYERS"</span><kbd>"L"</kbd></button>
-                        </div>
+                        // the pad: every way to move the camera, each button with its key (src/pad.rs)
+                        <NavPad cam=cam picked=picked layers_open=layers_open on_home=Callback::new(move |_: ()| reset_cam()) />
                         <LayersPanel layers=layers open=layers_open />
 
                         {
