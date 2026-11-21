@@ -7387,3 +7387,32 @@ button.ad-row:hover,
     border-left: 1px solid #222;
     margin-left: 2px;
 }
+
+/* the cabinet: the desk's frame, a holder's content */
+.cb-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+button.ad-tile,
+a.ad-tile {
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+button.ad-tile:hover,
+a.ad-tile:hover {
+    border-color: #555;
+}
+.ad-tile i {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cb-next {
+    align-self: flex-start;
+    min-width: 320px;
+    font-family: inherit;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
