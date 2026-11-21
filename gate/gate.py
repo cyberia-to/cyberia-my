@@ -16,6 +16,12 @@ it keeps no database and no secret but the one that signs its sessions.
     GET  /api/acts/public                                         the live listings
     GET  /api/acts/deals                                          the valley's word on every flat with a deal
 
+the map drawn by its people (gate/layers.py, specs/map.md) rides the same sessions and the same repository, under `map/`:
+
+    GET  /api/map/layers                                          the layers this address may see (public ones for a stranger)
+    GET  /api/map/layer/<id>                                      one layer whole: its features, their standing
+    POST /api/map/act      {message,signature,file} → {ok, layer} one act; `file` is the text of the file the act names
+
 --static and --dev-keys are for the bench only: the first serves a built site with the api beside it, the second
 answers POST /api/acts/dev/sign with signatures of throwaway keys so a headless browser can walk the funnel.
 """
@@ -25,12 +31,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import acts, sign  # noqa: E402
+import acts, layers, sign  # noqa: E402
 
 SESSION_S = 30 * 86400
 NONCE_S = 300
 SKEW_S = 600
 MAX_BODY = 16 * 1024
+MAX_MAP_BODY = layers.MAX_FILE + 64 * 1024
 RATE = (60, 3600)
 SIGN_IN = "cyberia.my sign in"
 
@@ -42,6 +49,9 @@ class Gate:
         (self.repo / "acts").mkdir(parents=True, exist_ok=True)
         self.state, self.errors = acts.fold(self.repo / "acts", self.root)
         self.write_public()
+        (self.repo / "map" / "acts").mkdir(parents=True, exist_ok=True)
+        self.map, map_errors = layers.fold(self.repo / "map")
+        self.errors += map_errors
 
     def git(self, *args):
         r = subprocess.run(["git", "-C", str(self.repo), *args], capture_output=True, text=True, timeout=60)
@@ -123,6 +133,46 @@ class Gate:
         return {"ok": True, "id": f["id"], "path": str(rel), "view": acts.view(self.state, who, self.root)}
 
 
+    # the map
+    def map_act(self, message, signature, file_text):
+        f = layers.fields(message)
+        at = datetime.strptime(f["at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        if abs(time.time() - at.timestamp()) > SKEW_S: raise ValueError("the act's time is more than ten minutes off")
+        who = sign.recover(message, signature)
+        data = file_text.encode() if file_text else None
+        if data is not None and len(data) > layers.MAX_FILE: raise ValueError("the file is too large")
+        base = self.repo / "map"
+        stored = layers.reader(base)
+        named = f.get("file", "")
+
+        def read(name): return data if data is not None and name == named and layers.name_of(data) == name else stored(name)
+
+        with self.lock:
+            self.limited(who.lower())
+            layers.apply(copy.deepcopy(self.map), f, who, read)   # raises when this address may not do it
+            seq = len(list((base / "acts").glob("*.md")))
+            rel = Path("map") / "acts" / f"{seq:08d}-{f['kind']}-{f['id'][:8]}.md"
+            path = self.repo / rel
+            if path.exists(): raise ValueError("the id is used")
+            added = [str(rel)]; made = [path]
+            path.write_text(layers.file_text(message, signature, who))
+            if data is not None and named and stored(named) is None:
+                fp = layers.file_path(base, named); fp.parent.mkdir(parents=True, exist_ok=True); fp.write_bytes(data)
+                added.append(str(fp.relative_to(self.repo))); made.append(fp)
+            try:
+                self.git("add", *added)
+                self.git("-c", "user.name=cyberia.my gate", "-c", "user.email=gate@cyberia.my", "commit", "-q", "-m", f"map {f['kind']}: {who[:10]} {f.get('layer', '')[:8]}")
+            except Exception:
+                for m in made: m.unlink(missing_ok=True)
+                raise
+            if self.push:
+                for _ in range(3):
+                    try: self.git("push", "-q", "origin", "HEAD:main"); break
+                    except RuntimeError: self.git("pull", "-q", "--rebase", "origin", "main")
+            self.map, _ = layers.fold(base)
+            return {"ok": True, "id": f["id"], "layer": layers.layer(self.map, f["layer"], who, stored)}
+
+
 def handler(gate, static=None, dev_keys=None):
     dev = {sign.address_of(k).lower(): k for k in (dev_keys or [])}
 
@@ -138,7 +188,7 @@ def handler(gate, static=None, dev_keys=None):
 
         def body(self):
             n = int(self.headers.get("Content-Length", "0") or 0)
-            if n > MAX_BODY: raise ValueError("too large")
+            if n > (MAX_MAP_BODY if self.path.startswith("/api/map/") else MAX_BODY): raise ValueError("too large")
             return json.loads(self.rfile.read(n) or b"{}")
 
         def do_GET(self):
@@ -150,6 +200,13 @@ def handler(gate, static=None, dev_keys=None):
                 if p == "/api/acts/me":
                     who = gate.who(self.headers.get("Authorization"))
                     return self.reply(200, gate.view(who)) if who else self.reply(401, {"error": "sign in"})
+                if p == "/api/map/layers":
+                    who = gate.who(self.headers.get("Authorization"))
+                    with gate.lock: return self.reply(200, {"layers": layers.layers(gate.map, who)})
+                if p.startswith("/api/map/layer/"):
+                    who = gate.who(self.headers.get("Authorization"))
+                    with gate.lock: l = layers.layer(gate.map, p.rsplit("/", 1)[1], who, layers.reader(gate.repo / "map"))
+                    return self.reply(200, l) if l else self.reply(404, {"error": "no such layer"})
                 if p == "/api/acts/dev" and dev: return self.reply(200, {"addresses": [sign.checksum(bytes.fromhex(a[2:])) for a in dev]})
                 if static and not p.startswith("/api/"): return self.file(p)
                 self.reply(404, {"error": "no such door"})
@@ -163,6 +220,7 @@ def handler(gate, static=None, dev_keys=None):
                     token, who = gate.sign_in(str(b.get("message", "")), str(b.get("signature", "")))
                     return self.reply(200, {"token": token, "view": gate.view(who)})
                 if p == "/api/acts/act": return self.reply(200, gate.act(str(b.get("message", "")), str(b.get("signature", ""))))
+                if p == "/api/map/act": return self.reply(200, gate.map_act(str(b.get("message", "")), str(b.get("signature", "")), b.get("file") or ""))
                 if p == "/api/acts/dev/sign" and dev:
                     k = dev.get(str(b.get("address", "")).lower())
                     if not k: raise ValueError("not a bench key")
