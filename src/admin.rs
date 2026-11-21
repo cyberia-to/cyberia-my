@@ -1,87 +1,261 @@
-//! `/admin` — the valley's and the notary's view of every deal the valley
-//! published: holder, form, money received, steps, the ground, and the
-//! recitals a notary fills from. Read-only on the web; the admin acts in
-//! the hard force chat with the bot's commands listed at the bottom.
+//! `/admin` — the desk of the company that coordinates the land: what it has
+//! to answer, and what it has to keep true. Built from what the company
+//! actually controls, one menu per thing:
+//!
+//!   NOW     what waits for the valley, oldest first — the only list that must reach zero
+//!   FLATS   the register: every flat, where it stands, who holds it
+//!   DEALS   first sales: terms, money received against money due, the seven steps
+//!   MARKET  holders' offers, their agents' mandates, accredited agents
+//!   PEOPLE  which wallet holds which flat, claims, who may sign for the valley
+//!   TRAIL   every act with its signer, and whether the machine is well
+//!
+//! Each menu is one module over the same `Desk` — `admin_now.rs`,
+//! `admin_flats.rs`, `admin_deals.rs`, `admin_market.rs`,
+//! `admin_people.rs` — and what is left here is the page itself: the shell,
+//! the menu, and the handful of parts every section shares.
+//!
+//! The page changes nothing by itself: every button is an act the admin's
+//! wallet signs and the gate commits (`gate/acts.py`).
 
-use crate::docs::{library, Item};
-use crate::land::{area_m2, load_map, FLAG_SVG};
+use crate::admin_deals::deals;
+use crate::admin_flats::flats;
+use crate::admin_market::market_menu;
+use crate::admin_now::{now, waiting};
+use crate::admin_people::{people, trail};
+use crate::globe::BASE;
+use crate::land::{load_map, FLAG_SVG};
+use crate::market::{self, short, DealRec, View};
 use crate::nav::CyberiaNav;
-use crate::orders::{fetch_index, fetch_plot_data, PlotData, PublishedDeal};
-use crate::terms::{bare_name, fmt_usd, terms};
+use crate::orders::PublishedDeal;
+use crate::pay::{due_at_signing, Form};
+use crate::sell::{enter, submit};
+use crate::terms::{bare_name, terms};
 use leptos::prelude::*;
+use std::collections::HashMap;
 
-/// Title data every lease recites — from the Company's documents.
-const TITLE: &[(&str, &str)] = &[
-    ("Landowner", "PT CYBER VALLEY ESTATE · PT PMA · Gesing, Banjar, Buleleng, Bali"),
-    ("Akta Pendirian", "No. 01 of 04-01-2022 · AHU-0001412-AH.01.01 of 07-01-2022"),
-    ("NIB", "2504220016017"),
-    ("NPWP", "53.898.326.3-902.000"),
-    ("Title", "HGB No. 00048/Gesing · 40,000 m² · parcel NIB 22040417.00276 · Surat Ukur No. 00086/2002"),
-    ("Granted", "08-02-2023 under KEPMEN ATR/KBPN No. 1339/SK-HK.02/X/2022 · expiring 02-02-2053 · AJB No. 81/2023"),
-    ("PKKPR", "No. 10082310215108014 · OSS 09-08-2023 · KBLI 68111 · 40,000 m²"),
-    ("Notices", "pt.cybervalley.estate@gmail.com · 15:00 WITA"),
+/// The seven steps of a first sale, in the order they are confirmed.
+pub const STEPS: &[(&str, &str)] = &[
+    ("request", "TERMS"),
+    ("kyc", "IDENTITY"),
+    ("dd", "DOSSIER"),
+    ("premium", "PAYMENT"),
+    ("docs", "PAPERS"),
+    ("notary", "NOTARY"),
+    ("signed", "SIGNED"),
 ];
 
-const COMMANDS: &[(&str, &str)] = &[
-    ("/deals", "every published deal"),
-    ("/hold <plot> <name>", "the name the Holder agreed to show"),
-    ("/form <plot> upfront|index [premium %]", "the form of the lease"),
-    ("/price <plot> <usd>", "the plot price when it differs from the book"),
-    ("/paid <plot> <usd> bank|eth [reference]", "a payment received · the first one reserves the flat"),
-    ("/status <plot> reserved|transfer|owned|available", "what the map paints"),
-    ("/step <plot> kyc|dd|docs|notary|signed [YYYY-MM-DD]", "a step done · signed makes the flat owned"),
+/// menu · its line · its submenus
+const MENU: &[(&str, &str, &[&str])] = &[
+    ("NOW", "what waits for the valley", &[]),
+    ("FLATS", "the register of the land", &["ALL", "OPEN", "IN DEAL", "HELD", "ON REQUEST"]),
+    ("DEALS", "first sales: terms, money, steps", &["PIPELINE", "MONEY", "OPEN A DEAL", "NOTARY SHEET"]),
+    ("MARKET", "holders' offers and agents", &["OFFERS", "MANDATES", "AGENTS"]),
+    ("PEOPLE", "who holds, who may sign", &["HOLDERS", "CLAIMS", "ADMINS"]),
+    ("TRAIL", "every act, and the machine", &["ACTS", "HEALTH"]),
 ];
 
-#[derive(Clone)]
-struct DealRow {
-    id: String,
-    name: String,
-    deal: PublishedDeal,
-    data: Option<PlotData>,
+/// The desk's signals — copied into every section.
+#[derive(Clone, Copy)]
+pub struct Desk {
+    pub view: RwSignal<Option<View>>,
+    pub busy: RwSignal<bool>,
+    pub err: RwSignal<String>,
+    pub menu: RwSignal<usize>,
+    pub sub: RwSignal<usize>,
+    /// the flat or the deal opened in place
+    pub focus: RwSignal<String>,
+    /// the hard force bot's published deals, for the flats the desk has not taken yet
+    pub bot: RwSignal<HashMap<String, PublishedDeal>>,
+    pub q: RwSignal<String>,
+    /// the titles opened in the register
+    pub groups: RwSignal<Vec<String>>,
+    // one set of fields, reused by the form in view
+    pub a: RwSignal<String>,
+    pub b: RwSignal<String>,
+    pub c: RwSignal<String>,
+    pub d: RwSignal<String>,
+    pub e: RwSignal<String>,
 }
 
-fn steps_line(d: &PublishedDeal) -> String {
-    let order = ["request", "kyc", "dd", "premium", "docs", "notary", "signed"];
-    order
-        .iter()
-        .map(|s| match d.steps.get(*s) {
-            Some(on) => format!("{s} {on}"),
-            None => format!("{s} —"),
-        })
-        .collect::<Vec<_>>()
-        .join(" · ")
+impl Desk {
+    pub fn sign(self, kind: &'static str, fields: Vec<(&'static str, String)>) {
+        submit(self.view, self.busy, self.err, kind, fields);
+    }
+
+    /// Several acts in one press, in order, each with its own signature — the
+    /// next one asked for only after the gate has taken the one before, and
+    /// the first refusal stops the rest. A press that carries a whole record
+    /// across is this: an act never says more than one thing.
+    pub fn sign_all(self, acts: Vec<(&'static str, Vec<(&'static str, String)>)>) {
+        let (view, busy, err) = (self.view, self.busy, self.err);
+        busy.set(true);
+        err.set(String::new());
+        leptos::task::spawn_local(async move {
+            for (kind, fields) in acts {
+                match market::act(kind, &fields).await {
+                    Ok(v) => view.set(Some(v)),
+                    Err(e) => {
+                        err.set(e);
+                        break;
+                    }
+                }
+            }
+            busy.set(false);
+        });
+    }
+
+    pub fn go(self, menu: usize, sub: usize) {
+        self.menu.set(menu);
+        self.sub.set(sub);
+        self.focus.set(String::new());
+        self.clear();
+    }
+
+    /// Open a flat or a deal in place — or close it again, when it is the
+    /// one already open.
+    pub fn look(self, id: &str) {
+        let same = self.focus.get_untracked() == id;
+        self.focus.set(if same { String::new() } else { id.to_string() });
+        self.clear();
+    }
+
+    /// The five shared fields belong to whatever is open: they are emptied
+    /// whenever the focus moves, so an amount or an address typed against
+    /// one flat is never signed against the next.
+    pub fn clear(self) {
+        for s in [self.a, self.b, self.c, self.d, self.e] {
+            s.set(String::new());
+        }
+    }
+}
+
+pub fn today() -> String {
+    let d = js_sys::Date::new_0();
+    format!("{:04}-{:02}-{:02}", d.get_utc_full_year(), d.get_utc_month() + 1, d.get_utc_date())
+}
+
+pub fn name_of(id: &str) -> String {
+    load_map().phase0.iter().find(|f| f.id == id).map(|f| bare_name(&f.name)).unwrap_or_else(|| id.to_uppercase())
+}
+
+/// The money a deal is due at signing: the price it is counted at — the
+/// deal's own, or the lease book's — under its form (`crate::pay`).
+pub fn due_of(d: &DealRec) -> Option<f64> {
+    let price = d.price_usd.or_else(|| terms(&d.plot).and_then(|t| t.price()))?;
+    let form = if d.form == "index" { Form::Index } else { Form::Upfront };
+    Some(due_at_signing(price, form, d.premium_pct.unwrap_or(100)))
+}
+
+/// A deal still in motion: neither signed nor closed. A closed deal keeps
+/// its record and its ledger — the gate publishes it as `available` and the
+/// flat is open again — but it waits for nothing.
+pub fn in_motion(d: &DealRec) -> bool {
+    d.status != "owned" && d.status != "available"
+}
+
+pub fn next_step(d: &DealRec) -> Option<(&'static str, &'static str)> {
+    STEPS.iter().find(|(k, _)| !d.steps.contains_key(*k)).copied()
+}
+
+/// A button that signs one act.
+pub fn act(d: Desk, label: impl Into<String>, class: &'static str, kind: &'static str, fields: Vec<(&'static str, String)>) -> impl IntoView {
+    let label = label.into();
+    view! {
+        <button type="button" class=class disabled=move || d.busy.get() on:click=move |_| d.sign(kind, fields.clone())>{label}</button>
+    }
+}
+
+/// REJECT — the act carries the reason typed beside the list, read at the
+/// press. Without it the holder's own page prints a bare "not approved" or
+/// "not confirmed" (`src/sell.rs`), which answers nothing.
+pub fn reject(d: Desk, target: String, reason: RwSignal<String>) -> impl IntoView {
+    view! {
+        <button type="button" class="dl-mini" disabled=move || d.busy.get()
+            on:click=move |_| d.sign("reject", vec![("target", target.clone()), ("reason", reason.get_untracked().trim().to_string())])>"REJECT"</button>
+    }
+}
+
+/// The field those REJECT buttons read.
+pub fn why(sig: RwSignal<String>) -> impl IntoView {
+    view! { <div class="sl-grid">{field("the reason you give when rejecting", "not in the lease book", sig)}</div> }
+}
+
+pub fn field(label: &'static str, hint: &'static str, sig: RwSignal<String>) -> impl IntoView {
+    view! {
+        <label class="sl-field">
+            <span>{label}</span>
+            <input type="text" placeholder=hint prop:value=move || sig.get() on:input=move |ev| sig.set(event_target_value(&ev)) />
+        </label>
+    }
+}
+
+pub fn empty(text: &'static str) -> AnyView {
+    view! { <p class="ad-empty">{text}</p> }.into_any()
 }
 
 #[component]
 pub fn AdminPage() -> impl IntoView {
-    Effect::new(move |_| {
-        document().set_title("Cyberia — admin");
-    });
-    let rows = LocalResource::new(|| async move {
-        let index = fetch_index().await;
-        let map = load_map();
-        let mut out = Vec::new();
-        let mut ids: Vec<_> = index.keys().cloned().collect();
-        ids.sort();
-        for id in ids {
-            let deal = index[&id].clone();
-            let data = fetch_plot_data(&id).await;
-            let name = map
-                .phase0
-                .iter()
-                .find(|f| f.id == id)
-                .map(|f| bare_name(&f.name))
-                .unwrap_or_else(|| id.to_uppercase());
-            out.push(DealRow { id, name, deal, data });
+    document().set_title("Cyberia — the desk");
+    let d = Desk {
+        view: RwSignal::new(None),
+        busy: RwSignal::new(false),
+        err: RwSignal::new(String::new()),
+        menu: RwSignal::new(0),
+        sub: RwSignal::new(0),
+        focus: RwSignal::new(String::new()),
+        bot: RwSignal::new(HashMap::new()),
+        q: RwSignal::new(String::new()),
+        groups: RwSignal::new(Vec::new()),
+        a: RwSignal::new(String::new()),
+        b: RwSignal::new(String::new()),
+        c: RwSignal::new(String::new()),
+        d: RwSignal::new(String::new()),
+        e: RwSignal::new(String::new()),
+    };
+    leptos::task::spawn_local(async move {
+        if let Some(v) = market::fetch_me().await {
+            d.view.set(Some(v));
         }
-        out
     });
-    let map = load_map();
-    let inventory: Vec<Item> = library()
-        .iter()
-        .filter(|s| s.key == "land")
-        .flat_map(|s| s.items.clone())
-        .collect();
+    leptos::task::spawn_local(async move {
+        let bot: Option<HashMap<String, PublishedDeal>> = crate::orders::fetch_bot_index().await;
+        d.bot.set(bot.unwrap_or_default());
+    });
+
+    let badge = move |i: usize| -> Option<usize> {
+        let v = d.view.get()?;
+        let n = match i {
+            0 => waiting(&v),
+            2 => v.deals.iter().filter(|x| in_motion(x)).count(),
+            3 => v.listings.iter().filter(|l| l.status == "pending").count(),
+            4 => v.claims.iter().filter(|c| c.status == "pending").count(),
+            _ => 0,
+        };
+        (n > 0).then_some(n)
+    };
+
+    let body = move || {
+        let Some(v) = d.view.get() else {
+            return view! {
+                <p class="dl-note">"the desk opens to the wallet of the root or of an admin. connect it and sign one line; what you may do follows from the address."</p>
+                <crate::wallet_ui::WalletConnect on_connected=Callback::new(move |w| enter(d.view, d.busy, d.err, w)) />
+            }.into_any();
+        };
+        if !v.is_admin() {
+            return view! {
+                <p class="dl-note warn">{format!("{} is not an admin of the valley. the root names admins.", short(&v.address))}</p>
+                <button type="button" class="dl-mini" on:click=move |_| { market::sign_out(); crate::eth::forget_eth(); d.view.set(None); }>"SIGN OUT"</button>
+            }.into_any();
+        };
+        match d.menu.get() {
+            0 => now(d, &v),
+            1 => flats(d, &v),
+            2 => deals(d, &v),
+            3 => market_menu(d, &v),
+            4 => people(d, &v),
+            _ => trail(d, &v),
+        }
+    };
 
     view! {
         <div class="page-shell cities-shell plot-shell">
@@ -90,123 +264,58 @@ pub fn AdminPage() -> impl IntoView {
                     <div class="header-row1">
                         <div class="logo-zone">
                             <h1 class="logo">
-                                <a href="/cities" class="brand-flag" title="home" inner_html=FLAG_SVG></a>
+                                <a href=format!("{BASE}/") class="brand-flag" title="home" inner_html=FLAG_SVG></a>
                                 <span style="color: var(--cyber-green);">"cyber"</span>
                                 <span style="color: var(--cyber-green); margin: 0 1px;">"•"</span>
                                 <span style="color: #fff;">"ia"</span>
                             </h1>
                         </div>
-                        <CyberiaNav active="" />
+                        <CyberiaNav active="cabinet" />
                     </div>
                 </div>
             </div>
-            <div class="cities-stage plot-stage-wrap">
-                <div style="max-width: 1100px; margin: 12px auto 0; padding: 0 12px;"><crate::market_admin::MarketDesk /></div>
-                <div class="cities-hero plot-hero">
-                    <div>
-                        <div class="cities-kicker">"VALLEY · NOTARY · ADMIN"</div>
-                        <h2 class="cities-title">"Deals"</h2>
-                        <p class="cities-lead">
-                            "What the valley published for every flat with a deal: holder, form, money received, steps, the ground — and the recitals the notary fills from. Actions go through the hard force bot."
-                        </p>
+            <div class="dl ad" style="--ink: #fcf000;">
+                <aside class="dl-track">
+                    <a class="dl-back" href=format!("{BASE}/map")>"← the valley map"</a>
+                    <div class="dl-flat">"The desk"</div>
+                    <div class="dl-flat-s">{move || match d.view.get() {
+                        Some(v) if v.is_admin() => format!("{} · {}", if v.role == "root" { "root" } else { "admin" }, short(&v.address)),
+                        _ => "the company that coordinates the land · every answer is a signature".to_string(),
+                    }}</div>
+                    <div class="dl-steps" style="margin-top: 12px;">
+                        {MENU.iter().enumerate().map(|(i, (title, line, _))| view! {
+                            <button type="button" class=move || if d.menu.get() == i { "dl-step on" } else { "dl-step" } on:click=move |_| d.go(i, 0)>
+                                <span class=move || if badge(i).is_some() { "dl-step-n hot" } else { "dl-step-n" }>{move || badge(i).map(|n| n.to_string()).unwrap_or_else(|| "·".to_string())}</span>
+                                <span class="dl-step-c"><b>{*title}</b><i>{*line}</i></span>
+                            </button>
+                        }).collect_view()}
                     </div>
-                </div>
-                <div class="library">
-                    {move || match rows.get() {
-                        None => view! { <p class="docs-empty">"reading the register…"</p> }.into_any(),
-                        Some(list) if list.is_empty() => view! { <p class="docs-empty">"no published deal yet — the first /paid or /status in the hard force chat opens the register"</p> }.into_any(),
-                        Some(list) => list.into_iter().map(|r| {
-                            let book = terms(&r.id);
-                            let drawn = map.phase0.iter().find(|f| f.id == r.id).map(|f| area_m2(&f.coords)).unwrap_or(0.0);
-                            let survey = r.data.as_ref().and_then(|d| d.survey.as_ref()).map(|s| format!("{:.2} m² surveyed {}", s.m2, s.on))
-                                .or_else(|| book.and_then(|t| t.measured_m2).map(|m| format!("{m:.2} m² surveyed · lease book")))
-                                .unwrap_or_else(|| format!("{:.0} m² in plan · no survey", drawn));
-                            let media = r.data.as_ref().map(|d| d.media.len()).unwrap_or(0);
-                            let price = r.deal.price_usd.or_else(|| book.and_then(|t| t.price()));
-                            let premium = match (r.deal.form.as_str(), r.deal.premium_pct) {
-                                ("upfront", _) => "100% · upfront".to_string(),
-                                ("index", Some(p)) => format!("{p}% · the rest by the century index"),
-                                _ => "—".to_string(),
-                            };
-                            let href = format!("/plot/{}", r.id);
-                            view! {
-                                <section class="plot-card">
-                                    <div class="cyberia-panel-h">
-                                        <span class="panel-kicker"><a href=href style="color: inherit; text-decoration: none;">{r.name.clone()}</a></span>
-                                        <span class="panel-sub">{format!("{} · {}", r.deal.status.to_uppercase(), r.deal.line())}</span>
-                                    </div>
-                                    <div class="cabinet-grid">
-                                        <div class="cabinet-cell">
-                                            <div class="deal-now-step">"DEAL"</div>
-                                            <div class="pay-row"><span class="pay-k">"holder"</span><span class="pay-v">{if r.deal.holder.is_empty() { "—".to_string() } else { r.deal.holder.clone() }}</span></div>
-                                            <div class="pay-row"><span class="pay-k">"price"</span><span class="pay-v">{price.map(fmt_usd).unwrap_or_else(|| "—".into())}</span></div>
-                                            <div class="pay-row"><span class="pay-k">"premium"</span><span class="pay-v">{premium}</span></div>
-                                            <div class="pay-row"><span class="pay-k">"received"</span><span class="pay-v">{fmt_usd(r.deal.paid_usd)}</span></div>
-                                            <div class="deal-now-since">{steps_line(&r.deal)}</div>
-                                        </div>
-                                        <div class="cabinet-cell">
-                                            <div class="deal-now-step">"PAYMENTS"</div>
-                                            {if r.deal.payments.is_empty() {
-                                                view! { <p class="docs-empty">"none received"</p> }.into_any()
-                                            } else {
-                                                r.deal.payments.iter().map(|p| view! {
-                                                    <div class="deal-event">
-                                                        <span class="deal-event-step">{p.method.to_uppercase()}</span>
-                                                        <span class="deal-event-note">{format!("{} · {}", fmt_usd(p.usd), p.reference)}</span>
-                                                        <span class="deal-event-ts">{p.on.clone()}</span>
-                                                    </div>
-                                                }).collect_view().into_any()
-                                            }}
-                                        </div>
-                                        <div class="cabinet-cell">
-                                            <div class="deal-now-step">"RECITALS · FOR THE NOTARY"</div>
-                                            <div class="pay-row"><span class="pay-k">"plot"</span><span class="pay-v">{format!("{} on the estate map · Annex B", r.name.clone())}</span></div>
-                                            <div class="pay-row"><span class="pay-k">"area"</span><span class="pay-v">{survey}</span></div>
-                                            <div class="pay-row"><span class="pay-k">"form and price"</span><span class="pay-v">{format!("{} · premium {}", price.map(fmt_usd).unwrap_or_else(|| "—".into()), r.deal.premium_pct.map(|p| format!("{p}%")).unwrap_or_else(|| "100%".into()))}</span></div>
-                                            <div class="pay-row"><span class="pay-k">"term"</span><span class="pay-v">"25 years from signing · within the Title's 02-02-2052"</span></div>
-                                            <div class="pay-row"><span class="pay-k">"media"</span><span class="pay-v">{format!("{media} files on the page")}</span></div>
-                                            {TITLE.iter().map(|(k, v)| view! {
-                                                <div class="pay-row"><span class="pay-k">{*k}</span><span class="pay-v">{*v}</span></div>
-                                            }).collect_view()}
-                                        </div>
-                                    </div>
-                                </section>
-                            }
-                        }).collect_view().into_any(),
-                    }}
-
-                    <section class="plot-card">
-                        <div class="cyberia-panel-h">
-                            <span class="panel-kicker">"DUE DILIGENCE PACK · ANNEX C"</span>
-                            <span class="panel-sub">"the inventory, with the file on IPFS where pinned"</span>
-                        </div>
-                        <div class="docs-list">
-                            {inventory.into_iter().map(|it| {
-                                let meta = it.meta();
-                                match it.href() {
-                                    Some(h) => view! {
-                                        <div class="docs-row"><a class="doc-dl" href=h target="_blank" rel="noopener"><span class="doc-name">{it.title.clone()}</span><span class="doc-meta">{meta}</span></a></div>
-                                    }.into_any(),
-                                    None => view! {
-                                        <div class="docs-row"><span class="doc-dl doc-pending"><span class="doc-name">{it.title.clone()}</span><span class="doc-meta">{meta}</span></span></div>
-                                    }.into_any(),
-                                }
-                            }).collect_view()}
-                        </div>
-                    </section>
-
-                    <section class="plot-card">
-                        <div class="cyberia-panel-h">
-                            <span class="panel-kicker">"COMMANDS"</span>
-                            <span class="panel-sub">"in the hard force chat · the bot writes the register"</span>
-                        </div>
-                        <div class="docs-list">
-                            {COMMANDS.iter().map(|(c, what)| view! {
-                                <div class="docs-row"><span class="doc-dl"><span class="doc-name cabinet-mono">{*c}</span><span class="doc-meta">{*what}</span></span></div>
-                            }).collect_view()}
-                        </div>
-                    </section>
-                </div>
+                    {move || d.view.get().is_some().then(|| view! {
+                        <button type="button" class="dl-withdraw" style="margin-top: auto;" on:click=move |_| { market::sign_out(); crate::eth::forget_eth(); d.view.set(None); }>"sign out"</button>
+                    })}
+                </aside>
+                <section class="dl-panel">
+                    <div class="dl-panel-h">
+                        <span class="dl-panel-n">{move || MENU[d.menu.get()].1.to_uppercase()}</span>
+                        <h2>{move || MENU[d.menu.get()].0}</h2>
+                        {move || {
+                            let subs = MENU[d.menu.get()].2;
+                            (!subs.is_empty()).then(|| view! {
+                                <div class="ad-subs" role="tablist">
+                                    {subs.iter().enumerate().map(|(i, s)| view! {
+                                        <button type="button" role="tab" class=move || if d.sub.get() == i { "ad-sub on" } else { "ad-sub" }
+                                            on:click=move |_| { let m = d.menu.get_untracked(); d.go(m, i); }>{*s}</button>
+                                    }).collect_view()}
+                                </div>
+                            })
+                        }}
+                    </div>
+                    <div class="dl-body ad-body">
+                        {move || { let e = d.err.get(); (!e.is_empty()).then(|| view! { <p class="dl-note warn">{e}</p> }) }}
+                        {move || d.busy.get().then(|| view! { <p class="dl-note">"waiting for your wallet…"</p> })}
+                        {body}
+                    </div>
+                </section>
             </div>
         </div>
     }

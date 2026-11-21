@@ -105,3 +105,35 @@ fn the_offer_text_is_frozen_and_the_signature_covers_exactly_it() {
     };
     assert!(!signal::verify_document(&moved.canonical(), &forged));
 }
+
+/// `due_at_signing` is the one rule for the money a flat is due at signing:
+/// the offer of record prints it as `at_signing_usd`, and the desk counts
+/// "still due at signing" with it (`src/admin.rs`, `due_of`). The index form
+/// is the branch no bench has walked — a premium of the price, not the whole
+/// of it — so it is held here.
+#[test]
+fn the_money_due_at_signing_is_the_premium_under_the_index_form() {
+    use pay::{due_at_signing, share_at_signing};
+    // the index form: the premium at signing, and nothing of the remainder the rent carries
+    assert_eq!(share_at_signing(Form::Index, 30), 30);
+    assert_eq!(due_at_signing(26_500.0, Form::Index, 30), 7_950.0);
+    assert_eq!(due_at_signing(120_000.0, Form::Index, 30), an_offer().at_signing());
+    // upfront is the whole price, whatever premium rides along with it
+    assert_eq!(share_at_signing(Form::Upfront, 30), 100);
+    assert_eq!(due_at_signing(26_500.0, Form::Upfront, 30), 26_500.0);
+    // a deal that names no premium is counted at the whole price; past 100 is still the whole price
+    assert_eq!(due_at_signing(26_500.0, Form::Index, 100), 26_500.0);
+    assert_eq!(due_at_signing(26_500.0, Form::Index, 140), 26_500.0);
+    // and nothing is due on a price of nothing
+    assert_eq!(due_at_signing(0.0, Form::Index, 30), 0.0);
+    // the offer of record holds no second copy of the rule: it is the same call,
+    // so it clamps where pay clamps — a premium past 100 is the whole price, once
+    let mut hot = an_offer();
+    hot.premium_pct = 140;
+    assert_eq!(hot.share(), share_at_signing(Form::Index, 140));
+    assert_eq!(hot.at_signing(), due_at_signing(120_000.0, Form::Index, 140));
+    assert_eq!(hot.at_signing(), 120_000.0);
+    let upfront = Offer { form: Form::Upfront, premium_pct: 30, ..an_offer() };
+    assert_eq!(upfront.share(), share_at_signing(Form::Upfront, 30));
+    assert_eq!(upfront.at_signing(), due_at_signing(120_000.0, Form::Upfront, 30));
+}

@@ -12,11 +12,23 @@ pub fn WalletConnect(#[prop(into)] on_connected: Callback<EthWallet>) -> impl In
     let found = RwSignal::new(Vec::<WalletInfo>::new());
     let note = RwSignal::new(String::new());
     let busy = RwSignal::new(false);
-    // wallets announce themselves a moment after they are asked: look now, and twice more
+    // wallets announce themselves a moment after they are asked, and some only put themselves on the
+    // page later without announcing: look now, soon after, and then keep looking while none is found
     discover();
     found.set(wallets());
-    for ms in [350u64, 1500] {
-        set_timeout(move || { let _ = found.try_set(wallets()); }, Duration::from_millis(ms));
+    set_timeout(move || { let _ = found.try_set(wallets()); }, Duration::from_millis(350));
+    if let Ok(tick) = set_interval_with_handle(
+        move || {
+            if found.try_get_untracked().map(|f| f.is_empty()).unwrap_or(false) {
+                let now = wallets();
+                if !now.is_empty() {
+                    let _ = found.try_set(now);
+                }
+            }
+        },
+        Duration::from_millis(1200),
+    ) {
+        on_cleanup(move || tick.clear());
     }
     // and whenever one announces itself later — an extension that wakes up after the page
     let late = window_event_listener_untyped("eip6963:announceProvider", move |_| {

@@ -2461,6 +2461,13 @@ pub fn GlobeFar(
                     </span>
                 </button>
             }).collect_view()}
+            <a class="globe-city sell" href=format!("{BASE}/sell") style="text-decoration: none;">
+                <span class="gc-dot live"></span>
+                <span class="gc-copy">
+                    <span class="gc-name">"Sell or sublease your plot"</span>
+                    <span class="gc-sub">"holders and their agents · put a flat on the map"</span>
+                </span>
+            </a>
             <button
                 type="button"
                 class=move || if founding.get() { "globe-city found on" } else { "globe-city found" }

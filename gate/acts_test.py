@@ -136,6 +136,50 @@ class ActsTest(unittest.TestCase):
         self.assertEqual(len(acts.view(self.m.state, ADMIN, ROOT)["listings"]), 1)
 
 
+class DealsTest(unittest.TestCase):
+    def setUp(self):
+        self.m = Market()
+        self.m.act(ROOT_K, "role", address=ADMIN, role="admin", name="valley desk")
+
+    def test_only_an_admin_writes_a_flats_deal(self):
+        for kind, f in (("deal", dict(status="reserved")), ("payment", dict(usd="100")), ("step", dict(step="kyc"))):
+            with self.assertRaises(ValueError): self.m.act(HOLDER_K, kind, plot="sinwood-7", **f)
+        self.assertEqual(self.m.state["deals"], {})
+
+    def test_the_first_money_reserves_the_flat_and_payments_add_up(self):
+        self.m.act(ADMIN_K, "payment", plot="sinwood-7", usd="7950", method="bank", reference="LEASE SINWOOD-7 PREMIUM 30%", on="2026-11-18")
+        d = acts.public_deals(self.m.state)["sinwood-7"]
+        self.assertEqual((d["status"], d["paid_usd"], d["steps"]["premium"], d["steps"]["request"]), ("reserved", 7950.0, "2026-11-18", "2026-11-18"))
+        self.m.act(ADMIN_K, "payment", plot="sinwood-7", usd="18550.50", method="eth")
+        d = acts.public_deals(self.m.state)["sinwood-7"]
+        self.assertEqual((d["paid_usd"], len(d["payments"])), (26500.5, 2))
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "payment", plot="sinwood-7", usd="0")
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "payment", plot="sinwood-7", usd="5", method="cash")
+
+    def test_terms_steps_and_the_signature_that_makes_it_owned(self):
+        self.m.act(ADMIN_K, "deal", plot="sinwood-7", holder="Ana", form="index", premium_pct="30", price_usd="26500")
+        self.m.act(ADMIN_K, "step", plot="sinwood-7", step="kyc", on="2026-11-19")
+        d = acts.public_deals(self.m.state)["sinwood-7"]
+        self.assertEqual((d["status"], d["holder"], d["form"], d["premium_pct"], d["price_usd"], d["steps"]["kyc"]), ("reserved", "Ana", "index", 30, 26500.0, "2026-11-19"))
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "step", plot="sinwood-7", step="dance")
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "deal", plot="sinwood-7", status="sold")
+        self.m.act(ADMIN_K, "step", plot="sinwood-7", step="signed")
+        self.assertEqual(acts.public_deals(self.m.state)["sinwood-7"]["status"], "owned")
+
+    def test_available_closes_the_deal_and_keeps_the_money_it_received(self):
+        self.m.act(ADMIN_K, "deal", plot="sinwood-7", status="transfer", holder="Ana")
+        self.m.act(ADMIN_K, "payment", plot="sinwood-7", usd="7950", on="2026-11-18")
+        self.m.act(ADMIN_K, "deal", plot="sinwood-7", status="available")
+        # the flat is published as open again — the site frees it on any status outside reserved, transfer
+        # and owned — and the ledger of what was received is still there to be read and to be answered
+        d = acts.public_deals(self.m.state)["sinwood-7"]
+        self.assertEqual((d["status"], d["holder"], d["paid_usd"], len(d["payments"])), ("available", "Ana", 7950.0, 1))
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "deal", plot="sinwood-8", status="available")
+        log = acts.view(self.m.state, ADMIN, ROOT)["log"]
+        self.assertEqual([(l["kind"], l["what"]) for l in log[:2]], [("deal", "sinwood-7"), ("payment", "sinwood-7")])
+        self.assertNotIn("log", acts.view(self.m.state, HOLDER, ROOT))   # the trail is the desk's
+
+
 class FilesTest(unittest.TestCase):
     def test_files_fold_to_the_same_state_and_a_forged_file_is_named(self):
         with tempfile.TemporaryDirectory() as d:

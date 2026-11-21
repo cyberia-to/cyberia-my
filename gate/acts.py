@@ -34,6 +34,13 @@ kinds and who may sign them:
     reject    an admin                               target (a listing or a claim) · reason
     withdraw  the listing's signer, the flat's       listing
               holder, or an admin
+
+the company's side of a first sale — what the valley publishes about a flat's deal — is three more acts, an admin's:
+
+    deal      an admin        plot · status reserved|transfer|owned|available · holder · form upfront|index ·
+                              premium_pct · price_usd        opens or amends a flat's deal; `available` closes it
+    payment   an admin        plot · usd · method bank|eth · reference · on · note     money received; the first one reserves the flat
+    step      an admin        plot · step request|kyc|dd|premium|docs|notary|signed · on    a step confirmed; `signed` makes the flat owned
 """
 import json, re, sys
 from datetime import datetime, timezone
@@ -43,7 +50,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sign  # noqa: E402
 
 HEAD = "cyberia.my act"
-KINDS = ("role", "profile", "claim", "holder", "mandate", "revoke", "listing", "approve", "reject", "withdraw")
+KINDS = ("role", "profile", "claim", "holder", "mandate", "revoke", "listing", "approve", "reject", "withdraw", "deal", "payment", "step")
+DEAL_STEPS = ("request", "kyc", "dd", "premium", "docs", "notary", "signed")
+DEAL_STATUS = ("reserved", "transfer", "owned", "available")
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 ADDR = re.compile(r"^0x[0-9a-fA-F]{40}$")
 PLOT = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
@@ -88,7 +97,13 @@ def load_flats(map_json):
 
 
 def empty():
-    return {"roles": {}, "profiles": {}, "holders": {}, "claims": {}, "mandates": {}, "listings": {}, "ids": []}
+    return {"roles": {}, "profiles": {}, "holders": {}, "claims": {}, "mandates": {}, "listings": {}, "deals": {}, "log": [], "ids": []}
+
+
+def _deal(state, plot, at):
+    """the flat's deal as the valley publishes it, opened on first touch."""
+    return state["deals"].setdefault(plot, {"plot": plot, "status": "", "holder": "", "form": "", "premium_pct": None, "price_usd": None,
+                                            "paid_usd": 0.0, "payments": [], "steps": {}, "opened": at, "updated": at})
 
 
 def role_of(state, addr, root):
@@ -219,7 +234,55 @@ def apply(state, f, signer, root):
         holder = state["holders"].get(l["plot"], {}).get("address", "").lower()
         if me not in (l["by"].lower(), holder) and not is_admin(state, signer, root): raise ValueError("the signer, the holder or an admin withdraws")
         l["status"] = "withdrawn"; l["reason"] = f.get("reason", "")[:300]
+    elif kind in ("deal", "payment", "step"):
+        _need(f, "plot")
+        if not is_admin(state, signer, root): raise ValueError("only an admin writes a flat's deal")
+        if not PLOT.match(f["plot"]): raise ValueError("not a flat")
+        if FLATS is not None and f["plot"] not in FLATS: raise ValueError("no such flat in the valley")
+        on = f.get("on") or day
+        if not DAY.match(on): raise ValueError("on is a day, YYYY-MM-DD")
+        if kind == "deal":
+            status = f.get("status", "")
+            if status and status not in DEAL_STATUS: raise ValueError("a status is reserved, transfer, owned or available")
+            if f.get("form") and f["form"] not in ("upfront", "index"): raise ValueError("a form is upfront or index")
+            if f.get("premium_pct") and not re.fullmatch(r"\d{1,3}", f["premium_pct"]): raise ValueError("the premium is a percent")
+            price = _money(f["price_usd"], "the price") if f.get("price_usd") else None
+            if status == "available":   # the deal is closed and the flat open again — the record, its payments and its steps stay
+                d = state["deals"].get(f["plot"])
+                if d is None: raise ValueError("no deal is open on this flat")
+                d["status"] = "available"; d["updated"] = at
+            else:
+                d = _deal(state, f["plot"], at)
+                if status: d["status"] = status
+                if "holder" in f: d["holder"] = f["holder"][:80]
+                if f.get("form"): d["form"] = f["form"]
+                if f.get("premium_pct"): d["premium_pct"] = min(int(f["premium_pct"]), 100)
+                if price is not None: d["price_usd"] = price
+                if not d["status"]: d["status"] = "reserved"
+                d["steps"].setdefault("request", on); d["updated"] = at
+        elif kind == "payment":
+            _need(f, "usd")
+            usd = _money(f["usd"], "the payment")
+            if usd <= 0: raise ValueError("a payment is more than nothing")
+            if f.get("method", "bank") not in ("bank", "eth"): raise ValueError("a method is bank or eth")
+            d = _deal(state, f["plot"], at)
+            d["payments"].append({"on": on, "usd": usd, "method": f.get("method", "bank"), "reference": f.get("reference", "")[:120], "note": f.get("note", "")[:200]})
+            d["paid_usd"] = round(sum(p["usd"] for p in d["payments"]), 2)
+            if not d["status"]: d["status"] = "reserved"   # the first money reserves the flat
+            d["steps"].setdefault("request", on); d["steps"].setdefault("premium", on); d["updated"] = at
+        else:
+            _need(f, "step")
+            if f["step"] not in DEAL_STEPS: raise ValueError("a step is one of " + ", ".join(DEAL_STEPS))
+            d = _deal(state, f["plot"], at)
+            d["steps"][f["step"]] = on
+            if f["step"] == "signed": d["status"] = "owned"
+            elif not d["status"]: d["status"] = "reserved"
+            d["updated"] = at
     state["ids"].append(f["id"])
+    # the trail an admin reads: what was done, to what, by whom
+    what = f.get("plot") or f.get("listing") or f.get("target") or f.get("mandate") or f.get("address") or f.get("name") or ""
+    detail = " · ".join(f"{k} {f[k]}" for k in ("status", "step", "usd", "deal", "price_usd", "role", "scope", "reason") if f.get(k))
+    state["log"].append({"n": len(state["ids"]), "kind": kind, "by": signer, "at": at, "what": what, "detail": detail[:160]})
     return state
 
 
@@ -267,6 +330,13 @@ def public(state):
     return {"listings": sorted(rows, key=lambda r: r["price_usd"]), "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
+def public_deals(state):
+    """the valley's word on every flat with a deal, in the shape the site already reads (`/plot-data/index.json`):
+    status, the holder's shown name, the form, the money received, the steps by date."""
+    return {p: {k: d[k] for k in ("status", "holder", "form", "premium_pct", "price_usd", "paid_usd", "payments", "steps", "updated")}
+            for p, d in state["deals"].items() if d["status"]}
+
+
 def view(state, addr, root):
     """what one address sees of the market: everything for an admin, its own flats, mandates, listings and claims otherwise."""
     me = addr.lower(); role = role_of(state, addr, root)
@@ -274,6 +344,7 @@ def view(state, addr, root):
     if role in ("root", "admin"):
         out.update({k: list(state[k].values()) for k in ("holders", "claims", "mandates", "listings")})
         out["roles"] = list(state["roles"].values()); out["profiles"] = list(state["profiles"].values())
+        out["deals"] = list(state["deals"].values()); out["log"] = state["log"][-200:][::-1]
         return out
     held = {p for p, h in state["holders"].items() if h["address"].lower() == me}
     out["holders"] = [h for p, h in state["holders"].items() if p in held]
