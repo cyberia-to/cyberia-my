@@ -5,15 +5,15 @@ they are changed, how a point or a boundary is verified by someone standing on i
 and how all of it moves onto soft3 without changing shape. The reference
 implementation is `gate/layers.py` (the fold and its rights), `src/atlas.rs` (the
 model in the browser) and `src/draw.rs` (the tools). What is planned and in what
-order is `projects/map.md`.
+order is `projects/cartography.md`.
 
 ## 1. What it is for
 
-The valley's map was kept in Google My Maps. It holds seven layers and 412
-features, as the file itself measures; it has no snapping, no shared boundaries,
-no height, no history, no offline, no API, and nothing in it is anyone's signed
-word. This replaces it with the same globe the site already shows, drawn on by
-its people:
+The valley's map was kept in Google My Maps (seven layers, 412 features on
+2026-11-21). My Maps allows ten layers to a map, has no snapping,
+no shared boundaries, no height, no history, no offline, no API, and nothing in it
+is anyone's signed word. This replaces it with the same globe the site already
+shows, drawn on by its people:
 
 - a person draws on layers of their own — a point, a line, a plot, a building;
 - a layer is shared by its owner with editors, or opened to everyone;
@@ -117,7 +117,7 @@ feature: `kind`, `area_m2`, `length_m`, `height_m`, `confirm`, `dispute`, `on_sp
 
 Conditions are pure: the same feature and the same definition give the same colour
 everywhere. This is the first rung of programmable layers; the next ones are in
-`projects/map.md` (computed props, filters, layers derived from other layers).
+`projects/cartography.md` (computed props, filters, layers derived from other layers).
 
 ## 4. Verification on the spot
 
@@ -150,7 +150,7 @@ signed this reading, with this reported accuracy, at this time. It does not prov
 the person was there: a position can be spoofed. The standing of a boundary
 therefore comes from several signers and from who they are — the holder, the
 neighbours across each line, a surveyor — and never from one reading. Stronger
-evidence is planned and named in `projects/map.md`: a photograph hashed into the
+evidence is planned and named in `projects/cartography.md`: a photograph hashed into the
 statement, a receiver with RTK, a neighbour's co-signature of a shared line.
 
 ## 5. The same shape on soft3

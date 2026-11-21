@@ -1,16 +1,19 @@
 ---
 tags: cyberia, project, cyberia-my, map
-alias: the map, cartography, layers, drawing, my maps
+alias: base cartography, cartography, the map, layers, drawing, my maps
 crystal-type: plan
 crystal-domain: cyberia
-status: proposed
+status: accepted
+part-of: button
 date: 2026-11-21
 owner: master
 serves: land
 lane: wide
 ---
 
-# cartography of our own
+# base cartography
+
+part of [[cyberia/projects/button|button]] (the owner, 2026-11-21: "let us turn this into a project tied to the button — the base cartography"). the button's own page asks for it in two places: "the critical part is that any owner can add their own plot", and its part 5, "the owner … draws or confirms the polygon on the globe". this project is that ground: the layers, the plots and the buildings a plot is drawn, checked and verified on before it is sold with the button.
 
 the owner, 2026-11-21: Google My Maps is cut down in every sense; the map we make must let people draw on layers of their own — a point, a plot, a building in 3D — with programmable layers and with verification of points and boundaries signed on a phone on the spot; a collaboration on the map of the world, and on our own layers what cyber valley and citadel genesis need. a prototype on git and signatures now, soft3 rails later: design soft3 first.
 
@@ -18,7 +21,8 @@ the owner, 2026-11-21: Google My Maps is cut down in every sense; the map we mak
 |---|---|
 | delivery | on cyberia.my a person draws points, lines, plots and buildings on their own layers over the one globe, opens a My Maps KML as layers, shares a layer, verifies a boundary standing on it, and publishes by one signature |
 | contract | `specs/map.md` |
-| stage | proposed · the first slice below is built and green on a bench with throwaway keys (2026-11-21) |
+| part of | button — its sub-tasks "the plot card and the button", "add your plot" and "agents" stand on these layers |
+| stage | accepted · the first slice below is built and green on a bench with throwaway keys (2026-11-21) |
 
 ## what the survey said
 
