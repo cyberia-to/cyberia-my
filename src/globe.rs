@@ -2160,6 +2160,24 @@ fn outline(rings: &[Vec<f64>]) -> Vec<V3> {
     out
 }
 
+/// The camera's eye, for whoever draws over the globe: one frame's view, held by value.
+#[derive(Clone, Copy)]
+pub struct Eye(View);
+
+impl Eye {
+    /// Where a point of the earth, lifted `up_m` metres, falls on the layer (css px); None behind the horizon.
+    pub fn at(&self, lon: f64, lat: f64, up_m: f64) -> Option<(f64, f64)> {
+        let q = unit(lon, lat);
+        let k = 1.0 + up_m / 6_371_008.8;
+        self.0.to_screen([q[0] * k, q[1] * k, q[2] * k])
+    }
+}
+
+/// The eye of the frame being shown.
+pub fn eye() -> Option<Eye> {
+    ENGINE.with(|g| g.borrow().as_ref().map(|e| Eye(e.borrow().view())))
+}
+
 /// The point of the earth under a point of the layer (css px): (lon, lat).
 pub fn point_at(sx: f64, sy: f64) -> Option<(f64, f64)> {
     ENGINE.with(|g| g.borrow().as_ref().and_then(|e| e.borrow().view().unproject(sx, sy)))

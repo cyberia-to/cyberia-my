@@ -499,6 +499,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     let map_did_drag = RwSignal::new(false);
     let map_drag_last = RwSignal::new((0.0_f64, 0.0_f64));
     let map_wrap_ref = NodeRef::<leptos::html::Div>::new();
+    let atlas = crate::draw::Atlas::new();
     // fingers on the map: (pointer id, x, y) — two of them pinch
     let touches = StoredValue::new(Vec::<(i32, f64, f64)>::new());
 
@@ -1143,6 +1144,15 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                 return;
                             }
                             let Some(target) = ev.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok()) else { return };
+                            // the map its people draw takes the tap first: a corner of what is being drawn, or a feature picked
+                            if target.closest(".globe-ui, .globe-marker, button, a, input, textarea, select").ok().flatten().is_none() {
+                                if let Some(el) = map_wrap_ref.get_untracked() {
+                                    let r = el.get_bounding_client_rect();
+                                    if atlas.tap(ev.client_x() as f64 - r.left(), ev.client_y() as f64 - r.top()) {
+                                        return;
+                                    }
+                                }
+                            }
                             if near.get_untracked() {
                                 // bare ground between the plots: the plot lets go
                                 if target.tag_name().eq_ignore_ascii_case("svg") {
@@ -1165,6 +1175,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         // the globe: imagery and the world's lines, under everything
                         <GlobeLayer cam=cam picked=picked home=home />
                         <GlobeFar cam=cam picked=picked on_place=go_place />
+                        <crate::draw::AtlasLayer atlas=atlas cam=cam />
                         <GlobeAttrib />
 
                         // the pad: every way to move the camera, each button with its key
