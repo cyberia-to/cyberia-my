@@ -1245,9 +1245,6 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     preserveAspectRatio="xMidYMid meet"
                                 >
                                     <defs>
-                                        <pattern id="hatch-owned" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                                            <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(255,255,255,0.75)" stroke-width="1.1" />
-                                        </pattern>
                                     </defs>
                                     // district outlines — full site ~37 ha envelope
                                     {m_districts.districts.iter().map(|d| {
@@ -1297,6 +1294,16 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                             let d_under = d.clone();
                                             let d_mark = d.clone();
                                             let id_mark = flat.id.clone();
+                                            // the map is soft, like the flat's own aerial: what can be had keeps
+                                            // its land-use colour, translucent over the ground; the rest goes quiet
+                                            let lu = land_use(&flat.id);
+                                            let id_st = flat.id.clone();
+                                            let st = Memo::new(move |_| flat_status(&id_st, &deals.get()));
+                                            let hue = move || matches!(st.get(), FlatStatus::Available | FlatStatus::OnRequest | FlatStatus::Transfer) || lu == LandUse::Special;
+                                            let id_op = flat.id.clone();
+                                            let id_so = flat.id.clone();
+                                            let id_num = flat.id.clone();
+                                            let num = base_label.rsplit('-').next().unwrap_or("").to_string();
                                             let id_dim = flat.id.clone();
                                             view! {
                                                 <g
@@ -1333,8 +1340,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw2.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw2.as_str());
-                                                            // non-scaling-stroke: screen px, constant under viewBox zoom
-                                                            if sel { "4.0" } else if hov { "3.4" } else { "1.35" }
+                                                            // non-scaling-stroke: screen px, constant under viewBox zoom.
+                                                            // idle flats carry no dark seam — the ground shows between them
+                                                            if sel { "5.0" } else if hov { "3.4" } else { "0" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
@@ -1344,19 +1352,31 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                     />
                                                     <path
                                                         d=d
-                                                        // one colour per land use, exactly the prysm hex — status
-                                                        // rides on top as texture, never on the fill
-                                                        fill=land_use(&flat.id).color()
+                                                        fill=move || if hue() { lu.color() } else { "#9a9a9a" }
+                                                        fill-opacity=move || {
+                                                            let sel = selected_flat.get().as_deref() == Some(id_op.as_str());
+                                                            let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_op.as_str());
+                                                            match (sel, hov, st.get()) {
+                                                                (true, _, _) => "0.55",
+                                                                (_, true, _) => "0.48",
+                                                                (_, _, FlatStatus::Available) => "0.32",
+                                                                (_, _, FlatStatus::OnRequest | FlatStatus::Transfer) => "0.20",
+                                                                _ if lu == LandUse::Special => "0.26",
+                                                                _ => "0.14",
+                                                            }
+                                                        }
                                                         stroke=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_fill.as_str());
-                                                            // one neutral seam for every plot: the district is in the name, not the colour
-                                                            if sel { "#ffffff" } else { "#0a0a0a" }
+                                                            if sel { "#ffffff" } else if hue() { lu.color() } else { "#bdbdbd" }
+                                                        }
+                                                        stroke-opacity=move || {
+                                                            let sel = selected_flat.get().as_deref() == Some(id_so.as_str());
+                                                            if sel { "1" } else if st.get() == FlatStatus::Available { "0.8" } else { "0.5" }
                                                         }
                                                         stroke-width=move || {
                                                             let sel = selected_flat.get().as_deref() == Some(id_sw.as_str());
                                                             let hov = map_hover.get().as_ref().map(|t| t.0.as_str()) == Some(id_sw.as_str());
-                                                            // the district seam: thin idle, bold when hot
-                                                            if sel { "3.0" } else if hov { "2.4" } else { "1.2" }
+                                                            if sel { "2.8" } else if hov { "2.0" } else { "1.0" }
                                                         }
                                                         stroke-linejoin="round"
                                                         stroke-linecap="round"
@@ -1372,11 +1392,20 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                             )
                                                         }
                                                     />
-                                                    // owned → hatch, in transfer → white dash; the hue stays the land use
+                                                    // the flat's number, once the camera is close enough to read it
+                                                    {move || {
+                                                        let sel = selected_flat.get().as_deref() == Some(id_num.as_str());
+                                                        (!sel && map_zoom.get() >= 2.4).then(|| view! {
+                                                            <text
+                                                                class="flat-num"
+                                                                text-anchor="middle"
+                                                                dominant-baseline="middle"
+                                                                transform=move || screen_stable_tf(lx, ly, map_zoom.get())
+                                                            >{num.clone()}</text>
+                                                        })
+                                                    }}
+                                                    // in transfer → a white dash that marches; held flats are simply quiet
                                                     {move || match flat_status(&id_mark, &deals.get()) {
-                                                        FlatStatus::Owned => Some(view! {
-                                                            <path d=d_mark.clone() fill="url(#hatch-owned)" pointer-events="none" />
-                                                        }.into_any()),
                                                         FlatStatus::Transfer => Some(view! {
                                                             <path
                                                                 d=d_mark.clone()
@@ -1441,7 +1470,9 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                                 <path
                                                     d=d
                                                     fill=LandUse::Hgb.color()
+                                                    fill-opacity="0.28"
                                                     stroke=LandUse::Hgb.color()
+                                                    stroke-opacity="0.8"
                                                     stroke-width="1.2"
                                                     stroke-linejoin="round"
                                                     vector-effect="non-scaling-stroke"
@@ -1669,18 +1700,20 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                     </div>
                     <div class="flat-legend">
                         <div class="leg-row">
-                        <span class="leg dim">"fill = land use"</span>
+                        <span class="leg dim">"in colour = can be had"</span>
                         {move || {
                             let list = flats.get();
+                            let d = deals.get();
                             LandUse::ALL
                                 .iter()
-                                .filter(|u| list.iter().any(|f| land_use(&f.id) == **u))
+                                .filter(|u| list.iter().any(|f| land_use(&f.id) == **u
+                                    && (**u == LandUse::Special || matches!(flat_status(&f.id, &d), FlatStatus::Available | FlatStatus::OnRequest | FlatStatus::Transfer))))
                                 .map(|u| view! {
                                     <LegendMark mark=Mark::Use(*u) on=legend_on class="swatch" sw=u.color() />
                                 })
                                 .collect_view()
                         }}
-                        <LegendMark mark=Mark::Owned on=legend_on class="hatch" />
+                        <LegendMark mark=Mark::Owned on=legend_on class="swatch" sw="#9a9a9a" />
                         <LegendMark mark=Mark::Transfer on=legend_on class="dash" />
                         <span class="leg-group">
                             <span class="leg dim">"lines"</span>
