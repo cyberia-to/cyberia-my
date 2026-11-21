@@ -371,6 +371,18 @@ fn centroid(coords: &[[f64; 2]]) -> (f64, f64) {
     (lon, lat)
 }
 
+/// The land tally's tail: flats in transfer and flats held, each named only when there is one.
+fn tally_tail(moving: usize, held: usize) -> String {
+    let mut tail = String::new();
+    if moving > 0 {
+        tail.push_str(&format!(" · {moving} in transfer"));
+    }
+    if held > 0 {
+        tail.push_str(&format!(" · {held} held"));
+    }
+    tail
+}
+
 /// Ops map — fleets rail + flats.
 #[component]
 pub fn ValleyConsole() -> impl IntoView {
@@ -1797,7 +1809,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             let line = match status {
                                 FlatStatus::Available => lu.line().to_string(),
                                 FlatStatus::OnRequest => "on request — the valley answers".to_string(),
-                                FlatStatus::Transfer => "a deal is open on this flat".to_string(),
+                                FlatStatus::Transfer => book.and_then(|t| t.holder()).map(|h| format!("rights in transfer to {h}")).unwrap_or_else(|| "a deal is open on this flat".into()),
                                 FlatStatus::Owned => book.and_then(|t| t.holder()).map(|h| format!("held by {h}")).unwrap_or_else(|| "held".into()),
                                 FlatStatus::Closed => "not on offer now".to_string(),
                             };
@@ -1856,13 +1868,14 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                             let Some(flat) = flat else {
                                 // the city: what it is, where it lies, what its land is for
                                 let d = deals.get();
-                                let (mut open, mut ask, mut held) = (0, 0, 0);
+                                let (mut open, mut ask, mut moving, mut held) = (0, 0, 0, 0);
                                 let mut uses: Vec<(LandUse, u32, f64)> = LandUse::ALL.iter().map(|u| (*u, 0, 0.0)).collect();
                                 for f in list.iter() {
                                     match flat_status(&f.id, &d) {
                                         FlatStatus::Available => open += 1,
                                         FlatStatus::OnRequest => ask += 1,
-                                        FlatStatus::Owned | FlatStatus::Transfer => held += 1,
+                                        FlatStatus::Transfer => moving += 1,
+                                        FlatStatus::Owned => held += 1,
                                         FlatStatus::Closed => {}
                                     }
                                     let lu = land_use(&f.id);
@@ -1938,7 +1951,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                     </div>
                                     <div class="intent-row">
                                         <span class="intent-k">"land"</span>
-                                        <span class="intent-v price">{format!("{open} open · {ask} on request · {held} held")}</span>
+                                        <span class="intent-v price">{format!("{open} open · {ask} on request{}", tally_tail(moving, held))}</span>
                                     </div>
                                     <div class="city-uses">
                                         {uses.into_iter().filter(|u| u.1 > 0).map(|(lu, n, ares)| view! {
@@ -2117,16 +2130,17 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                 <span class="dock-count">
                     {move || {
                         let d = deals.get();
-                        let (mut open, mut ask, mut held) = (0, 0, 0);
+                        let (mut open, mut ask, mut moving, mut held) = (0, 0, 0, 0);
                         for f in flats.get().iter() {
                             match flat_status(&f.id, &d) {
                                 FlatStatus::Available => open += 1,
                                 FlatStatus::OnRequest => ask += 1,
-                                FlatStatus::Owned | FlatStatus::Transfer => held += 1,
+                                FlatStatus::Transfer => moving += 1,
+                                FlatStatus::Owned => held += 1,
                                 FlatStatus::Closed => {}
                             }
                         }
-                        format!("{open} flats open · {ask} on request · {held} held")
+                        format!("{open} flats open · {ask} on request{}", tally_tail(moving, held))
                     }}
                 </span>
                 <div class="cyberia-cta-bar dock-ctas">
