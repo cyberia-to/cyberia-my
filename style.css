@@ -6535,6 +6535,8 @@ a.pp-card:hover .pp-covers img {
     .md-table > div {
         grid-template-columns: 1fr;
     }
+}
+
 /* CONNECT A WALLET — the wallets of this browser by name */
 .wc {
     display: flex;
