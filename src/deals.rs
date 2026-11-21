@@ -24,8 +24,10 @@ pub enum FlatStatus {
     Available,
     /// Avalon joint venture, unpriced business ground, a whole-district HGB sale
     OnRequest,
-    /// a live deal in this browser
+    /// rights on their way: a live deal (the valley's or this browser's), or the lease book names
+    /// who the flat passes to
     Transfer,
+    /// its lease is signed
     Owned,
     /// public land, no price, or no land use set
     Closed,
@@ -195,8 +197,9 @@ pub fn flat_status(id: &str, deals: &HashMap<String, Deal>) -> FlatStatus {
     let Some(t) = terms(id) else {
         return FlatStatus::Closed;
     };
+    // the lease book names who the flat passes to; it stays in transfer until its lease is signed
     if t.holder().is_some() {
-        return FlatStatus::Owned;
+        return FlatStatus::Transfer;
     }
     if t.in_reregistration() {
         return FlatStatus::Closed;

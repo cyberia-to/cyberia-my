@@ -360,7 +360,9 @@ pub fn PlotPage() -> impl IntoView {
                 _ if fid_head.starts_with("avalon") => format!("joint venture · {}", AVALON_TRACKS.join(" · ")),
                 _ => book.map(|t| t.kind_line()).unwrap_or_else(|| "business ground".into()),
             },
-            FlatStatus::Transfer => "a deal is open on this flat".to_string(),
+            FlatStatus::Transfer => holder(&fid_head)
+                .map(|h| format!("rights in transfer to {h}"))
+                .unwrap_or_else(|| "a deal is open on this flat".into()),
             FlatStatus::Owned => holder(&fid_head).map(|h| format!("held by {h}")).unwrap_or_else(|| "held".into()),
             FlatStatus::Closed => "not on offer now".to_string(),
         }
