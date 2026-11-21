@@ -1,4 +1,9 @@
 mod admin;
+mod admin_deals;
+mod admin_flats;
+mod admin_market;
+mod admin_now;
+mod admin_people;
 mod app;
 mod cabinet;
 mod console;

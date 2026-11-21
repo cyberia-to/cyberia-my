@@ -166,12 +166,17 @@ class DealsTest(unittest.TestCase):
         self.m.act(ADMIN_K, "step", plot="sinwood-7", step="signed")
         self.assertEqual(acts.public_deals(self.m.state)["sinwood-7"]["status"], "owned")
 
-    def test_available_closes_the_deal_and_the_trail_keeps_it(self):
+    def test_available_closes_the_deal_and_keeps_the_money_it_received(self):
         self.m.act(ADMIN_K, "deal", plot="sinwood-7", status="transfer", holder="Ana")
+        self.m.act(ADMIN_K, "payment", plot="sinwood-7", usd="7950", on="2026-11-18")
         self.m.act(ADMIN_K, "deal", plot="sinwood-7", status="available")
-        self.assertEqual(acts.public_deals(self.m.state), {})
+        # the flat is published as open again — the site frees it on any status outside reserved, transfer
+        # and owned — and the ledger of what was received is still there to be read and to be answered
+        d = acts.public_deals(self.m.state)["sinwood-7"]
+        self.assertEqual((d["status"], d["holder"], d["paid_usd"], len(d["payments"])), ("available", "Ana", 7950.0, 1))
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "deal", plot="sinwood-8", status="available")
         log = acts.view(self.m.state, ADMIN, ROOT)["log"]
-        self.assertEqual([(l["kind"], l["what"]) for l in log[:2]], [("deal", "sinwood-7"), ("deal", "sinwood-7")])
+        self.assertEqual([(l["kind"], l["what"]) for l in log[:2]], [("deal", "sinwood-7"), ("payment", "sinwood-7")])
         self.assertNotIn("log", acts.view(self.m.state, HOLDER, ROOT))   # the trail is the desk's
 
 

@@ -90,6 +90,21 @@ impl Form {
     }
 }
 
+/// The share of the price due at signing, as a percent: the whole of it when
+/// the buyer pays upfront, the premium when the rest is carried as rent.
+pub fn share_at_signing(form: Form, premium_pct: u32) -> u32 {
+    match form {
+        Form::Upfront => 100,
+        Form::Index => premium_pct.min(100),
+    }
+}
+
+/// The money due at signing — what the desk calls "still due at signing"
+/// before anything has been received.
+pub fn due_at_signing(price: f64, form: Form, premium_pct: u32) -> f64 {
+    price * share_at_signing(form, premium_pct) as f64 / 100.0
+}
+
 /// The transfer reference the bank statement will show.
 pub fn reference(plot_id: &str, pct: u32) -> String {
     format!("LEASE {} PREMIUM {pct}%", plot_id.to_uppercase())

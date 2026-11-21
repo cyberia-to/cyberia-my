@@ -196,10 +196,17 @@ pub async fn fetch_bot_index() -> Option<std::collections::HashMap<String, Publi
     fetch_json("/plot-data/index.json").await
 }
 
+/// The valley's word on every flat with a deal, as the gate folds it from the
+/// signed acts (`gate/acts.py`) — public, no wallet, the same shape the bot's
+/// `/plot-data/index.json` has.
+pub async fn fetch_gate_deals() -> std::collections::HashMap<String, PublishedDeal> {
+    fetch_json("/api/acts/deals").await.unwrap_or_default()
+}
+
 pub async fn fetch_index() -> std::collections::HashMap<String, PublishedDeal> {
     // two writers, one reader: the hard force bot's file, and the desk's signed acts over it — the acts win
     let mut index: std::collections::HashMap<String, PublishedDeal> = fetch_json("/plot-data/index.json").await.unwrap_or_default();
-    index.extend(crate::market::fetch_gate_deals().await);
+    index.extend(fetch_gate_deals().await);
     index
 }
 
@@ -258,7 +265,7 @@ pub struct Media {
 pub async fn fetch_plot_data(plot_id: &str) -> Option<PlotData> {
     let mut data: Option<PlotData> = fetch_json(&format!("/plot-data/{plot_id}.json")).await;
     // the desk's signed word on the deal outranks the bot's file; the ground (survey, media) stays the bot's
-    if let Some(d) = crate::market::fetch_gate_deals().await.remove(plot_id) {
+    if let Some(d) = fetch_gate_deals().await.remove(plot_id) {
         data.get_or_insert_with(PlotData::default).deal = Some(d);
     }
     data

@@ -247,8 +247,10 @@ def apply(state, f, signer, root):
             if f.get("form") and f["form"] not in ("upfront", "index"): raise ValueError("a form is upfront or index")
             if f.get("premium_pct") and not re.fullmatch(r"\d{1,3}", f["premium_pct"]): raise ValueError("the premium is a percent")
             price = _money(f["price_usd"], "the price") if f.get("price_usd") else None
-            if status == "available":   # the deal is closed and the flat is open again; the record of it stays in the log
-                state["deals"].pop(f["plot"], None)
+            if status == "available":   # the deal is closed and the flat open again — the record, its payments and its steps stay
+                d = state["deals"].get(f["plot"])
+                if d is None: raise ValueError("no deal is open on this flat")
+                d["status"] = "available"; d["updated"] = at
             else:
                 d = _deal(state, f["plot"], at)
                 if status: d["status"] = status
