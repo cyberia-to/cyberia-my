@@ -113,7 +113,24 @@ struct BBox {
     max_lat: f64,
 }
 
-fn load_domain_positions() -> HashMap<String, [f64; 2]> {
+/// The pad's own state, kept in the browser: "1" when the keys are hidden.
+const PAD_HIDDEN_KEY: &str = "cyberia.pad_hidden.v1";
+
+fn load_pad_hidden() -> bool {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|ls| ls.get_item(PAD_HIDDEN_KEY).ok().flatten())
+        .map(|s| s == "1")
+        .unwrap_or(false)
+}
+
+fn save_pad_hidden(hidden: bool) {
+    if let Some(ls) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        let _ = ls.set_item(PAD_HIDDEN_KEY, if hidden { "1" } else { "0" });
+    }
+}
+
+fn load_domain_positions() ->HashMap<String, [f64; 2]> {
     web_sys::window()
         .and_then(|w| w.local_storage().ok().flatten())
         .and_then(|ls| ls.get_item(DOMAIN_POS_KEY).ok().flatten())
@@ -523,6 +540,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     // what the map shows: the visitor's last choice, kept by the engine's side
     let layers = RwSignal::new(layers_saved());
     let layers_open = RwSignal::new(false);
+    let pad_hidden = RwSignal::new(load_pad_hidden());
     Effect::new(move |_| set_layers(layers.get()));
     // the plan comes in before the console does: it fades in over the last zoom level of the approach
     let plan_on = RwSignal::new(!planet);
@@ -1168,7 +1186,16 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                         <GlobeAttrib />
 
                         // the pad: every way to move the camera, each button with its key
-                        <div class="nav-pad globe-ui" aria-label="map navigation">
+                        <div class="nav-pad globe-ui" class:np-hidden=move || pad_hidden.get() aria-label="map navigation">
+                            <button type="button" class="np-toggle"
+                                title=move || if pad_hidden.get() { "show the pad" } else { "hide the pad" }
+                                aria-expanded=move || (!pad_hidden.get()).to_string()
+                                on:click=move |_| {
+                                    let h = !pad_hidden.get_untracked();
+                                    pad_hidden.set(h);
+                                    save_pad_hidden(h);
+                                }
+                            >{move || if pad_hidden.get() { "▸ PAD" } else { "◂" }}</button>
                             <button type="button" class="np-key" title="turn the view left · hold Q"
                                 on:pointerdown=move |_| cam_hold(3, -1.0)
                                 on:pointerup=move |_| cam_hold(3, 0.0)
