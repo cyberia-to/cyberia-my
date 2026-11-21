@@ -16,6 +16,7 @@ use crate::places::PlacesPage;
 use crate::deal::DealPage;
 use crate::plot::PlotPage;
 use crate::plots::PlotsPage;
+use crate::sell::SellPage;
 use crate::portal::{FactoryPage, GalleryPage, GaragePage};
 use crate::products::ProductsPage;
 use crate::robots::RobotsPage;
@@ -111,6 +112,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/docs") view=DocsPage />
                 <Route path=path!("/docs/:key") view=DocPage />
                 <Route path=path!("/admin") view=AdminPage />
+                <Route path=path!("/sell") view=SellPage />
                 <Route path=path!("/city/cyber-valley") view=ValleyConsole />
                 <Route path=path!("/city/:slug") view=CityStub />
 

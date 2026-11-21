@@ -6328,6 +6328,215 @@ a.pp-card:hover .pp-covers img {
     font-weight: 400;
 }
 
+/* ══ THE LAND MARKET — the funnel, the desk, the offers ════════════════ */
+.sl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+.sl-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.sl-field span {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7a7a7a;
+}
+.sl-field input,
+.sl-field select,
+.sl-field textarea {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid #2c2c2c;
+    border-radius: 6px;
+    background: #0a0a0a;
+    color: #fff;
+    min-width: 0;
+}
+.sl-field input:focus,
+.sl-field select:focus,
+.sl-field textarea:focus {
+    outline: none;
+    border-color: var(--cyber-green);
+}
+.sl-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sl-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid #1c1c1c;
+    border-left: 3px solid #555;
+    border-radius: 7px;
+    background: #080808;
+}
+.sl-card.live {
+    border-left-color: var(--cyber-green);
+}
+.sl-card.pending {
+    border-left-color: var(--cyber-yellow);
+}
+.sl-card.rejected {
+    border-left-color: var(--cyber-red);
+}
+.sl-card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+.sl-card-top b {
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    color: #fff;
+}
+.sl-card-top a {
+    text-decoration: none;
+}
+.sl-tag {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: #9a9a9a;
+}
+.sl-card.live .sl-tag {
+    color: var(--cyber-green);
+}
+.sl-card.pending .sl-tag {
+    color: var(--cyber-yellow);
+}
+.sl-card-line {
+    font-size: 13px;
+    color: #d7d7d7;
+    word-break: break-word;
+}
+.sl-card-line.dim {
+    color: #7a7a7a;
+}
+.dl-go.sm {
+    padding: 8px 14px;
+    font-size: 11px;
+    box-shadow: none;
+}
+.dl-go:disabled {
+    opacity: 0.35;
+    cursor: default;
+    box-shadow: none;
+}
+.dl-actions {
+    flex-wrap: wrap;
+    align-items: center;
+}
+/* the desk */
+.md {
+    margin-bottom: 14px;
+}
+.md-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px 18px;
+}
+.md-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #d7d7d7;
+}
+.md-table {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.md-table > div {
+    display: grid;
+    grid-template-columns: 140px 1fr 1.4fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 7px 10px;
+    border: 1px solid #1a1a1a;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #bdbdbd;
+}
+.md-table b {
+    color: #fff;
+}
+.md-table .mono {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    word-break: break-all;
+}
+/* a holder's offer on a flat */
+.of {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.of-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 11px 13px;
+    border: 1px solid color-mix(in srgb, var(--cyber-yellow) 55%, #000);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--cyber-yellow) 6%, #000);
+}
+.of-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+.of-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--cyber-yellow);
+}
+.of-top b {
+    font-size: 22px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.of-by {
+    font-size: 12px;
+    color: #bdbdbd;
+}
+.of-words {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #8a8a8a;
+}
+.of-ask {
+    margin-top: 4px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    background: var(--cyber-yellow);
+    color: #000;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-decoration: none;
+    text-align: center;
+}
+@media (max-width: 900px) {
+    .md-table > div {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* CONNECT A WALLET — the wallets of this browser by name */
 .wc {
     display: flex;

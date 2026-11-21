@@ -230,6 +230,7 @@ pub fn CabinetPage() -> impl IntoView {
                                         }
                                     }).collect_view()}
                                     <a class="cab-more" href=format!("{BASE}/map")>"+ another flat on the map"</a>
+                                    <a class="cab-more" href=format!("{BASE}/sell")>"put a flat you hold on the map — resale or sublease →"</a>
                                 </div>
                             }.into_any()
                         }}

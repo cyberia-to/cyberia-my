@@ -260,3 +260,17 @@ pub async fn connect_with(key: Option<String>) -> Result<EthWallet, String> {
     Ok(w)
 }
 
+
+/// `personal_sign` (EIP-191): the wallet shows `message` as text and signs
+/// it with `address`. Asked of the wallet that address was connected from.
+pub async fn personal_sign(address: &str, message: &str) -> Result<String, String> {
+    discover();
+    let (eth, _) = provider(None).ok_or("the wallet is gone from this browser — connect it again")?;
+    let params = js_sys::Array::new();
+    params.push(&JsValue::from_str(message));
+    params.push(&JsValue::from_str(address));
+    request(&eth, "personal_sign", Some(params))
+        .await?
+        .as_string()
+        .ok_or_else(|| "the wallet returned no signature".to_string())
+}

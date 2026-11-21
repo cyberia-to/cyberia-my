@@ -459,6 +459,10 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
     });
     let dd = RwSignal::new(load_dd());
     let jv = RwSignal::new(load_jv());
+    let offers = RwSignal::new(Vec::<crate::market::Offer>::new());
+    leptos::task::spawn_local(async move {
+        offers.set(crate::market::fetch_offers().await);
+    });
     let leased = RwSignal::new(
         load_leases()
             .into_iter()
@@ -1837,6 +1841,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                         <div><span>"size"</span><b>{size}</b></div>
                                         <div><span>"nearest"</span><b>{near.map(|n| format!("{} · {:.0} m", n.name, n.dist_m)).unwrap_or_else(|| "—".into())}</b></div>
                                     </div>
+                                    <crate::offers::FlatOffers plot=fid.clone() offers=offers />
                                     {if mine {
                                         view! { <a class="pv-cta" href=format!("{BASE}/plot/{fid}/deal")><b>"CONTINUE YOUR DEAL"</b><span>"→"</span></a> }.into_any()
                                     } else if open {
@@ -1921,6 +1926,7 @@ fn MapConsole(domains_board: bool, #[prop(default = false)] planet: bool) -> imp
                                             </div>
                                         })
                                     }
+                                    <crate::offers::OffersList offers=offers on_pick=Callback::new(move |id: String| selected_flat.set(Some(id))) />
                                     <div class="intent-row">
                                         <span class="intent-k">"city"</span>
                                         <span class="intent-v">"CYBER VALLEY"</span>
