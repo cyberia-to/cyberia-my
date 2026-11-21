@@ -41,6 +41,15 @@ the company's side of a first sale — what the valley publishes about a flat's 
                               premium_pct · price_usd        opens or amends a flat's deal; `available` closes it
     payment   an admin        plot · usd · method bank|eth · reference · on · note     money received; the first one reserves the flat
     step      an admin        plot · step request|kyc|dd|premium|docs|notary|signed · on    a step confirmed; `signed` makes the flat owned
+
+the ways into the system that are not a flat's offer are one act, `apply`, answered by an admin's `approve` or `reject`
+(`application: <id>` / `target: <id>`) and taken back by the applicant's `withdraw` (`application: <id>`):
+
+    apply     anyone          what land|agent|franchise|city · name · contact · ref (the agent who sent them) ·
+                              land:      place · lat · lon · ares · right · deal sale|lease|both · words
+                              agent:     territory · languages · words · code accepted      approved → the role `agent`
+                              franchise: territory · level state|region|district · code · entity · words
+                              city:      city · lat · lon · territory · words
 """
 import json, re, sys
 from datetime import datetime, timezone
@@ -50,7 +59,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sign  # noqa: E402
 
 HEAD = "cyberia.my act"
-KINDS = ("role", "profile", "claim", "holder", "mandate", "revoke", "listing", "approve", "reject", "withdraw", "deal", "payment", "step")
+KINDS = ("role", "profile", "claim", "holder", "mandate", "revoke", "listing", "approve", "reject", "withdraw", "deal", "payment", "step", "apply")
+APPLY = ("land", "agent", "franchise", "city")
+APPLY_KEYS = ("territory", "place", "city", "level", "code", "entity", "right", "deal", "languages", "words")
 DEAL_STEPS = ("request", "kyc", "dd", "premium", "docs", "notary", "signed")
 DEAL_STATUS = ("reserved", "transfer", "owned", "available")
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -97,7 +108,7 @@ def load_flats(map_json):
 
 
 def empty():
-    return {"roles": {}, "profiles": {}, "holders": {}, "claims": {}, "mandates": {}, "listings": {}, "deals": {}, "log": [], "ids": []}
+    return {"roles": {}, "profiles": {}, "holders": {}, "claims": {}, "mandates": {}, "listings": {}, "deals": {}, "applications": {}, "log": [], "ids": []}
 
 
 def _deal(state, plot, at):
@@ -122,6 +133,15 @@ def _need(f, *keys):
 def _money(v, what):
     if not re.fullmatch(r"\d{1,9}(\.\d{1,2})?", v or ""): raise ValueError(f"{what} is a number of dollars")
     return float(v)
+
+
+def _coord(f):
+    """the point of an application, when it names one."""
+    if not f.get("lat") and not f.get("lon"): return None, None
+    try: lat, lon = float(f.get("lat", "")), float(f.get("lon", ""))
+    except ValueError: raise ValueError("the point is a latitude and a longitude")
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180): raise ValueError("the point is not on the globe")
+    return round(lat, 6), round(lon, 6)
 
 
 def live_mandate(state, plot, agent, deal, day):
@@ -215,6 +235,44 @@ def apply(state, f, signer, root):
         state["listings"][f["id"]] = {"id": f["id"], "plot": f["plot"], "deal": f["deal"], "price_usd": price, "rent_usd_year": rent,
                                       "term_years": int(term) if term else None, "words": f.get("words", "")[:600], "contact": f.get("contact", "")[:80],
                                       "by": signer, "as": "agent" if mandate else "holder", "mandate": mandate, "status": "pending", "at": at, "reason": ""}
+    elif kind == "apply":
+        _need(f, "what", "name", "contact")
+        what = f["what"]
+        if what not in APPLY: raise ValueError("an application is for land, agent, franchise or city")
+        lat, lon = _coord(f)
+        ares = _money(f["ares"], "the size in ares") if f.get("ares") else None
+        if what == "land":
+            _need(f, "place")
+            if f.get("deal", "both") not in ("sale", "lease", "both"): raise ValueError("land is offered for sale, lease or both")
+        elif what == "agent":
+            _need(f, "territory")
+            if f.get("code") != "accepted": raise ValueError("an agent accepts the agent's code")
+            if role_of(state, signer, root) == "agent": raise ValueError("this address is an accredited agent already")
+        elif what == "franchise":
+            _need(f, "territory")
+            if f.get("level", "state") not in ("state", "region", "district"): raise ValueError("a franchise is of a state, a region or a district")
+        else:
+            _need(f, "city")
+            if lat is None: raise ValueError("a city has a point on the globe")
+        ref = f.get("ref", "")
+        if ref and (not ADDR.match(ref) or ref.lower() == me): ref = ""   # a referral names another address, or nothing
+        for a in state["applications"].values():   # one open application per address and thing: the new one takes its place
+            same = a["what"] == what and a["from"].lower() == me and a["status"] == "pending"
+            if same and (what == "agent" or (a["territory"], a["place"], a["city"]) == tuple(f.get(k, "")[:120] for k in ("territory", "place", "city"))):
+                a["status"] = "superseded"
+        state["applications"][f["id"]] = {"id": f["id"], "what": what, "from": signer, "name": f["name"][:80], "contact": f["contact"][:80],
+                                          **{k: f.get(k, "")[:600 if k == "words" else 120] for k in APPLY_KEYS},
+                                          "lat": lat, "lon": lon, "ares": ares, "ref": ref, "status": "pending", "reason": "", "at": at}
+    elif kind == "approve" and f.get("application"):
+        if not is_admin(state, signer, root): raise ValueError("only an admin approves")
+        a = state["applications"].get(f["application"])
+        if not a or a["status"] != "pending": raise ValueError("no such application waits")
+        a["status"] = "accepted"; a["approved_by"] = signer; a["approved_at"] = at
+        if a["what"] == "agent":
+            who = a["from"].lower()
+            if who != root.lower() and state["roles"].get(who, {}).get("role") != "admin":   # an admin stays an admin
+                state["roles"][who] = {"address": a["from"], "role": "agent", "name": a["name"], "by": signer, "at": at}
+            state["profiles"].setdefault(who, {"address": a["from"], "name": a["name"], "contact": a["contact"], "at": at})
     elif kind == "approve":
         _need(f, "listing")
         if not is_admin(state, signer, root): raise ValueError("only an admin approves")
@@ -224,9 +282,14 @@ def apply(state, f, signer, root):
     elif kind == "reject":
         _need(f, "target")
         if not is_admin(state, signer, root): raise ValueError("only an admin rejects")
-        t = state["listings"].get(f["target"]) or state["claims"].get(f["target"])
+        t = state["listings"].get(f["target"]) or state["claims"].get(f["target"]) or state["applications"].get(f["target"])
         if not t or t["status"] != "pending": raise ValueError("nothing waits under this id")
         t["status"] = "rejected"; t["reason"] = f.get("reason", "")[:300]
+    elif kind == "withdraw" and f.get("application"):
+        a = state["applications"].get(f["application"])
+        if not a or a["status"] != "pending": raise ValueError("no such application waits")
+        if me != a["from"].lower() and not is_admin(state, signer, root): raise ValueError("the applicant or an admin withdraws")
+        a["status"] = "withdrawn"; a["reason"] = f.get("reason", "")[:300]
     elif kind == "withdraw":
         _need(f, "listing")
         l = state["listings"].get(f["listing"])
@@ -278,8 +341,8 @@ def apply(state, f, signer, root):
             d["updated"] = at
     state["ids"].append(f["id"])
     # the trail an admin reads: what was done, to what, by whom
-    what = f.get("plot") or f.get("listing") or f.get("target") or f.get("mandate") or f.get("address") or f.get("name") or ""
-    detail = " · ".join(f"{k} {f[k]}" for k in ("status", "step", "usd", "deal", "price_usd", "role", "scope", "reason") if f.get(k))
+    what = f.get("plot") or f.get("listing") or f.get("application") or f.get("target") or f.get("mandate") or f.get("address") or f.get("name") or ""
+    detail = " · ".join(f"{k} {f[k]}" for k in ("what", "territory", "place", "city", "status", "step", "usd", "deal", "price_usd", "role", "scope", "reason") if f.get(k))
     state["log"].append({"n": len(state["ids"]), "kind": kind, "by": signer, "at": at, "what": what, "detail": detail[:160]})
     return state
 
@@ -320,12 +383,31 @@ def seller(state, l):
             "accredited": state["roles"].get(l["by"].lower(), {}).get("role") == "agent"}
 
 
+def agents(state):
+    """the accredited agents, as a holder picks one: the address a mandate names, the chosen name, the territory."""
+    out = []
+    for who, r in state["roles"].items():
+        if r["role"] != "agent": continue
+        prof = state["profiles"].get(who, {})
+        app = next((a for a in reversed(list(state["applications"].values())) if a["what"] == "agent" and a["from"].lower() == who and a["status"] == "accepted"), {})
+        out.append({"address": r["address"], "name": prof.get("name") or r.get("name") or app.get("name", ""), "contact": prof.get("contact") or app.get("contact", ""),
+                    "territory": app.get("territory", ""), "languages": app.get("languages", ""),
+                    "flats": sum(1 for m in state["mandates"].values() if m["status"] == "live" and m["agent"].lower() == who)})
+    return sorted(out, key=lambda a: (-a["flats"], a["name"].lower()))
+
+
 def public(state):
     """what the map reads: the live listings, with the seller's chosen name and contact and no address."""
     rows = [{"id": l["id"], "plot": l["plot"], "deal": l["deal"], "price_usd": l["price_usd"], "rent_usd_year": l["rent_usd_year"],
              "term_years": l["term_years"], "words": l["words"], "seller": seller(state, l), "at": l["at"]}
             for l in state["listings"].values() if l["status"] == "live"]
-    return {"listings": sorted(rows, key=lambda r: r["price_usd"]), "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    apps = [a for a in state["applications"].values() if a["status"] == "accepted"]
+    return {"listings": sorted(rows, key=lambda r: r["price_usd"]), "agents": agents(state),
+            # what the valley accepted, by the name each applicant chose; no address but an agent's, which a mandate must name
+            "cities": [{"city": a["city"], "lat": a["lat"], "lon": a["lon"], "territory": a["territory"], "by": a["name"]} for a in apps if a["what"] == "city"],
+            "franchises": [{"territory": a["territory"], "level": a["level"] or "state", "code": a["code"], "by": a["entity"] or a["name"]} for a in apps if a["what"] == "franchise"],
+            "lands": [{"place": a["place"], "lat": a["lat"], "lon": a["lon"], "ares": a["ares"], "deal": a["deal"] or "both"} for a in apps if a["what"] == "land"],
+            "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
 def public_deals(state):
@@ -342,6 +424,7 @@ def view(state, addr, root):
     if role in ("root", "admin"):
         out.update({k: list(state[k].values()) for k in ("holders", "claims", "mandates", "listings")})
         out["roles"] = list(state["roles"].values()); out["profiles"] = list(state["profiles"].values())
+        out["applications"] = list(state["applications"].values()); out["referred"] = []
         out["deals"] = list(state["deals"].values()); out["log"] = state["log"][-200:][::-1]
         return out
     held = {p for p, h in state["holders"].items() if h["address"].lower() == me}
@@ -349,6 +432,9 @@ def view(state, addr, root):
     out["claims"] = [c for c in state["claims"].values() if c["from"].lower() == me]
     out["mandates"] = [m for m in state["mandates"].values() if me in (m["holder"].lower(), m["agent"].lower())]
     out["listings"] = [l for l in state["listings"].values() if l["by"].lower() == me or l["plot"] in held]
+    out["applications"] = [a for a in state["applications"].values() if a["from"].lower() == me]
+    # whom this address sent: what they applied for and how it stands, without who they are
+    out["referred"] = [{"what": a["what"], "status": a["status"], "at": a["at"]} for a in state["applications"].values() if a["ref"].lower() == me]
     # the people behind my mandates, by the name they chose
     people = {m["agent"].lower() for m in out["mandates"]} | {m["holder"].lower() for m in out["mandates"]}
     out["profiles"] = [p for a, p in state["profiles"].items() if a in people]

@@ -234,5 +234,71 @@ class GateTest(unittest.TestCase):
             with self.assertRaises(ValueError): g.act(now, sign.sign(now, HOLDER_K))
 
 
+class ApplyTest(unittest.TestCase):
+    """the ways in that are not a flat's offer: land, agent, franchise, city."""
+    def setUp(self):
+        self.m = Market()
+        self.m.act(ROOT_K, "role", address=ADMIN, role="admin", name="valley desk")
+
+    def agent(self, key=AGENT_K, **f):
+        return self.m.act(key, "apply", what="agent", name="Bo", contact="@bo", territory="Bali", code="accepted", **f)
+
+    def test_an_agent_accepts_the_code_and_the_valley_accredits(self):
+        with self.assertRaises(ValueError): self.m.act(AGENT_K, "apply", what="agent", name="Bo", contact="@bo", territory="Bali")
+        a = self.agent(languages="en, id")
+        self.assertEqual(acts.role_of(self.m.state, AGENT, ROOT), "")
+        with self.assertRaises(ValueError): self.m.act(STRANGER_K, "approve", application=a)
+        self.m.act(ADMIN_K, "approve", application=a)
+        self.assertEqual(acts.role_of(self.m.state, AGENT, ROOT), "agent")
+        card = acts.public(self.m.state)["agents"][0]
+        self.assertEqual((card["address"], card["name"], card["contact"], card["territory"], card["flats"]), (AGENT, "Bo", "@bo", "Bali", 0))
+        with self.assertRaises(ValueError): self.agent()   # accredited already
+        # a mandate given to the accredited agent shows in the directory
+        self.m.act(ADMIN_K, "holder", plot="sinwood-7", address=HOLDER, name="Ana")
+        self.m.act(HOLDER_K, "mandate", plot="sinwood-7", agent=AGENT, scope="both", until="2027-01-01")
+        self.assertEqual(acts.public(self.m.state)["agents"][0]["flats"], 1)
+
+    def test_an_admin_who_applies_stays_an_admin(self):
+        a = self.agent(key=ADMIN_K)
+        self.m.act(ROOT_K, "approve", application=a)
+        self.assertEqual(acts.role_of(self.m.state, ADMIN, ROOT), "admin")
+
+    def test_a_new_application_takes_the_old_ones_place_and_is_withdrawn_by_its_signer(self):
+        a1 = self.agent(); a2 = self.agent()
+        st = self.m.state["applications"]
+        self.assertEqual((st[a1]["status"], st[a2]["status"]), ("superseded", "pending"))
+        with self.assertRaises(ValueError): self.m.act(STRANGER_K, "withdraw", application=a2)
+        self.m.act(AGENT_K, "withdraw", application=a2)
+        self.assertEqual(st[a2]["status"], "withdrawn")
+        with self.assertRaises(ValueError): self.m.act(ADMIN_K, "approve", application=a2)
+
+    def test_land_a_franchise_and_a_city_wait_and_show_once_accepted(self):
+        with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="land", name="Ana", contact="@ana")   # no place
+        with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="city", name="Ana", contact="@ana", city="Nova")   # no point
+        with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="city", name="Ana", contact="@ana", city="Nova", lat="91", lon="0")
+        with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="moon", name="Ana", contact="@ana")
+        land = self.m.act(HOLDER_K, "apply", what="land", name="Ana", contact="@ana", place="Sidemen, Bali", lat="-8.47", lon="115.44", ares="25", right="SHM", deal="sale")
+        fr = self.m.act(HOLDER_K, "apply", what="franchise", name="Ana", contact="@ana", territory="Portugal", level="state", code="PRT", entity="Ana Lda")
+        city = self.m.act(STRANGER_K, "apply", what="city", name="Cy", contact="@cy", city="Nova", lat="-8.5", lon="115.3", territory="Indonesia")
+        pub = acts.public(self.m.state)
+        self.assertEqual((pub["lands"], pub["franchises"], pub["cities"]), ([], [], []))
+        self.m.act(ADMIN_K, "approve", application=land); self.m.act(ADMIN_K, "approve", application=fr)
+        self.m.act(ADMIN_K, "reject", target=city, reason="no land in hand")
+        pub = acts.public(self.m.state)
+        self.assertEqual(pub["lands"][0], {"place": "Sidemen, Bali", "lat": -8.47, "lon": 115.44, "ares": 25.0, "deal": "sale"})
+        self.assertEqual(pub["franchises"][0], {"territory": "Portugal", "level": "state", "code": "PRT", "by": "Ana Lda"})
+        self.assertEqual((pub["cities"], self.m.state["applications"][city]["reason"]), ([], "no land in hand"))
+        self.assertEqual(acts.role_of(self.m.state, HOLDER, ROOT), "")   # only an agent's application gives a role
+
+    def test_a_referral_names_the_agent_and_the_agent_sees_what_it_brought(self):
+        self.m.act(HOLDER_K, "apply", what="land", name="Ana", contact="@ana", place="Sidemen", ref=AGENT)
+        self.m.act(STRANGER_K, "apply", what="franchise", name="Cy", contact="@cy", territory="Peru", ref=STRANGER)   # one's own address is no referral
+        mine = acts.view(self.m.state, AGENT, ROOT)
+        self.assertEqual([(r["what"], r["status"]) for r in mine["referred"]], [("land", "pending")])
+        self.assertEqual(acts.view(self.m.state, STRANGER, ROOT)["referred"], [])
+        self.assertEqual(len(acts.view(self.m.state, HOLDER, ROOT)["applications"]), 1)
+        self.assertEqual(len(acts.view(self.m.state, ADMIN, ROOT)["applications"]), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

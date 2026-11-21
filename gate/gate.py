@@ -110,7 +110,7 @@ class Gate:
             path.write_text(acts.file_text(message, signature, who))
             try:
                 self.git("add", str(rel))
-                self.git("-c", "user.name=cyberia.my gate", "-c", "user.email=gate@cyberia.my", "commit", "-q", "-m", f"{f['kind']}: {who[:10]} {f.get('plot') or f.get('listing') or f.get('target') or f.get('address') or ''}".strip())
+                self.git("-c", "user.name=cyberia.my gate", "-c", "user.email=gate@cyberia.my", "commit", "-q", "-m", f"{f['kind']}: {who[:10]} {f.get('plot') or f.get('listing') or f.get('application') or f.get('what') or f.get('target') or f.get('address') or ''}".strip())
             except Exception:
                 path.unlink(missing_ok=True); raise
             if self.push:
