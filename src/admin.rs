@@ -150,7 +150,10 @@ fn app_card(d: Desk, v: &View, a: Application) -> impl IntoView {
     let class = match a.status.as_str() { "accepted" => "sl-card live", "pending" => "sl-card pending", _ => "sl-card rejected" };
     let facts: Vec<String> = [("company", &a.entity), ("languages", &a.languages), ("paper", &a.right), ("wants", &a.deal), ("code", &a.code)]
         .into_iter().filter(|(_, x)| !x.is_empty()).map(|(k, x)| format!("{k} {x}")).collect();
-    let sent = (!a.referrer.is_empty()).then(|| format!("sent by the agent {} ({})", v.name_of(&a.referrer), short(&a.referrer)));
+    // a referral is any address but the signer's own — only an accredited one is called an agent
+    let by_agent = v.roles.iter().any(|r| r.role == "agent" && r.address.eq_ignore_ascii_case(&a.referrer));
+    let sent = (!a.referrer.is_empty())
+        .then(|| format!("sent by {}{} ({})", if by_agent { "the agent " } else { "" }, v.name_of(&a.referrer), short(&a.referrer)));
     let globe = a.lat.zip(a.lon).map(|(lat, lon)| format!("{BASE}/@{lat:.5},{lon:.5},14"));
     view! {
         <div class=class>

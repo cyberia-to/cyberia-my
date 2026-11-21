@@ -39,6 +39,7 @@ mod plots;
 mod orgs;
 mod robots;
 mod apply;
+mod apply_kinds;
 mod sell;
 mod services;
 mod signal;

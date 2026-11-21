@@ -25,10 +25,10 @@ the owner, 2026-11-21: the globe's first panel must close the app's functions; t
 
 | what | page | what it carries | what approval does |
 |---|---|---|---|
-| land | `/land` | place, point, ares, the paper, sale or lease | shows on the public board; its flats are then drawn and bound by the valley |
+| land | `/land` | place, point, ares, the paper, sale or lease | stands accepted on the desk and the valley writes about the paper; its flats are then drawn and bound by the valley |
 | agent | `/agent` | territory, languages, company, the code accepted | gives the role `agent`, a profile when none was signed, a place in the directory |
-| franchise | `/franchise` | territory, level state, region or district, the state's code, the company | shows on the public board |
-| city | `/found` | name, point, territory | shows on the public board |
+| franchise | `/franchise` | territory, level state, region or district, the state's code, the company | enters the public list of franchises given, which `/franchise` reads to tell whether a territory is taken |
+| city | `/found` | name, point, territory | stands accepted on the desk and the valley writes to the founder; nothing on the globe draws it yet |
 
 ## the agent, end to end
 

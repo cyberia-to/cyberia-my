@@ -320,7 +320,7 @@ pub fn SellPage() -> impl IntoView {
                             <div class="dl-opts ap-agents">
                                 {list.into_iter().map(|a| {
                                     let (addr, addr2) = (a.address.clone(), a.address.clone());
-                                    let line = [a.territory.clone(), a.languages.clone(), a.contact.clone(), format!("{} flats", a.flats)].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" · ");
+                                    let line = [a.territory.clone(), a.languages.clone(), format!("{} flats", a.flats)].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" · ");
                                     view! {
                                         <button type="button" class=move || if agent.get().eq_ignore_ascii_case(&addr) { "dl-opt is-on" } else { "dl-opt" }
                                             on:click=move |_| agent.set(addr2.clone())>

@@ -41,7 +41,7 @@ the root is the owner's address, the one the apparatus pins. it alone names admi
 
 - `/sell` — the funnel for a holder and for an agent, five steps: wallet, the flat, the offer, who sells, the track. a holder who has an agent signs a mandate; the agent opens the same page with their own wallet and lists the flat.
 - `/admin` — the valley's desk: offers and claims that wait come first, then the books of holders, mandates, admins and accredited agents. every button is a signed act.
-- the map and the flat's page — a live offer shows as RESALE or SUBLEASE with its price and the way to its seller: the holder, or the agent, by the name and contact they signed. no address leaves the gate.
+- the map and the flat's page — a live offer shows as RESALE or SUBLEASE with its price and the way to its seller: the holder, or the agent, by the name and contact they signed. no seller's address leaves the gate. the one address the gate does publish is an accredited agent's, in the directory a holder picks from, with the chosen name, the territory and the languages — a mandate must name that address and the agent's own links carry it (`/sell?agent=0x…`); the contact an agent signed stays with the valley.
 
 ## parts
 

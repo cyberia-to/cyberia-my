@@ -130,8 +130,8 @@ def _need(f, *keys):
         if not f.get(k): raise ValueError(f"{f['kind']} needs {k}")
 
 
-def _money(v, what):
-    if not re.fullmatch(r"\d{1,9}(\.\d{1,2})?", v or ""): raise ValueError(f"{what} is a number of dollars")
+def _money(v, what, unit="dollars"):
+    if not re.fullmatch(r"\d{1,9}(\.\d{1,2})?", v or ""): raise ValueError(f"{what} is a number of {unit}")
     return float(v)
 
 
@@ -240,7 +240,7 @@ def apply(state, f, signer, root):
         what = f["what"]
         if what not in APPLY: raise ValueError("an application is for land, agent, franchise or city")
         lat, lon = _coord(f)
-        ares = _money(f["ares"], "the size in ares") if f.get("ares") else None
+        ares = _money(f["ares"], "the size", "ares") if f.get("ares") else None
         if what == "land":
             _need(f, "place")
             if f.get("deal", "both") not in ("sale", "lease", "both"): raise ValueError("land is offered for sale, lease or both")
@@ -384,13 +384,14 @@ def seller(state, l):
 
 
 def agents(state):
-    """the accredited agents, as a holder picks one: the address a mandate names, the chosen name, the territory."""
+    """the accredited agents, as a holder picks one: the address a mandate names, the chosen name, the territory.
+    public, and only what a holder needs to pick and to name in a mandate — the contact an agent signed stays with the valley."""
     out = []
     for who, r in state["roles"].items():
         if r["role"] != "agent": continue
         prof = state["profiles"].get(who, {})
         app = next((a for a in reversed(list(state["applications"].values())) if a["what"] == "agent" and a["from"].lower() == who and a["status"] == "accepted"), {})
-        out.append({"address": r["address"], "name": prof.get("name") or r.get("name") or app.get("name", ""), "contact": prof.get("contact") or app.get("contact", ""),
+        out.append({"address": r["address"], "name": prof.get("name") or r.get("name") or app.get("name", ""),
                     "territory": app.get("territory", ""), "languages": app.get("languages", ""),
                     "flats": sum(1 for m in state["mandates"].values() if m["status"] == "live" and m["agent"].lower() == who)})
     return sorted(out, key=lambda a: (-a["flats"], a["name"].lower()))
@@ -403,10 +404,9 @@ def public(state):
             for l in state["listings"].values() if l["status"] == "live"]
     apps = [a for a in state["applications"].values() if a["status"] == "accepted"]
     return {"listings": sorted(rows, key=lambda r: r["price_usd"]), "agents": agents(state),
-            # what the valley accepted, by the name each applicant chose; no address but an agent's, which a mandate must name
-            "cities": [{"city": a["city"], "lat": a["lat"], "lon": a["lon"], "territory": a["territory"], "by": a["name"]} for a in apps if a["what"] == "city"],
+            # the franchises given, by the name each applicant chose, which `/franchise` reads to tell whether a territory is taken.
+            # the lands and the cities accepted are not published: nothing draws them yet, and they stand on the desk until something does
             "franchises": [{"territory": a["territory"], "level": a["level"] or "state", "code": a["code"], "by": a["entity"] or a["name"]} for a in apps if a["what"] == "franchise"],
-            "lands": [{"place": a["place"], "lat": a["lat"], "lon": a["lon"], "ares": a["ares"], "deal": a["deal"] or "both"} for a in apps if a["what"] == "land"],
             "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 

@@ -251,7 +251,8 @@ class ApplyTest(unittest.TestCase):
         self.m.act(ADMIN_K, "approve", application=a)
         self.assertEqual(acts.role_of(self.m.state, AGENT, ROOT), "agent")
         card = acts.public(self.m.state)["agents"][0]
-        self.assertEqual((card["address"], card["name"], card["contact"], card["territory"], card["flats"]), (AGENT, "Bo", "@bo", "Bali", 0))
+        self.assertEqual((card["address"], card["name"], card["territory"], card["flats"]), (AGENT, "Bo", "Bali", 0))
+        self.assertNotIn("contact", card)   # the handle an agent signed stays with the valley
         with self.assertRaises(ValueError): self.agent()   # accredited already
         # a mandate given to the accredited agent shows in the directory
         self.m.act(ADMIN_K, "holder", plot="sinwood-7", address=HOLDER, name="Ana")
@@ -277,17 +278,20 @@ class ApplyTest(unittest.TestCase):
         with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="city", name="Ana", contact="@ana", city="Nova")   # no point
         with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="city", name="Ana", contact="@ana", city="Nova", lat="91", lon="0")
         with self.assertRaises(ValueError): self.m.act(HOLDER_K, "apply", what="moon", name="Ana", contact="@ana")
+        with self.assertRaisesRegex(ValueError, "the size is a number of ares"):   # not of dollars
+            self.m.act(HOLDER_K, "apply", what="land", name="Ana", contact="@ana", place="Sidemen", ares="12,5")
         land = self.m.act(HOLDER_K, "apply", what="land", name="Ana", contact="@ana", place="Sidemen, Bali", lat="-8.47", lon="115.44", ares="25", right="SHM", deal="sale")
         fr = self.m.act(HOLDER_K, "apply", what="franchise", name="Ana", contact="@ana", territory="Portugal", level="state", code="PRT", entity="Ana Lda")
         city = self.m.act(STRANGER_K, "apply", what="city", name="Cy", contact="@cy", city="Nova", lat="-8.5", lon="115.3", territory="Indonesia")
-        pub = acts.public(self.m.state)
-        self.assertEqual((pub["lands"], pub["franchises"], pub["cities"]), ([], [], []))
+        self.assertEqual(acts.public(self.m.state)["franchises"], [])
         self.m.act(ADMIN_K, "approve", application=land); self.m.act(ADMIN_K, "approve", application=fr)
         self.m.act(ADMIN_K, "reject", target=city, reason="no land in hand")
         pub = acts.public(self.m.state)
-        self.assertEqual(pub["lands"][0], {"place": "Sidemen, Bali", "lat": -8.47, "lon": 115.44, "ares": 25.0, "deal": "sale"})
         self.assertEqual(pub["franchises"][0], {"territory": "Portugal", "level": "state", "code": "PRT", "by": "Ana Lda"})
-        self.assertEqual((pub["cities"], self.m.state["applications"][city]["reason"]), ([], "no land in hand"))
+        # a land and a city are answered on the desk, not drawn: the public file carries no key nothing reads
+        self.assertEqual([k for k in ("lands", "cities") if k in pub], [])
+        desk = {a["id"]: (a["status"], a["reason"]) for a in acts.view(self.m.state, ADMIN, ROOT)["applications"]}
+        self.assertEqual((desk[land], desk[city]), (("accepted", ""), ("rejected", "no land in hand")))
         self.assertEqual(acts.role_of(self.m.state, HOLDER, ROOT), "")   # only an agent's application gives a role
 
     def test_a_referral_names_the_agent_and_the_agent_sees_what_it_brought(self):
