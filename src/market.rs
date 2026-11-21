@@ -5,7 +5,7 @@
 //! checks the right and commits the act. Nothing is written without a
 //! signature, and nothing here trusts the page: the gate verifies again.
 
-use crate::eth::{connect, load_eth, personal_sign, EthWallet};
+use crate::eth::{load_eth, personal_sign, EthWallet};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -302,14 +302,13 @@ fn uuid() -> String {
 async fn wallet() -> Result<EthWallet, String> {
     match load_eth() {
         Some(w) => Ok(w),
-        None => connect().await,
+        None => Err("connect your wallet first".to_string()),
     }
 }
 
-/// Connect the wallet and prove its address to the gate: one signature, a
+/// Prove a connected wallet's address to the gate: one signature, a
 /// session of thirty days.
-pub async fn sign_in() -> Result<View, String> {
-    let w = connect().await?;
+pub async fn sign_in(w: EthWallet) -> Result<View, String> {
     let nonce = call("/nonce", None, false).await?.get("nonce").and_then(|n| n.as_str()).unwrap_or_default().to_string();
     let message = format!("cyberia.my sign in\naddress: {}\nnonce: {nonce}\nat: {}", w.address, now_iso());
     let signature = personal_sign(&w.address, &message).await?;

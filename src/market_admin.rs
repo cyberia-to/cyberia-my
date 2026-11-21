@@ -45,7 +45,7 @@ pub fn MarketDesk() -> impl IntoView {
         let Some(v) = view.get() else {
             return view! {
                 <p class="dl-note">"the desk opens to an admin's wallet. sign in; what you may do follows from the address."</p>
-                <button type="button" class="dl-go" disabled=move || busy.get() on:click=move |_| enter(view, busy, err)>"SIGN IN WITH YOUR WALLET →"</button>
+                <crate::wallet_ui::WalletConnect on_connected=Callback::new(move |w| enter(view, busy, err, w)) />
             }.into_any();
         };
         if !v.is_admin() {

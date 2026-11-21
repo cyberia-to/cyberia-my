@@ -15,6 +15,7 @@ mod globe;
 mod land;
 mod market;
 mod market_admin;
+mod legend;
 mod me;
 mod nav;
 mod offers;
@@ -45,6 +46,7 @@ mod states;
 mod studio;
 mod terms;
 mod wallet;
+mod wallet_ui;
 mod world;
 
 fn main() {

@@ -238,7 +238,6 @@ pub fn DealPage() -> impl IntoView {
     let log = RwSignal::new(load_orders_log());
     let sent = RwSignal::new(load_sent());
     let eth = RwSignal::new(load_eth());
-    let eth_note = RwSignal::new(String::new());
     let me = neuron();
 
     let published = Memo::new(move |_| pdata.get().and_then(|d| d.deal).filter(|d| !d.status.is_empty()));
@@ -272,7 +271,6 @@ pub fn DealPage() -> impl IntoView {
         log,
         sent,
         eth,
-        eth_note,
         published,
         due,
         rent,

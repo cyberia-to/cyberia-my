@@ -33,11 +33,11 @@ pub fn submit(
 }
 
 /// Connect and prove the wallet; keep the session.
-pub fn enter(view: RwSignal<Option<View>>, busy: RwSignal<bool>, err: RwSignal<String>) {
+pub fn enter(view: RwSignal<Option<View>>, busy: RwSignal<bool>, err: RwSignal<String>, wallet: crate::eth::EthWallet) {
     busy.set(true);
     err.set(String::new());
     leptos::task::spawn_local(async move {
-        match market::sign_in().await {
+        match market::sign_in(wallet).await {
             Ok(v) => view.set(Some(v)),
             Err(e) => err.set(e),
         }
@@ -135,7 +135,7 @@ pub fn SellPage() -> impl IntoView {
     let p_wallet = move || match view.get() {
         None => view! {
             <p class="dl-note">"your wallet is your signature here. connect it, sign one line to prove the address, and every step after is an act you sign — committed, verifiable, yours."</p>
-            <button type="button" class="dl-go" disabled=move || busy.get() on:click=move |_| enter(view, busy, err)>"CONNECT YOUR WALLET →"</button>
+            <crate::wallet_ui::WalletConnect on_connected=Callback::new(move |w| enter(view, busy, err, w)) />
             <p class="dl-note">"MetaMask, Rabby or any wallet in this browser · nothing is paid and nothing is sent on a chain"</p>
         }.into_any(),
         Some(v) => {
