@@ -7423,3 +7423,68 @@ a.ad-tile:hover {
     text-align: left;
     cursor: pointer;
 }
+
+/* ─── mobile first, one pass ─────────────────────────────────────────────
+   a thumb, not a pointer: targets of 44 px, the header as one strip that
+   scrolls sideways instead of wrapping under the player, inputs at 16 px so
+   the page never zooms on focus, nothing wider than the screen, no rubber
+   band under the map, touch feedback where there was only :hover, and calm
+   motion for whoever asked for it. Held by tests/mobile.rs. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overscroll-behavior: none; -webkit-tap-highlight-color: rgba(0, 255, 65, 0.12); }
+img, video { max-width: 100%; }
+.cities-stage, .cab, .page-shell { overflow-wrap: break-word; }
+
+@media (max-width: 720px) {
+  /* the header: logo left, player right, the four places as one strip under them */
+  .chrome-inner { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  .header-row1 { gap: 6px; }
+  .logo-zone { min-height: 40px; }
+  .cyberia-nav { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px; padding: 2px 0 4px; scroll-snap-type: x proximity; margin-right: -10px; padding-right: 10px; }
+  .cyberia-nav::-webkit-scrollbar { display: none; }
+  .cyberia-nav .nav-btn { flex: none; scroll-snap-align: start; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 1.2px; border-radius: 10px; border-color: #1d1d1d; background: #070707; white-space: nowrap; }
+  .cyberia-nav .nav-btn.nav-here { border-color: rgba(0, 254, 0, 0.5); background: rgba(0, 254, 0, 0.08); }
+  .brand-flag { width: 32px; height: 32px; }
+
+  /* every control is a target */
+  .cta-btn, .cab-btn, button.cab-btn, .intent-commit, .gs-row, .ly-row, .globe-city { min-height: 44px; }
+  .nav-pad button { height: 44px; }
+  .nav-pad { grid-template-columns: 44px; }
+  .gr-x, .panel-x { width: 36px; height: 36px; font-size: 14px; }
+  .city-card { min-height: 0; }
+  .city-card .city-meta { flex-wrap: wrap; gap: 4px 12px; }
+  .cities-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cities-title { font-size: clamp(26px, 8vw, 34px); line-height: 1.1; }
+  .cities-lead { font-size: 14px; line-height: 1.5; }
+
+  /* forms: 16 px stops the zoom-on-focus, full width stops the sideways drag */
+  input, select, textarea { font-size: 16px; max-width: 100%; box-sizing: border-box; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select { min-height: 44px; }
+  textarea { min-height: 96px; }
+
+  /* tables and wide blocks scroll inside themselves, never the page */
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  pre, code { overflow-x: auto; max-width: 100%; }
+
+  /* the sheet and long lists hand the scroll back to the page edge cleanly */
+  .globe-host .cyberia-right, .gs-list, .cities-stage, .cab { overscroll-behavior: contain; }
+  .cities-stage, .cab { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+}
+
+/* a finger has no hover: pressing answers instead */
+@media (hover: none) {
+  .nav-btn:active, .cab-btn:active, .cta-btn:active, .gs-row:active, .globe-city:active, .cab-link:active { transform: scale(0.98); opacity: 0.85; }
+  .city-card:active, .cab-flat:active { border-color: #00ff41; transform: scale(0.99); }
+  .nav-btn, .cab-btn, .cta-btn, .city-card, .cab-flat { transition: transform 0.1s ease, opacity 0.1s ease, border-color 0.15s ease; }
+}
+
+/* the smallest phones */
+@media (max-width: 360px) {
+  .cab-steps { grid-template-columns: minmax(0, 1fr); }
+  .cf-facts { grid-template-columns: minmax(0, 1fr); }
+  .cab-title { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
