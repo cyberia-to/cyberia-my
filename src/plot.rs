@@ -98,12 +98,17 @@ pub fn PlotPage() -> impl IntoView {
             pdata.set(crate::orders::fetch_plot_data(&fid).await);
         });
     }
+    let offers = RwSignal::new(Vec::<crate::market::Offer>::new());
+    leptos::task::spawn_local(async move {
+        offers.set(crate::market::fetch_offers().await);
+    });
     let cx = RwSignal::new(None::<f64>);
     leptos::task::spawn_local(async move {
         cx.set(crate::orders::fetch_cx_level().await);
     });
     let log = RwSignal::new(load_orders_log());
     let jv = RwSignal::new(load_jv());
+    let starred = RwSignal::new(crate::my::load_watch().contains(&flat.id));
 
     let name = bare_name(&flat.name);
     let book = terms(&flat.id);
@@ -360,7 +365,9 @@ pub fn PlotPage() -> impl IntoView {
                 _ if fid_head.starts_with("avalon") => format!("joint venture · {}", AVALON_TRACKS.join(" · ")),
                 _ => book.map(|t| t.kind_line()).unwrap_or_else(|| "business ground".into()),
             },
-            FlatStatus::Transfer => "a deal is open on this flat".to_string(),
+            FlatStatus::Transfer => holder(&fid_head)
+                .map(|h| format!("rights in transfer to {h}"))
+                .unwrap_or_else(|| "a deal is open on this flat".into()),
             FlatStatus::Owned => holder(&fid_head).map(|h| format!("held by {h}")).unwrap_or_else(|| "held".into()),
             FlatStatus::Closed => "not on offer now".to_string(),
         }
@@ -459,7 +466,12 @@ pub fn PlotPage() -> impl IntoView {
                         {TABS.iter().enumerate().map(|(i, _)| view! { <i class=move || if seen.get()[i] { "on" } else { "" }></i> }).collect_view()}
                         <span>{move || { let n = seen.get().iter().filter(|s| **s).count(); if n == TABS.len() { "you have seen all of it".to_string() } else { format!("{n} of {} views seen · keys 1–4", TABS.len()) } }}</span>
                     </div>
+                    <crate::offers::FlatOffers plot=flat.id.clone() offers=offers />
                     {rail_cta}
+                    {move || (status.get() == FlatStatus::Owned).then(|| view! { <a class="pd-ask" href=format!("{BASE}/sell")>"you hold this flat? put it on the map →"</a> })}
+                    <button type="button" class=move || if starred.get() { "pd-star on" } else { "pd-star" } on:click={ let id = flat.id.clone(); move |_| starred.set(crate::my::toggle_watch(&id)) }>
+                        {move || if starred.get() { "★ ON YOUR SHELF · MY PLOTS" } else { "☆ WATCH THIS FLAT" }}
+                    </button>
                     <a class="pd-ask" href=support_href() target="_blank" rel="noopener">{format!("ask a person · @{SUPPORT_HANDLE}")}</a>
                     <a class="pd-back" href=format!("{BASE}/map?plot={}", flat.id)>"← the valley map"</a>
                 </aside>
